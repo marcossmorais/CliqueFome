@@ -1,0 +1,1068 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — Cardápio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Preencha com os MESMOS dados do projeto Supabase usados no
+  // index.html (Project Settings → API). Um único
+  // projeto Supabase serve várias lojas — cada dono só vê e edita a
+  // própria loja depois de logar (login criado direto no Supabase Auth).
+  const SUPABASE_URL = 'COLE_AQUI_A_URL_DO_SEU_PROJETO_SUPABASE';
+  const SUPABASE_ANON_KEY = 'COLE_AQUI_A_ANON_PUBLIC_KEY';
+</script>
+<style>
+  :root{
+    --preto: #1A1A1A;
+    --preto-2: #0D0D0D;
+    --cinza-escuro: #4D4D4D;
+    --cinza-medio: #8C8C8C;
+    --cinza-claro: #E0E0E0;
+    --branco-gelo: #F5F5F5;
+    --erro: #B23B3B;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(160deg, var(--preto) 0%, var(--preto-2) 100%);
+    color: var(--branco-gelo);
+    min-height: 100vh;
+    padding: 32px 20px 80px;
+  }
+  .wrap{ max-width: 880px; margin: 0 auto; }
+  h1{
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: clamp(26px, 5vw, 36px);
+    margin-bottom: 6px;
+  }
+  .sub{ opacity: .7; font-size: 14px; margin-bottom: 16px; }
+
+  .card{
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .card h2{ margin-bottom: 6px; font-size: 18px; }
+
+  label{ display:block; font-size: 13px; opacity: .8; margin-bottom: 6px; }
+  input[type=text], input[type=email], input[type=password], input[type=number], textarea, select{
+    width: 100%;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--branco-gelo);
+    font-family: inherit;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  textarea{ min-height: 80px; resize: vertical; }
+  input[type=file]{ margin-bottom: 16px; font-size: 13px; }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; margin-bottom: 16px; }
+  .checkbox-row input{ width: auto; margin: 0; }
+  .checkbox-row label{ margin: 0; }
+
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px){ .row2{ grid-template-columns: 1fr; } }
+
+  .switch-row{ display:flex; align-items:center; gap:12px; margin-bottom: 16px; font-size: 14px; }
+  .switch-row:last-child{ margin-bottom: 0; }
+  .switch{ position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+  .switch input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .switch-track{
+    position:absolute; inset:0; background: rgba(255,255,255,0.15);
+    border-radius:999px; transition: background .15s; pointer-events:none;
+  }
+  .switch-track::before{
+    content:''; position:absolute; width:18px; height:18px; left:3px; top:3px;
+    background:#fff; border-radius:50%; transition: transform .15s;
+  }
+  .switch input:checked ~ .switch-track{ background: var(--cinza-escuro); }
+  .switch input:checked ~ .switch-track::before{ transform: translateX(20px); }
+
+  button{
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 22px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .btn-primary{ background: var(--cinza-escuro); color: var(--branco-gelo); }
+  .btn-primary:hover{ background: var(--preto); }
+  .btn-ghost{
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: var(--branco-gelo);
+  }
+  .btn-danger{ background: var(--erro); color: var(--branco-gelo); }
+  .btn-small{ padding: 7px 14px; font-size: 13px; }
+
+  .msg{ font-size: 13px; margin-bottom: 16px; padding: 10px 12px; border-radius: 10px; }
+  .msg-erro{ background: rgba(178,59,59,0.15); color: #F0B4B4; border: 1px solid rgba(178,59,59,0.3); }
+  .msg-ok{ background: rgba(255,255,255,0.1); color: var(--branco-gelo); border: 1px solid rgba(255,255,255,0.25); }
+
+  #topBar{ display:flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  #logoutBtn{ display: none; }
+
+  #loginCard{ max-width: 380px; }
+
+  .produto-row{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .produto-row:last-child{ border-bottom: none; }
+  .produto-thumb{
+    width: 56px; height: 56px; border-radius: 10px; object-fit: cover;
+    background: rgba(255,255,255,0.08); flex-shrink: 0;
+  }
+  .produto-info{ flex: 1; min-width: 0; }
+  .produto-info .nome{ font-weight: 600; font-size: 15px; }
+  .produto-info .meta{ font-size: 12px; opacity: .65; margin-top: 2px; }
+  .esgotado{ color: #F0B4B4; }
+  .produto-acoes{ display:flex; gap: 8px; flex-shrink: 0; }
+
+  #listaVazia{ opacity: .6; font-size: 14px; }
+
+  /* Categorias */
+  .categoria-row{
+    display:flex; align-items:center; gap:14px; padding:10px 0;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  .categoria-row:last-child{ border-bottom:none; }
+  .categoria-row .nome{ flex:1; font-weight:600; font-size:14px; }
+  .categoria-row .meta{ font-size:12px; opacity:.6; }
+  .categoria-row .produto-acoes{ flex-shrink:0; }
+
+  /* Grupos de complemento */
+  .grupo-item{
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .grupo-item-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 10px; }
+  .grupo-item-header .nome{ font-weight:600; font-size:15px; }
+  .grupo-item-header .meta{ font-size:12px; opacity:.65; margin-top:2px; }
+  .complemento-row{
+    display:flex; align-items:center; gap:10px; padding:8px 0;
+    border-top:1px solid rgba(255,255,255,0.08); font-size:13px;
+  }
+  .complemento-row:first-of-type{ border-top:none; }
+  .complemento-row label{ display:flex; align-items:center; gap:8px; flex:1; margin:0; cursor:pointer; }
+  .complemento-row input[type=checkbox]{ width:auto; margin:0; }
+  .complemento-preco{ opacity:.7; white-space:nowrap; }
+  .complementos-vazio{ font-size: 12.5px; opacity: .55; padding: 6px 0; }
+  .complemento-form{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+  .complemento-form input{ margin-bottom:0; }
+  .complemento-form input[type=text]{ flex:1; min-width:140px; }
+  .complemento-form input[type=number]{ width:100px; }
+
+  /* Chips de grupo no formulário de produto */
+  .chip-list{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .chip-checkbox{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid rgba(255,255,255,0.2); border-radius:999px;
+    padding:7px 14px; font-size:12.5px; cursor:pointer;
+  }
+  .chip-checkbox input{ width:auto; margin:0; }
+  .chip-vazio{ font-size: 12.5px; opacity: .55; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div id="topBar">
+    <div>
+      <h1 id="tituloPagina">Admin — Cardápio</h1>
+      <p class="sub" id="subtituloPagina" style="margin-bottom:0;">Entre pra gerenciar sua loja</p>
+    </div>
+    <button id="logoutBtn" class="btn-ghost btn-small">Sair</button>
+  </div>
+
+  <div id="mensagem"></div>
+
+  <div id="loginCard" class="card">
+    <h2 style="margin-bottom:16px;">Entrar</h2>
+    <form id="loginForm">
+      <label for="loginEmail">Email</label>
+      <input type="email" id="loginEmail" required autocomplete="username">
+      <label for="loginSenha">Senha</label>
+      <input type="password" id="loginSenha" required autocomplete="current-password">
+      <button type="submit" class="btn-primary">Entrar</button>
+    </form>
+  </div>
+
+  <div id="criarLojaCard" class="card" style="display:none;">
+    <h2>Criar minha loja</h2>
+    <p class="sub">Isso cria sua loja neste painel. Depois é só cadastrar categorias, produtos e grupos de complemento.</p>
+    <form id="criarLojaForm">
+      <label for="lojaNomeInput">Nome da loja</label>
+      <input type="text" id="lojaNomeInput" required>
+
+      <label for="lojaSlugInput">Endereço do cardápio (slug)</label>
+      <input type="text" id="lojaSlugInput" required pattern="[a-z0-9-]+" placeholder="ex: burguer-do-joao">
+      <p class="sub" style="margin-top:-10px;">Vai aparecer como <code>?loja=<span id="slugPreview">seu-slug</span></code> no link do cardápio publicado.</p>
+
+      <label for="lojaNichoInput">Nicho</label>
+      <select id="lojaNichoInput">
+        <option value="Lanchonete">Lanchonete</option>
+        <option value="Hamburgueria">Hamburgueria</option>
+        <option value="Pizzaria">Pizzaria</option>
+        <option value="Açaiteria">Açaiteria</option>
+        <option value="Doceria">Doceria</option>
+        <option value="Outro">Outro</option>
+      </select>
+
+      <label for="lojaWhatsappInput">WhatsApp (DDI + DDD + número, só dígitos — ex: 5511999999999)</label>
+      <input type="text" id="lojaWhatsappInput" required>
+
+      <button type="submit" class="btn-primary" id="criarLojaBtn">Criar loja</button>
+    </form>
+  </div>
+
+  <div id="painel" style="display:none;">
+    <div class="card">
+      <h2>Dados da loja</h2>
+      <p class="sub">Link do cardápio: adicione <code id="slugQuery">?loja=</code> ao final da URL onde publicou o index.html.</p>
+      <form id="dadosLojaForm">
+        <label for="editNome">Nome</label>
+        <input type="text" id="editNome" required>
+        <div class="row2">
+          <div>
+            <label for="editNicho">Nicho</label>
+            <select id="editNicho">
+              <option value="Lanchonete">Lanchonete</option>
+              <option value="Hamburgueria">Hamburgueria</option>
+              <option value="Pizzaria">Pizzaria</option>
+              <option value="Açaiteria">Açaiteria</option>
+              <option value="Doceria">Doceria</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div>
+            <label for="editWhatsapp">WhatsApp</label>
+            <input type="text" id="editWhatsapp" required>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label for="editTaxaEntrega">Taxa de entrega (R$)</label>
+            <input type="number" id="editTaxaEntrega" step="0.01" min="0" value="0">
+          </div>
+          <div>
+            <label for="editPedidoMinimo">Pedido mínimo (R$)</label>
+            <input type="number" id="editPedidoMinimo" step="0.01" min="0" value="0">
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label for="editTempoMin">Tempo mín. de entrega (min)</label>
+            <input type="number" id="editTempoMin" step="1" min="0">
+          </div>
+          <div>
+            <label for="editTempoMax">Tempo máx. de entrega (min)</label>
+            <input type="number" id="editTempoMax" step="1" min="0">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary btn-small">Salvar dados da loja</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom:16px;">Status da loja</h2>
+      <div class="switch-row">
+        <label class="switch">
+          <input type="checkbox" id="statusDeliveryToggle">
+          <span class="switch-track"></span>
+        </label>
+        <span>Delivery ativo</span>
+      </div>
+      <div class="switch-row">
+        <label class="switch">
+          <input type="checkbox" id="statusEncomendasToggle">
+          <span class="switch-track"></span>
+        </label>
+        <span>Recebendo encomendas</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Categorias</h2>
+      <p class="sub">Ex: Lanches, Bebidas, Açaí, Sobremesas. Livre — cadastre quantas quiser.</p>
+      <form id="categoriaForm">
+        <input type="hidden" id="categoriaId">
+        <div class="row2">
+          <div>
+            <label for="categoriaNome">Nome</label>
+            <input type="text" id="categoriaNome" required>
+          </div>
+          <div>
+            <label for="categoriaOrdem">Ordem</label>
+            <input type="number" id="categoriaOrdem" step="1" min="0" value="0">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary btn-small" id="categoriaSalvarBtn">Adicionar categoria</button>
+        <button type="button" class="btn-ghost btn-small" id="categoriaCancelarBtn" style="display:none; margin-left:8px;">Cancelar edição</button>
+      </form>
+      <div id="categoriasVazia" style="display:none; margin-top:16px;">Nenhuma categoria cadastrada ainda.</div>
+      <div id="categoriasLista" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Grupos de complemento</h2>
+      <p class="sub">Ex: "Escolha o tamanho", "Escolha a borda", "Adicionais". Um grupo pode ser usado em vários produtos — cadastre uma vez e reaproveite.</p>
+      <form id="grupoForm">
+        <input type="hidden" id="grupoId">
+        <label for="grupoNome">Nome do grupo</label>
+        <input type="text" id="grupoNome" required>
+        <div class="row2">
+          <div>
+            <label for="grupoQtdMin">Mínimo de opções (0 = opcional)</label>
+            <input type="number" id="grupoQtdMin" min="0" step="1" value="0" required>
+          </div>
+          <div>
+            <label for="grupoQtdMax">Máximo de opções</label>
+            <input type="number" id="grupoQtdMax" min="1" step="1" value="1" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary btn-small" id="grupoSalvarBtn">Adicionar grupo</button>
+        <button type="button" class="btn-ghost btn-small" id="grupoCancelarBtn" style="display:none; margin-left:8px;">Cancelar edição</button>
+      </form>
+      <div id="gruposVazia" style="display:none; margin-top:16px;">Nenhum grupo cadastrado ainda.</div>
+      <div id="gruposLista" style="margin-top:16px;"></div>
+    </div>
+
+    <div class="card">
+      <h2 id="formTitulo">Novo item</h2>
+      <form id="produtoForm">
+        <input type="hidden" id="produtoId">
+        <label for="nome">Nome</label>
+        <input type="text" id="nome" required>
+
+        <label for="descricao">Descrição</label>
+        <textarea id="descricao"></textarea>
+
+        <div class="row2">
+          <div>
+            <label for="preco">Valor base (R$)</label>
+            <input type="number" id="preco" step="0.01" min="0" required>
+          </div>
+          <div>
+            <label for="ordem">Ordem no cardápio</label>
+            <input type="number" id="ordem" step="1" min="0">
+          </div>
+        </div>
+
+        <label for="categoriaSelect">Categoria</label>
+        <select id="categoriaSelect">
+          <option value="">Sem categoria</option>
+        </select>
+
+        <label>Grupos de complemento deste produto</label>
+        <div id="produtoGruposVazio" class="chip-vazio" style="display:none;">Cadastre um grupo de complemento acima pra poder vincular aqui.</div>
+        <div id="produtoGruposChips" class="chip-list"></div>
+
+        <label for="imagem">Foto (opcional — se não enviar, aparece um card com cor no lugar)</label>
+        <input type="file" id="imagem" accept="image/*">
+        <img id="imagemPreview" class="produto-thumb" style="display:none; margin-bottom:16px;">
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="ativo" checked>
+          <label for="ativo">Disponível no site</label>
+        </div>
+
+        <button type="submit" class="btn-primary" id="salvarBtn">Salvar</button>
+        <button type="button" class="btn-ghost" id="cancelarEdicaoBtn" style="display:none; margin-left:8px;">Cancelar edição</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom:8px;">Itens do cardápio</h2>
+      <div id="listaVazia" style="display:none;">Nenhum item cadastrado ainda.</div>
+      <div id="lista"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  if (typeof SUPABASE_URL === 'undefined' || !SUPABASE_URL || SUPABASE_URL.indexOf('COLE_AQUI') !== -1) {
+    document.getElementById('mensagem').innerHTML =
+      '<div class="msg msg-erro">Configuração pendente: preencha SUPABASE_URL e SUPABASE_ANON_KEY no topo do arquivo.</div>';
+    return;
+  }
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const BUCKET = 'imagens-cardapio';
+
+  const loginCard = document.getElementById('loginCard');
+  const criarLojaCard = document.getElementById('criarLojaCard');
+  const painel = document.getElementById('painel');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const mensagemEl = document.getElementById('mensagem');
+
+  let loja = null;
+  let categorias = [];
+  let grupos = [];
+  let produtos = [];
+
+  function mostrarMensagem(texto, tipo) {
+    mensagemEl.innerHTML = '<div class="msg msg-' + (tipo || 'erro') + '">' + texto + '</div>';
+    if (tipo === 'ok') setTimeout(function () { mensagemEl.innerHTML = ''; }, 3500);
+  }
+
+  function formatBRL(v) { return 'R$ ' + Number(v).toFixed(2).replace('.', ','); }
+
+  function slugify(texto) {
+    return texto
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  }
+
+  // --- LOGIN ---
+  document.getElementById('loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const senha = document.getElementById('loginSenha').value;
+    const { error } = await sb.auth.signInWithPassword({ email: email, password: senha });
+    if (error) {
+      mostrarMensagem('Não foi possível entrar: ' + error.message, 'erro');
+      return;
+    }
+    mensagemEl.innerHTML = '';
+    await depoisDoLogin();
+  });
+
+  logoutBtn.addEventListener('click', async function () {
+    await sb.auth.signOut();
+    loginCard.style.display = 'block';
+    criarLojaCard.style.display = 'none';
+    painel.style.display = 'none';
+    logoutBtn.style.display = 'none';
+    loja = null;
+  });
+
+  async function depoisDoLogin() {
+    loginCard.style.display = 'none';
+    logoutBtn.style.display = 'inline-block';
+
+    const { data: userData } = await sb.auth.getUser();
+    const { data: lojaData, error } = await sb.from('lojas').select('*').eq('dono_id', userData.user.id).maybeSingle();
+    if (error) {
+      mostrarMensagem('Erro ao carregar loja: ' + error.message, 'erro');
+      return;
+    }
+
+    if (!lojaData) {
+      criarLojaCard.style.display = 'block';
+      painel.style.display = 'none';
+      return;
+    }
+
+    loja = lojaData;
+    criarLojaCard.style.display = 'none';
+    painel.style.display = 'block';
+    document.getElementById('subtituloPagina').textContent = loja.nome;
+
+    preencherFormDadosLoja();
+    await carregarStatusLoja();
+    await carregarCategorias();
+    await carregarGrupos();
+    await carregarLista();
+  }
+
+  // --- CRIAR LOJA (primeiro login) ---
+  const lojaNomeInput = document.getElementById('lojaNomeInput');
+  const lojaSlugInput = document.getElementById('lojaSlugInput');
+  const slugPreview = document.getElementById('slugPreview');
+  let slugEditadoManualmente = false;
+
+  lojaNomeInput.addEventListener('input', function () {
+    if (slugEditadoManualmente) return;
+    lojaSlugInput.value = slugify(lojaNomeInput.value);
+    slugPreview.textContent = lojaSlugInput.value || 'seu-slug';
+  });
+  lojaSlugInput.addEventListener('input', function () {
+    slugEditadoManualmente = true;
+    lojaSlugInput.value = slugify(lojaSlugInput.value);
+    slugPreview.textContent = lojaSlugInput.value || 'seu-slug';
+  });
+
+  document.getElementById('criarLojaForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const btn = document.getElementById('criarLojaBtn');
+    btn.disabled = true;
+    btn.textContent = 'Criando...';
+    try {
+      const { data: userData } = await sb.auth.getUser();
+      const dados = {
+        dono_id: userData.user.id,
+        nome: lojaNomeInput.value.trim(),
+        slug: lojaSlugInput.value.trim(),
+        nicho: document.getElementById('lojaNichoInput').value,
+        whatsapp_numero: document.getElementById('lojaWhatsappInput').value.trim()
+      };
+      const { error } = await sb.from('lojas').insert(dados);
+      if (error) throw error;
+      mostrarMensagem('Loja criada com sucesso.', 'ok');
+      await depoisDoLogin();
+    } catch (err) {
+      mostrarMensagem('Erro ao criar loja: ' + err.message, 'erro');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Criar loja';
+    }
+  });
+
+  // --- DADOS DA LOJA ---
+  function preencherFormDadosLoja() {
+    document.getElementById('editNome').value = loja.nome;
+    document.getElementById('editNicho').value = loja.nicho || 'Outro';
+    document.getElementById('editWhatsapp').value = loja.whatsapp_numero || '';
+    document.getElementById('editTaxaEntrega').value = loja.taxa_entrega;
+    document.getElementById('editPedidoMinimo').value = loja.pedido_minimo;
+    document.getElementById('editTempoMin').value = loja.tempo_entrega_min || '';
+    document.getElementById('editTempoMax').value = loja.tempo_entrega_max || '';
+    document.getElementById('slugQuery').textContent = '?loja=' + loja.slug;
+  }
+
+  document.getElementById('dadosLojaForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const dados = {
+      nome: document.getElementById('editNome').value.trim(),
+      nicho: document.getElementById('editNicho').value,
+      whatsapp_numero: document.getElementById('editWhatsapp').value.trim(),
+      taxa_entrega: parseFloat(document.getElementById('editTaxaEntrega').value) || 0,
+      pedido_minimo: parseFloat(document.getElementById('editPedidoMinimo').value) || 0,
+      tempo_entrega_min: document.getElementById('editTempoMin').value ? parseInt(document.getElementById('editTempoMin').value, 10) : null,
+      tempo_entrega_max: document.getElementById('editTempoMax').value ? parseInt(document.getElementById('editTempoMax').value, 10) : null
+    };
+    const { error } = await sb.from('lojas').update(dados).eq('id', loja.id);
+    if (error) {
+      mostrarMensagem('Erro ao salvar dados da loja: ' + error.message, 'erro');
+      return;
+    }
+    Object.assign(loja, dados);
+    mostrarMensagem('Dados da loja salvos.', 'ok');
+  });
+
+  // --- STATUS DA LOJA (delivery / recebendo encomendas) ---
+  const statusDeliveryToggle = document.getElementById('statusDeliveryToggle');
+  const statusEncomendasToggle = document.getElementById('statusEncomendasToggle');
+
+  async function carregarStatusLoja() {
+    statusDeliveryToggle.checked = loja.delivery_ativo;
+    statusEncomendasToggle.checked = loja.recebendo_encomendas;
+  }
+
+  statusDeliveryToggle.addEventListener('change', async function () {
+    const { error } = await sb.from('lojas')
+      .update({ delivery_ativo: statusDeliveryToggle.checked })
+      .eq('id', loja.id);
+    if (!error) loja.delivery_ativo = statusDeliveryToggle.checked;
+    mostrarMensagem(error ? ('Erro ao atualizar: ' + error.message) : 'Status de delivery atualizado.', error ? 'erro' : 'ok');
+  });
+
+  statusEncomendasToggle.addEventListener('change', async function () {
+    const { error } = await sb.from('lojas')
+      .update({ recebendo_encomendas: statusEncomendasToggle.checked })
+      .eq('id', loja.id);
+    if (!error) loja.recebendo_encomendas = statusEncomendasToggle.checked;
+    mostrarMensagem(error ? ('Erro ao atualizar: ' + error.message) : 'Status de encomendas atualizado.', error ? 'erro' : 'ok');
+  });
+
+  // Se já tiver sessão salva no navegador, entra direto.
+  sb.auth.getSession().then(function (res) {
+    if (res.data.session) depoisDoLogin();
+  });
+
+  // --- CATEGORIAS ---
+  const categoriaForm = document.getElementById('categoriaForm');
+  const categoriaCancelarBtn = document.getElementById('categoriaCancelarBtn');
+  const categoriaSalvarBtn = document.getElementById('categoriaSalvarBtn');
+
+  function limparFormCategoria() {
+    categoriaForm.reset();
+    document.getElementById('categoriaId').value = '';
+    document.getElementById('categoriaOrdem').value = 0;
+    categoriaSalvarBtn.textContent = 'Adicionar categoria';
+    categoriaCancelarBtn.style.display = 'none';
+  }
+  categoriaCancelarBtn.addEventListener('click', limparFormCategoria);
+
+  categoriaForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const id = document.getElementById('categoriaId').value;
+    const dados = {
+      loja_id: loja.id,
+      nome: document.getElementById('categoriaNome').value.trim(),
+      ordem: parseInt(document.getElementById('categoriaOrdem').value, 10) || 0
+    };
+    let error;
+    if (id) ({ error } = await sb.from('categorias').update(dados).eq('id', id));
+    else ({ error } = await sb.from('categorias').insert(dados));
+    if (error) {
+      mostrarMensagem('Erro ao salvar categoria: ' + error.message, 'erro');
+      return;
+    }
+    mostrarMensagem('Categoria salva.', 'ok');
+    limparFormCategoria();
+    await carregarCategorias();
+  });
+
+  async function carregarCategorias() {
+    const { data, error } = await sb.from('categorias').select('*').eq('loja_id', loja.id).order('ordem');
+    if (error) {
+      mostrarMensagem('Erro ao carregar categorias: ' + error.message, 'erro');
+      return;
+    }
+    categorias = data || [];
+    renderCategorias();
+    renderCategoriaSelect();
+  }
+
+  function renderCategorias() {
+    const lista = document.getElementById('categoriasLista');
+    const vazia = document.getElementById('categoriasVazia');
+    if (categorias.length === 0) {
+      vazia.style.display = 'block';
+      lista.innerHTML = '';
+      return;
+    }
+    vazia.style.display = 'none';
+    lista.innerHTML = categorias.map(function (c) {
+      return '' +
+        '<div class="categoria-row" data-id="' + c.id + '">' +
+          '<div><span class="nome">' + c.nome + '</span> <span class="meta">· ordem ' + c.ordem + '</span></div>' +
+          '<div class="produto-acoes">' +
+            '<button type="button" class="btn-ghost btn-small" data-acao="editar">Editar</button>' +
+            '<button type="button" class="btn-danger btn-small" data-acao="apagar">Apagar</button>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderCategoriaSelect() {
+    const select = document.getElementById('categoriaSelect');
+    const atual = select.value;
+    select.innerHTML = '<option value="">Sem categoria</option>' +
+      categorias.map(function (c) { return '<option value="' + c.id + '">' + c.nome + '</option>'; }).join('');
+    select.value = atual;
+  }
+
+  document.getElementById('categoriasLista').addEventListener('click', async function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const row = e.target.closest('.categoria-row');
+    const id = row.dataset.id;
+    const acao = btn.dataset.acao;
+
+    if (acao === 'editar') {
+      const c = categorias.find(function (x) { return x.id === id; });
+      if (!c) return;
+      document.getElementById('categoriaId').value = c.id;
+      document.getElementById('categoriaNome').value = c.nome;
+      document.getElementById('categoriaOrdem').value = c.ordem;
+      categoriaSalvarBtn.textContent = 'Salvar categoria';
+      categoriaCancelarBtn.style.display = 'inline-block';
+      window.scrollTo({ top: row.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' });
+    }
+
+    if (acao === 'apagar') {
+      const c = categorias.find(function (x) { return x.id === id; });
+      if (!confirm('Apagar a categoria "' + (c ? c.nome : '') + '"? Produtos ligados a ela ficam sem categoria.')) return;
+      const { error } = await sb.from('categorias').delete().eq('id', id);
+      if (error) { mostrarMensagem('Erro ao apagar: ' + error.message, 'erro'); return; }
+      mostrarMensagem('Categoria apagada.', 'ok');
+      await carregarCategorias();
+      await carregarLista();
+    }
+  });
+
+  // --- GRUPOS DE COMPLEMENTO + COMPLEMENTOS ---
+  const grupoForm = document.getElementById('grupoForm');
+  const grupoCancelarBtn = document.getElementById('grupoCancelarBtn');
+  const grupoSalvarBtn = document.getElementById('grupoSalvarBtn');
+
+  function limparFormGrupo() {
+    grupoForm.reset();
+    document.getElementById('grupoId').value = '';
+    document.getElementById('grupoQtdMin').value = 0;
+    document.getElementById('grupoQtdMax').value = 1;
+    grupoSalvarBtn.textContent = 'Adicionar grupo';
+    grupoCancelarBtn.style.display = 'none';
+  }
+  grupoCancelarBtn.addEventListener('click', limparFormGrupo);
+
+  grupoForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const id = document.getElementById('grupoId').value;
+    const qtdMin = parseInt(document.getElementById('grupoQtdMin').value, 10) || 0;
+    const qtdMax = parseInt(document.getElementById('grupoQtdMax').value, 10) || 1;
+    if (qtdMax < qtdMin) {
+      mostrarMensagem('O máximo precisa ser maior ou igual ao mínimo.', 'erro');
+      return;
+    }
+    const dados = {
+      loja_id: loja.id,
+      nome: document.getElementById('grupoNome').value.trim(),
+      qtd_min: qtdMin,
+      qtd_max: qtdMax
+    };
+    let error;
+    if (id) ({ error } = await sb.from('grupos_complemento').update(dados).eq('id', id));
+    else ({ error } = await sb.from('grupos_complemento').insert(dados));
+    if (error) {
+      mostrarMensagem('Erro ao salvar grupo: ' + error.message, 'erro');
+      return;
+    }
+    mostrarMensagem('Grupo salvo.', 'ok');
+    limparFormGrupo();
+    await carregarGrupos();
+  });
+
+  async function carregarGrupos() {
+    const { data, error } = await sb.from('grupos_complemento')
+      .select('*, complementos(*)')
+      .eq('loja_id', loja.id)
+      .order('ordem');
+    if (error) {
+      mostrarMensagem('Erro ao carregar grupos: ' + error.message, 'erro');
+      return;
+    }
+    grupos = (data || []).map(function (g) {
+      g.complementos = (g.complementos || []).sort(function (a, b) { return a.ordem - b.ordem; });
+      return g;
+    });
+    renderGrupos();
+    renderProdutoGruposChips();
+  }
+
+  function grupoRegraTexto(g) {
+    return g.qtd_min > 0 ? ('Obrigatório · min ' + g.qtd_min + ' · máx ' + g.qtd_max) : ('Opcional · máx ' + g.qtd_max);
+  }
+
+  function renderGrupos() {
+    const lista = document.getElementById('gruposLista');
+    const vazia = document.getElementById('gruposVazia');
+    if (grupos.length === 0) {
+      vazia.style.display = 'block';
+      lista.innerHTML = '';
+      return;
+    }
+    vazia.style.display = 'none';
+    lista.innerHTML = grupos.map(function (g) {
+      const complementosHTML = g.complementos.length === 0
+        ? '<div class="complementos-vazio">Nenhuma opção cadastrada ainda.</div>'
+        : g.complementos.map(function (c) {
+            return '' +
+              '<div class="complemento-row" data-id="' + c.id + '">' +
+                '<label>' +
+                  '<input type="checkbox" class="complemento-ativo" ' + (c.ativo ? 'checked' : '') + '>' +
+                  '<span>' + c.nome + (c.ativo ? '' : ' <span class="esgotado">(pausado)</span>') + '</span>' +
+                '</label>' +
+                '<span class="complemento-preco">' + formatBRL(c.preco) + '</span>' +
+                '<button type="button" class="btn-danger btn-small" data-acao="apagar-complemento">Apagar</button>' +
+              '</div>';
+          }).join('');
+
+      return '' +
+        '<div class="grupo-item" data-id="' + g.id + '">' +
+          '<div class="grupo-item-header">' +
+            '<div><div class="nome">' + g.nome + '</div><div class="meta">' + grupoRegraTexto(g) + '</div></div>' +
+            '<div class="produto-acoes">' +
+              '<button type="button" class="btn-ghost btn-small" data-acao="editar-grupo">Editar</button>' +
+              '<button type="button" class="btn-danger btn-small" data-acao="apagar-grupo">Apagar</button>' +
+            '</div>' +
+          '</div>' +
+          complementosHTML +
+          '<div class="complemento-form">' +
+            '<input type="text" class="complemento-nome-input" placeholder="Nome da opção (ex: Bacon extra)">' +
+            '<input type="number" class="complemento-preco-input" placeholder="Preço" step="0.01" min="0" value="0">' +
+            '<button type="button" class="btn-ghost btn-small" data-acao="adicionar-complemento">Adicionar opção</button>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  document.getElementById('gruposLista').addEventListener('click', async function (e) {
+    const btn = e.target.closest('button');
+    const checkboxAtivo = e.target.closest('.complemento-ativo');
+
+    const grupoEl = e.target.closest('.grupo-item');
+    if (!grupoEl) return;
+    const grupoId = grupoEl.dataset.id;
+    const g = grupos.find(function (x) { return x.id === grupoId; });
+
+    if (checkboxAtivo) {
+      const row = e.target.closest('.complemento-row');
+      const complementoId = row.dataset.id;
+      const { error } = await sb.from('complementos').update({ ativo: checkboxAtivo.checked }).eq('id', complementoId);
+      if (error) { mostrarMensagem('Erro ao atualizar: ' + error.message, 'erro'); return; }
+      await carregarGrupos();
+      return;
+    }
+
+    if (!btn) return;
+    const acao = btn.dataset.acao;
+
+    if (acao === 'editar-grupo') {
+      document.getElementById('grupoId').value = g.id;
+      document.getElementById('grupoNome').value = g.nome;
+      document.getElementById('grupoQtdMin').value = g.qtd_min;
+      document.getElementById('grupoQtdMax').value = g.qtd_max;
+      grupoSalvarBtn.textContent = 'Salvar grupo';
+      grupoCancelarBtn.style.display = 'inline-block';
+      window.scrollTo({ top: grupoForm.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' });
+      return;
+    }
+
+    if (acao === 'apagar-grupo') {
+      if (!confirm('Apagar o grupo "' + g.nome + '" e todas as suas opções? Ele será removido de todos os produtos que o usam.')) return;
+      const { error } = await sb.from('grupos_complemento').delete().eq('id', g.id);
+      if (error) { mostrarMensagem('Erro ao apagar: ' + error.message, 'erro'); return; }
+      mostrarMensagem('Grupo apagado.', 'ok');
+      await carregarGrupos();
+      await carregarLista();
+      return;
+    }
+
+    if (acao === 'adicionar-complemento') {
+      const nomeInput = grupoEl.querySelector('.complemento-nome-input');
+      const precoInput = grupoEl.querySelector('.complemento-preco-input');
+      const nome = nomeInput.value.trim();
+      if (!nome) { mostrarMensagem('Digite o nome da opção.', 'erro'); return; }
+      const preco = parseFloat(precoInput.value) || 0;
+      const { error } = await sb.from('complementos').insert({ grupo_id: g.id, nome: nome, preco: preco });
+      if (error) { mostrarMensagem('Erro ao adicionar opção: ' + error.message, 'erro'); return; }
+      await carregarGrupos();
+      return;
+    }
+
+    if (acao === 'apagar-complemento') {
+      const row = e.target.closest('.complemento-row');
+      const complementoId = row.dataset.id;
+      if (!confirm('Apagar esta opção?')) return;
+      const { error } = await sb.from('complementos').delete().eq('id', complementoId);
+      if (error) { mostrarMensagem('Erro ao apagar: ' + error.message, 'erro'); return; }
+      await carregarGrupos();
+    }
+  });
+
+  function renderProdutoGruposChips(gruposSelecionados) {
+    const selecionados = gruposSelecionados || [];
+    const container = document.getElementById('produtoGruposChips');
+    const vazio = document.getElementById('produtoGruposVazio');
+    if (grupos.length === 0) {
+      vazio.style.display = 'block';
+      container.innerHTML = '';
+      return;
+    }
+    vazio.style.display = 'none';
+    container.innerHTML = grupos.map(function (g) {
+      const marcado = selecionados.indexOf(g.id) !== -1;
+      return '' +
+        '<label class="chip-checkbox">' +
+          '<input type="checkbox" class="produto-grupo-checkbox" value="' + g.id + '"' + (marcado ? ' checked' : '') + '>' +
+          '<span>' + g.nome + '</span>' +
+        '</label>';
+    }).join('');
+  }
+
+  // --- FORMULÁRIO DE PRODUTO ---
+  const form = document.getElementById('produtoForm');
+  const imagemInput = document.getElementById('imagem');
+  const imagemPreview = document.getElementById('imagemPreview');
+  const cancelarEdicaoBtn = document.getElementById('cancelarEdicaoBtn');
+  const formTitulo = document.getElementById('formTitulo');
+  let imagemUrlAtual = null;
+
+  imagemInput.addEventListener('change', function () {
+    const file = imagemInput.files[0];
+    if (!file) return;
+    imagemPreview.src = URL.createObjectURL(file);
+    imagemPreview.style.display = 'block';
+  });
+
+  function limparFormulario() {
+    form.reset();
+    document.getElementById('produtoId').value = '';
+    document.getElementById('ativo').checked = true;
+    imagemPreview.style.display = 'none';
+    imagemUrlAtual = null;
+    formTitulo.textContent = 'Novo item';
+    cancelarEdicaoBtn.style.display = 'none';
+    renderProdutoGruposChips([]);
+  }
+
+  cancelarEdicaoBtn.addEventListener('click', limparFormulario);
+
+  function preencherFormulario(p) {
+    document.getElementById('produtoId').value = p.id;
+    document.getElementById('nome').value = p.nome;
+    document.getElementById('descricao').value = p.descricao || '';
+    document.getElementById('preco').value = p.preco;
+    document.getElementById('ordem').value = p.ordem;
+    document.getElementById('categoriaSelect').value = p.categoria_id || '';
+    document.getElementById('ativo').checked = p.ativo;
+    imagemUrlAtual = p.imagem_url || null;
+    if (imagemUrlAtual) {
+      imagemPreview.src = imagemUrlAtual;
+      imagemPreview.style.display = 'block';
+    } else {
+      imagemPreview.style.display = 'none';
+    }
+    const gruposDoProduto = (p.produto_grupos || []).map(function (pg) { return pg.grupo_id; });
+    renderProdutoGruposChips(gruposDoProduto);
+    formTitulo.textContent = 'Editar: ' + p.nome;
+    cancelarEdicaoBtn.style.display = 'inline-block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const salvarBtn = document.getElementById('salvarBtn');
+    salvarBtn.disabled = true;
+    salvarBtn.textContent = 'Salvando...';
+
+    try {
+      let imagemUrl = imagemUrlAtual;
+      const file = imagemInput.files[0];
+      if (file) {
+        const caminho = loja.id + '/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const { error: uploadError } = await sb.storage.from(BUCKET).upload(caminho, file);
+        if (uploadError) throw uploadError;
+        imagemUrl = sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;
+      }
+
+      const id = document.getElementById('produtoId').value;
+      const dados = {
+        loja_id: loja.id,
+        nome: document.getElementById('nome').value.trim(),
+        descricao: document.getElementById('descricao').value.trim(),
+        preco: parseFloat(document.getElementById('preco').value),
+        ordem: parseInt(document.getElementById('ordem').value, 10) || 0,
+        categoria_id: document.getElementById('categoriaSelect').value || null,
+        ativo: document.getElementById('ativo').checked,
+        imagem_url: imagemUrl
+      };
+
+      let produtoId = id;
+      if (id) {
+        const { error } = await sb.from('produtos').update(dados).eq('id', id);
+        if (error) throw error;
+      } else {
+        const { data: inserido, error } = await sb.from('produtos').insert(dados).select().single();
+        if (error) throw error;
+        produtoId = inserido.id;
+      }
+
+      const gruposSelecionados = Array.from(document.querySelectorAll('.produto-grupo-checkbox:checked')).map(function (el) { return el.value; });
+      const { error: deleteError } = await sb.from('produto_grupos').delete().eq('produto_id', produtoId);
+      if (deleteError) throw deleteError;
+      if (gruposSelecionados.length > 0) {
+        const links = gruposSelecionados.map(function (grupoId, i) { return { produto_id: produtoId, grupo_id: grupoId, ordem: i }; });
+        const { error: linkError } = await sb.from('produto_grupos').insert(links);
+        if (linkError) throw linkError;
+      }
+
+      mostrarMensagem('Item salvo com sucesso.', 'ok');
+      limparFormulario();
+      await carregarLista();
+    } catch (err) {
+      mostrarMensagem('Erro ao salvar: ' + err.message, 'erro');
+    } finally {
+      salvarBtn.disabled = false;
+      salvarBtn.textContent = 'Salvar';
+    }
+  });
+
+  // --- LISTA DE PRODUTOS ---
+  const listaEl = document.getElementById('lista');
+  const listaVaziaEl = document.getElementById('listaVazia');
+
+  async function carregarLista() {
+    const { data, error } = await sb.from('produtos')
+      .select('*, produto_grupos(grupo_id)')
+      .eq('loja_id', loja.id)
+      .order('ordem');
+    if (error) {
+      mostrarMensagem('Erro ao carregar itens: ' + error.message, 'erro');
+      return;
+    }
+    produtos = data || [];
+    if (produtos.length === 0) {
+      listaVaziaEl.style.display = 'block';
+      listaEl.innerHTML = '';
+      return;
+    }
+    listaVaziaEl.style.display = 'none';
+    listaEl.innerHTML = produtos.map(function (p) {
+      const categoria = categorias.find(function (c) { return c.id === p.categoria_id; });
+      return '' +
+        '<div class="produto-row" data-id="' + p.id + '">' +
+          (p.imagem_url
+            ? '<img class="produto-thumb" src="' + p.imagem_url + '">'
+            : '<div class="produto-thumb"></div>') +
+          '<div class="produto-info">' +
+            '<div class="nome">' + p.nome + '</div>' +
+            '<div class="meta">' + formatBRL(p.preco) + ' · ' + (categoria ? categoria.nome : 'Sem categoria') + ' · ordem ' + p.ordem +
+              (p.ativo ? '' : ' · <span class="esgotado">esgotado</span>') +
+            '</div>' +
+          '</div>' +
+          '<div class="produto-acoes">' +
+            '<button class="btn-ghost btn-small" data-acao="editar">Editar</button>' +
+            '<button class="btn-danger btn-small" data-acao="apagar">Apagar</button>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  listaEl.addEventListener('click', async function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const row = e.target.closest('.produto-row');
+    const id = row.dataset.id;
+    const acao = btn.dataset.acao;
+
+    if (acao === 'editar') {
+      const p = produtos.find(function (x) { return x.id === id; });
+      if (p) preencherFormulario(p);
+    }
+
+    if (acao === 'apagar') {
+      const p = produtos.find(function (x) { return x.id === id; });
+      if (!confirm('Apagar "' + (p ? p.nome : 'este item') + '"? Não tem como desfazer.')) return;
+      const { error } = await sb.from('produtos').delete().eq('id', id);
+      if (error) {
+        mostrarMensagem('Erro ao apagar: ' + error.message, 'erro');
+        return;
+      }
+      mostrarMensagem('Item apagado.', 'ok');
+      await carregarLista();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
