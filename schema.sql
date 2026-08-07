@@ -5,7 +5,9 @@
 -- Como usar: Supabase → seu projeto → SQL Editor → New query → cola tudo
 -- → Run. Pode rodar uma vez só. Se precisar rodar de novo, apague as
 -- tabelas antes (na ordem: produto_grupos, complementos, grupos_complemento,
--- produtos, categorias, lojas;) senão vai dar erro de "já existe".
+-- produtos, categorias, lojas, admins;) senão vai dar erro de "já existe".
+-- Se seu projeto já tinha esse schema rodado ANTES da tabela "admins"
+-- existir, use schema-migracao-superadmin.sql em vez de rodar este de novo.
 --
 -- Modelo (o mesmo desenho usado por iFood, Anota AI, Goomer — funciona
 -- pra qualquer nicho sem mudar estrutura):
@@ -15,11 +17,15 @@
 -- Um grupo (ex: "Escolha o tamanho") define qtd_min/qtd_max de opções que
 -- o cliente pode escolher; qtd_min = 0 é opcional, qtd_min ≥ 1 é
 -- obrigatório. Cada opção (complemento) tem preço próprio (pode ser 0) e
--- pode ser reaproveitada em vários produtos.
+-- pode ser reaproveitada em vários produtos. A tabela "admins" é opcional:
+-- só quem estiver nela consegue criar/editar QUALQUER loja (útil pra criar
+-- lojas de teste antes do site abrir pra cadastro público).
 
 create table lojas (
   id uuid primary key default gen_random_uuid(),
-  dono_id uuid not null unique references auth.users(id) on delete cascade,
+  -- Sem "unique": um dono pode ter mais de uma loja (ex: o super admin
+  -- criando lojas de teste na própria conta antes de repassar pro dono real).
+  dono_id uuid not null references auth.users(id) on delete cascade,
   slug text not null unique check (slug ~ '^[a-z0-9-]+$'),
   nome text not null,
   nicho text,
@@ -43,18 +49,42 @@ create policy "lojas_select_publico"
   on lojas for select
   using (true);
 
--- Um usuário autenticado só cria a PRÓPRIA loja (uma por conta).
+-- Super admins: pessoas da equipe da plataforma (não donos de loja) que
+-- podem criar/editar QUALQUER loja — hoje serve pra criar lojas de teste
+-- antes do site abrir pra cadastro público. Tabela sem nenhuma policy de
+-- select: ninguém lê ela via API, só é consultada por dentro da função
+-- is_admin() abaixo (que roda com privilégio elevado via "security definer",
+-- então não esbarra na própria RLS da tabela).
+create table admins (
+  user_id uuid primary key references auth.users(id) on delete cascade
+);
+
+alter table admins enable row level security;
+
+create or replace function is_admin()
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (select 1 from admins where user_id = auth.uid());
+$$;
+
+grant execute on function is_admin() to authenticated;
+
+-- Um usuário autenticado cria a própria loja, ou (se for admin) qualquer loja.
 create policy "lojas_insert_dono"
   on lojas for insert
   to authenticated
-  with check (dono_id = auth.uid());
+  with check (dono_id = auth.uid() or is_admin());
 
--- E só edita a própria loja. Sem policy de delete de propósito — apagar
--- loja é uma ação sensível demais pra deixar solta no cliente Supabase.
+-- E só edita a própria loja (ou qualquer uma, se for admin). Sem policy de
+-- delete de propósito — apagar loja é uma ação sensível demais pra deixar
+-- solta no cliente Supabase.
 create policy "lojas_update_dono"
   on lojas for update
   to authenticated
-  using (dono_id = auth.uid());
+  using (dono_id = auth.uid() or is_admin());
 
 create table categorias (
   id uuid primary key default gen_random_uuid(),
@@ -74,8 +104,8 @@ create policy "categorias_select_publico"
 create policy "categorias_all_dono"
   on categorias for all
   to authenticated
-  using (loja_id in (select id from lojas where dono_id = auth.uid()))
-  with check (loja_id in (select id from lojas where dono_id = auth.uid()));
+  using (loja_id in (select id from lojas where dono_id = auth.uid()) or is_admin())
+  with check (loja_id in (select id from lojas where dono_id = auth.uid()) or is_admin());
 
 create table produtos (
   id uuid primary key default gen_random_uuid(),
@@ -102,8 +132,8 @@ create policy "produtos_select_publico"
 create policy "produtos_all_dono"
   on produtos for all
   to authenticated
-  using (loja_id in (select id from lojas where dono_id = auth.uid()))
-  with check (loja_id in (select id from lojas where dono_id = auth.uid()));
+  using (loja_id in (select id from lojas where dono_id = auth.uid()) or is_admin())
+  with check (loja_id in (select id from lojas where dono_id = auth.uid()) or is_admin());
 
 -- Grupo de complementos (ex: "Escolha o tamanho", "Escolha a borda",
 -- "Adicionais"). Pertence à loja, não ao produto, pra poder ser
@@ -129,8 +159,8 @@ create policy "grupos_complemento_select_publico"
 create policy "grupos_complemento_all_dono"
   on grupos_complemento for all
   to authenticated
-  using (loja_id in (select id from lojas where dono_id = auth.uid()))
-  with check (loja_id in (select id from lojas where dono_id = auth.uid()));
+  using (loja_id in (select id from lojas where dono_id = auth.uid()) or is_admin())
+  with check (loja_id in (select id from lojas where dono_id = auth.uid()) or is_admin());
 
 -- Opção dentro de um grupo (ex: "Grande", "Borda de catupiry", "Bacon
 -- extra"). Preço pode ser 0. "ativo = false" pausa só aquela opção (ex:
@@ -155,12 +185,12 @@ create policy "complementos_select_publico"
 create policy "complementos_all_dono"
   on complementos for all
   to authenticated
-  using (grupo_id in (
+  using (is_admin() or grupo_id in (
     select gc.id from grupos_complemento gc
     join lojas l on l.id = gc.loja_id
     where l.dono_id = auth.uid()
   ))
-  with check (grupo_id in (
+  with check (is_admin() or grupo_id in (
     select gc.id from grupos_complemento gc
     join lojas l on l.id = gc.loja_id
     where l.dono_id = auth.uid()
@@ -186,10 +216,10 @@ create policy "produto_grupos_select_publico"
 create policy "produto_grupos_all_dono"
   on produto_grupos for all
   to authenticated
-  using (produto_id in (
+  using (is_admin() or produto_id in (
     select p.id from produtos p join lojas l on l.id = p.loja_id where l.dono_id = auth.uid()
   ))
-  with check (produto_id in (
+  with check (is_admin() or produto_id in (
     select p.id from produtos p join lojas l on l.id = p.loja_id where l.dono_id = auth.uid()
   ));
 
@@ -212,7 +242,7 @@ create policy "imagens_cardapio_insert_dono"
   to authenticated
   with check (
     bucket_id = 'imagens-cardapio'
-    and (storage.foldername(name))[1] in (select id::text from lojas where dono_id = auth.uid())
+    and (is_admin() or (storage.foldername(name))[1] in (select id::text from lojas where dono_id = auth.uid()))
   );
 
 create policy "imagens_cardapio_update_dono"
@@ -220,7 +250,7 @@ create policy "imagens_cardapio_update_dono"
   to authenticated
   using (
     bucket_id = 'imagens-cardapio'
-    and (storage.foldername(name))[1] in (select id::text from lojas where dono_id = auth.uid())
+    and (is_admin() or (storage.foldername(name))[1] in (select id::text from lojas where dono_id = auth.uid()))
   );
 
 create policy "imagens_cardapio_delete_dono"
@@ -228,7 +258,7 @@ create policy "imagens_cardapio_delete_dono"
   to authenticated
   using (
     bucket_id = 'imagens-cardapio'
-    and (storage.foldername(name))[1] in (select id::text from lojas where dono_id = auth.uid())
+    and (is_admin() or (storage.foldername(name))[1] in (select id::text from lojas where dono_id = auth.uid()))
   );
 
 -- Não tem seed de exemplo aqui de propósito: os dados agora pertencem a
@@ -236,3 +266,9 @@ create policy "imagens_cardapio_delete_dono"
 -- loga pela primeira vez no admin.html e preenche o formulário
 -- "Criar minha loja". A partir daí, categorias/produtos/grupos são
 -- cadastrados pelo próprio admin.
+
+-- Pra virar super admin (poder criar/editar qualquer loja no admin.html,
+-- útil pra criar lojas de teste antes do site abrir pra cadastro público):
+-- troque o email abaixo pelo email do usuário (criado em Authentication →
+-- Users) e rode só essa linha.
+-- insert into admins (user_id) select id from auth.users where email = 'COLE_SEU_EMAIL_AQUI';

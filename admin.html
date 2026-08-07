@@ -27,6 +27,10 @@
     --branco-gelo: #F5F5F5;
     --erro: #B23B3B;
   }
+  /* Avisa o navegador que a página é de tema escuro, senão o popup nativo
+     do <select> sai com fundo claro e herda o texto claro do input — texto
+     ilegível. Com isso o Chrome/Firefox já desenham o popup em dark. */
+  :root{ color-scheme: dark; }
   *{ margin:0; padding:0; box-sizing:border-box; }
   body{
     font-family: 'Poppins', sans-serif;
@@ -67,6 +71,9 @@
     margin-bottom: 16px;
   }
   textarea{ min-height: 80px; resize: vertical; }
+  /* Fallback pra navegadores que não escurecem o popup do select sozinhos
+     mesmo com color-scheme (ex: Safari) — força cor legível nas opções. */
+  select option{ background: var(--preto-2); color: var(--branco-gelo); }
   input[type=file]{ margin-bottom: 16px; font-size: 13px; }
   .checkbox-row{ display:flex; align-items:center; gap:8px; margin-bottom: 16px; }
   .checkbox-row input{ width: auto; margin: 0; }
@@ -191,7 +198,10 @@
       <h1 id="tituloPagina">Admin — Cardápio</h1>
       <p class="sub" id="subtituloPagina" style="margin-bottom:0;">Entre pra gerenciar sua loja</p>
     </div>
-    <button id="logoutBtn" class="btn-ghost btn-small">Sair</button>
+    <div style="display:flex; gap:8px;">
+      <button id="trocarLojaBtn" class="btn-ghost btn-small" style="display:none;">Trocar de loja</button>
+      <button id="logoutBtn" class="btn-ghost btn-small">Sair</button>
+    </div>
   </div>
 
   <div id="mensagem"></div>
@@ -207,8 +217,16 @@
     </form>
   </div>
 
+  <div id="seletorLojasCard" class="card" style="display:none;">
+    <h2>Lojas</h2>
+    <p class="sub">Você está logado como super admin. Escolha uma loja pra gerenciar, ou crie uma nova (útil pra lojas de teste, antes do site abrir pra cadastro público).</p>
+    <button type="button" class="btn-primary btn-small" id="novaLojaBtn" style="margin-bottom:16px;">+ Nova loja</button>
+    <div id="seletorLojasVazia" style="display:none;">Nenhuma loja cadastrada ainda.</div>
+    <div id="seletorLojasLista"></div>
+  </div>
+
   <div id="criarLojaCard" class="card" style="display:none;">
-    <h2>Criar minha loja</h2>
+    <h2 id="criarLojaTitulo">Criar minha loja</h2>
     <p class="sub">Isso cria sua loja neste painel. Depois é só cadastrar categorias, produtos e grupos de complemento.</p>
     <form id="criarLojaForm">
       <label for="lojaNomeInput">Nome da loja</label>
@@ -232,6 +250,7 @@
       <input type="text" id="lojaWhatsappInput" required>
 
       <button type="submit" class="btn-primary" id="criarLojaBtn">Criar loja</button>
+      <button type="button" class="btn-ghost" id="voltarSeletorBtn" style="display:none; margin-left:8px;">Voltar</button>
     </form>
   </div>
 
@@ -411,12 +430,16 @@
   const BUCKET = 'imagens-cardapio';
 
   const loginCard = document.getElementById('loginCard');
+  const seletorLojasCard = document.getElementById('seletorLojasCard');
   const criarLojaCard = document.getElementById('criarLojaCard');
   const painel = document.getElementById('painel');
   const logoutBtn = document.getElementById('logoutBtn');
+  const trocarLojaBtn = document.getElementById('trocarLojaBtn');
   const mensagemEl = document.getElementById('mensagem');
 
   let loja = null;
+  let souAdmin = false;
+  let todasLojas = [];
   let categorias = [];
   let grupos = [];
   let produtos = [];
@@ -455,10 +478,14 @@
   logoutBtn.addEventListener('click', async function () {
     await sb.auth.signOut();
     loginCard.style.display = 'block';
+    seletorLojasCard.style.display = 'none';
     criarLojaCard.style.display = 'none';
     painel.style.display = 'none';
     logoutBtn.style.display = 'none';
+    trocarLojaBtn.style.display = 'none';
     loja = null;
+    souAdmin = false;
+    todasLojas = [];
   });
 
   async function depoisDoLogin() {
@@ -466,6 +493,14 @@
     logoutBtn.style.display = 'inline-block';
 
     const { data: userData } = await sb.auth.getUser();
+    const { data: adminData } = await sb.rpc('is_admin');
+    souAdmin = !!adminData;
+
+    if (souAdmin) {
+      await mostrarSeletorLojas();
+      return;
+    }
+
     const { data: lojaData, error } = await sb.from('lojas').select('*').eq('dono_id', userData.user.id).maybeSingle();
     if (error) {
       mostrarMensagem('Erro ao carregar loja: ' + error.message, 'erro');
@@ -478,10 +513,22 @@
       return;
     }
 
+    await abrirLoja(lojaData);
+  }
+
+  async function abrirLoja(lojaData) {
     loja = lojaData;
+    seletorLojasCard.style.display = 'none';
     criarLojaCard.style.display = 'none';
     painel.style.display = 'block';
-    document.getElementById('subtituloPagina').textContent = loja.nome;
+    trocarLojaBtn.style.display = souAdmin ? 'inline-block' : 'none';
+    document.getElementById('subtituloPagina').textContent = loja.nome + (souAdmin ? ' · modo super admin' : '');
+
+    // Reseta formulários pra não carregar dado de outra loja se o admin
+    // estiver trocando de loja no meio de uma edição.
+    limparFormulario();
+    limparFormCategoria();
+    limparFormGrupo();
 
     preencherFormDadosLoja();
     await carregarStatusLoja();
@@ -489,6 +536,64 @@
     await carregarGrupos();
     await carregarLista();
   }
+
+  // --- SELETOR DE LOJAS (só aparece pra super admin) ---
+  async function mostrarSeletorLojas() {
+    criarLojaCard.style.display = 'none';
+    painel.style.display = 'none';
+    trocarLojaBtn.style.display = 'none';
+    const { data, error } = await sb.from('lojas').select('*').order('created_at', { ascending: false });
+    if (error) {
+      mostrarMensagem('Erro ao carregar lojas: ' + error.message, 'erro');
+      return;
+    }
+    todasLojas = data || [];
+    seletorLojasCard.style.display = 'block';
+    renderSeletorLojas();
+  }
+
+  function renderSeletorLojas() {
+    const lista = document.getElementById('seletorLojasLista');
+    const vazia = document.getElementById('seletorLojasVazia');
+    if (todasLojas.length === 0) {
+      vazia.style.display = 'block';
+      lista.innerHTML = '';
+      return;
+    }
+    vazia.style.display = 'none';
+    lista.innerHTML = todasLojas.map(function (l) {
+      return '' +
+        '<div class="categoria-row" data-id="' + l.id + '">' +
+          '<div><span class="nome">' + l.nome + '</span> <span class="meta">· ' + (l.nicho || 'Sem nicho') + ' · ?loja=' + l.slug + '</span></div>' +
+          '<div class="produto-acoes"><button type="button" class="btn-primary btn-small" data-acao="gerenciar">Gerenciar</button></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  document.getElementById('seletorLojasLista').addEventListener('click', async function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const row = e.target.closest('.categoria-row');
+    const l = todasLojas.find(function (x) { return x.id === row.dataset.id; });
+    if (l) await abrirLoja(l);
+  });
+
+  document.getElementById('novaLojaBtn').addEventListener('click', function () {
+    seletorLojasCard.style.display = 'none';
+    criarLojaCard.style.display = 'block';
+    document.getElementById('criarLojaTitulo').textContent = 'Nova loja';
+    document.getElementById('voltarSeletorBtn').style.display = 'inline-block';
+  });
+
+  document.getElementById('voltarSeletorBtn').addEventListener('click', async function () {
+    criarLojaCard.style.display = 'none';
+    await mostrarSeletorLojas();
+  });
+
+  trocarLojaBtn.addEventListener('click', async function () {
+    painel.style.display = 'none';
+    await mostrarSeletorLojas();
+  });
 
   // --- CRIAR LOJA (primeiro login) ---
   const lojaNomeInput = document.getElementById('lojaNomeInput');
@@ -521,10 +626,14 @@
         nicho: document.getElementById('lojaNichoInput').value,
         whatsapp_numero: document.getElementById('lojaWhatsappInput').value.trim()
       };
-      const { error } = await sb.from('lojas').insert(dados);
+      const { data: nova, error } = await sb.from('lojas').insert(dados).select().single();
       if (error) throw error;
       mostrarMensagem('Loja criada com sucesso.', 'ok');
-      await depoisDoLogin();
+      document.getElementById('criarLojaForm').reset();
+      slugEditadoManualmente = false;
+      document.getElementById('criarLojaTitulo').textContent = 'Criar minha loja';
+      document.getElementById('voltarSeletorBtn').style.display = 'none';
+      await abrirLoja(nova);
     } catch (err) {
       mostrarMensagem('Erro ao criar loja: ' + err.message, 'erro');
     } finally {
