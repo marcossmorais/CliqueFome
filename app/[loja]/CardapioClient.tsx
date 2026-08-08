@@ -1,0 +1,307 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { TopoCardapio } from './TopoCardapio';
+import { HeroLoja } from './HeroLoja';
+import { ModalProduto } from './ModalProduto';
+import { Carrinho, type ModoEntrega } from './Carrinho';
+import {
+  formatBRL,
+  precoBase,
+  precoMinimo,
+  subtotalLinha,
+  type CategoriaPublica,
+  type EscolhaComplemento,
+  type LinhaCarrinho,
+  type LojaPublica,
+  type ProdutoPublico,
+} from '@/lib/cardapio/tipos';
+
+const ETIQUETAS: Record<string, string> = {
+  mais_pedido: 'Mais pedido',
+  novidade: 'Novidade',
+  recomendado: 'Recomendado',
+  edicao_limitada: 'Edição limitada',
+};
+
+// Carrinho por loja: sem o slug na chave, abrir o cardápio de outra loja
+// herdaria os itens da anterior.
+const chaveCarrinho = (slug: string) => `cf_carrinho_${slug}`;
+const CHAVE_NOME = 'cf_nome_cliente';
+
+// Constante fora do componente: passar [] literal faria o snapshot do
+// servidor mudar de identidade a cada render.
+const VAZIO: LinhaCarrinho[] = [];
+
+export function CardapioClient({
+  loja,
+  categorias,
+  produtos,
+}: {
+  loja: LojaPublica;
+  categorias: CategoriaPublica[];
+  produtos: ProdutoPublico[];
+}) {
+  const [linhas, setLinhas] = useLocalStorage<LinhaCarrinho[]>(chaveCarrinho(loja.slug), VAZIO);
+  const [busca, setBusca] = useState('');
+  const [categoriaId, setCategoriaId] = useState('todos');
+  const [produtoAberto, setProdutoAberto] = useState<ProdutoPublico | null>(null);
+  const [carrinhoAberto, setCarrinhoAberto] = useState(false);
+  const [nome, setNome] = useLocalStorage<string>(CHAVE_NOME, '');
+  const [endereco, setEndereco] = useState('');
+  const [modo, setModo] = useState<ModoEntrega>('retirada');
+  const [erro, setErro] = useState<string | null>(null);
+
+  const filtrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return produtos.filter((p) => {
+      if (categoriaId !== 'todos' && p.categoria_id !== categoriaId) return false;
+      if (termo && !`${p.nome} ${p.descricao || ''}`.toLowerCase().includes(termo)) return false;
+      return true;
+    });
+  }, [produtos, busca, categoriaId]);
+
+  const totalItens = linhas.reduce((s, l) => s + l.qty, 0);
+  const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
+  const taxa = Number(loja.taxa_entrega) || 0;
+  const totalGeral = subtotal + (modo === 'entrega' && linhas.length > 0 ? taxa : 0);
+
+  function idDaLinha(produtoId: string, escolhas: EscolhaComplemento[], obs: string) {
+    const chave = escolhas
+      .map((c) => c.complementoId)
+      .sort()
+      .join(',');
+    return `${produtoId}::${chave}::${obs}`;
+  }
+
+  function adicionar(p: ProdutoPublico, escolhas: EscolhaComplemento[], obs: string, qtd: number) {
+    const lineId = idDaLinha(p.id, escolhas, obs);
+    setLinhas((atual) => {
+      const existente = atual.find((l) => l.lineId === lineId);
+      if (existente) {
+        return atual.map((l) => (l.lineId === lineId ? { ...l, qty: l.qty + qtd } : l));
+      }
+      return [
+        ...atual,
+        {
+          lineId,
+          produtoId: p.id,
+          nome: p.nome,
+          precoUnit: precoBase(p),
+          complementos: escolhas,
+          observacao: obs,
+          qty: qtd,
+        },
+      ];
+    });
+    setProdutoAberto(null);
+  }
+
+  function aoClicarProduto(p: ProdutoPublico) {
+    // Esgotado não abre nem entra no carrinho. A trava fica aqui, no
+    // comportamento — não só no CSS, senão bastava um clique pra furar.
+    if (!p.ativo) return;
+    if (p.grupos.length > 0) {
+      setProdutoAberto(p);
+      return;
+    }
+    adicionar(p, [], '', 1);
+    setCarrinhoAberto(true);
+  }
+
+  function mudarQtd(lineId: string, delta: number) {
+    setLinhas((atual) =>
+      atual
+        .map((l) => (l.lineId === lineId ? { ...l, qty: l.qty + delta } : l))
+        .filter((l) => l.qty > 0)
+    );
+  }
+
+  function finalizar() {
+    setErro(null);
+    if (linhas.length === 0) return;
+
+    if (!nome.trim()) {
+      setErro('Informe seu nome.');
+      return;
+    }
+    if (modo === 'entrega' && !endereco.trim()) {
+      setErro('Informe o endereço de entrega.');
+      return;
+    }
+    const minimo = Number(loja.pedido_minimo) || 0;
+    if (modo === 'entrega' && minimo > 0 && subtotal < minimo) {
+      setErro(`Pedido mínimo pra entrega é ${formatBRL(minimo)}.`);
+      return;
+    }
+    if (modo === 'entrega' && !loja.delivery_ativo) {
+      setErro('A loja não está aceitando entregas no momento.');
+      return;
+    }
+
+    const texto = [
+      'Olá! Gostaria de fazer o seguinte pedido:',
+      '',
+      `Nome: ${nome.trim()}`,
+      '',
+      ...linhas.flatMap((l) => [
+        `${l.qty}x ${l.nome} - ${formatBRL(subtotalLinha(l))}`,
+        ...l.complementos.map((c) => `   + ${c.nome}${c.preco > 0 ? ` (${formatBRL(c.preco)})` : ''}`),
+        ...(l.observacao ? [`   Obs: ${l.observacao}`] : []),
+      ]),
+      '',
+      ...(modo === 'entrega'
+        ? [`Entrega no endereço: ${endereco.trim()}`, `Taxa de entrega: ${formatBRL(taxa)}`]
+        : ['Retirada no local']),
+      `Total: ${formatBRL(totalGeral)}`,
+    ].join('\n');
+
+    const numero = (loja.whatsapp_numero || '').replace(/\D/g, '');
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`, '_blank');
+  }
+
+  return (
+    <div style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
+      <TopoCardapio loja={loja} onAbrirCarrinho={() => setCarrinhoAberto(true)} />
+
+      <section id="cardapio" className="menu-section">
+        <HeroLoja loja={loja} />
+
+        <div className="menu-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Buscar no cardápio"
+            aria-label="Buscar no cardápio"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
+
+        <div className="menu-filters" role="group" aria-label="Filtrar cardápio por categoria">
+          <button
+            type="button"
+            className={'filter-btn' + (categoriaId === 'todos' ? ' active' : '')}
+            onClick={() => setCategoriaId('todos')}
+          >
+            Todos
+          </button>
+          {categorias.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={'filter-btn' + (categoriaId === c.id ? ' active' : '')}
+              onClick={() => setCategoriaId(c.id)}
+            >
+              {c.emoji ? c.emoji + ' ' : ''}
+              {c.nome}
+            </button>
+          ))}
+        </div>
+
+        <div className="menu-list">
+          {filtrados.length === 0 ? (
+            <p className="menu-status">Nenhum item encontrado.</p>
+          ) : (
+            filtrados.map((p) => {
+              const esgotado = !p.ativo;
+              const minimo = precoMinimo(p);
+              const base = precoBase(p);
+              return (
+                <article
+                  key={p.id}
+                  className={'menu-card' + (esgotado ? ' esgotado' : '')}
+                  onClick={() => aoClicarProduto(p)}
+                >
+                  <div className="menu-card-photo">
+                    {p.imagem_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- foto do catálogo da loja
+                      <img src={p.imagem_url} alt={p.nome} loading="lazy" />
+                    ) : (
+                      <span className="menu-emoji">🖼️</span>
+                    )}
+                    {esgotado && (
+                      <div className="fita-esgotado">
+                        <span>Esgotado</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="menu-card-body">
+                    <h3>{p.nome}</h3>
+                    {p.etiqueta && ETIQUETAS[p.etiqueta] && (
+                      <span className="menu-etiqueta">{ETIQUETAS[p.etiqueta]}</span>
+                    )}
+                    {p.descricao && <p className="menu-desc">{p.descricao}</p>}
+                    <div className="menu-card-footer">
+                      <span className="menu-price">
+                        {minimo > base && <span className="desde">A partir de</span>}
+                        {formatBRL(minimo > base ? minimo : base)}
+                      </span>
+                      {!esgotado && (
+                        <span className="btn-add" aria-hidden="true">
+                          +
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      {totalItens > 0 && (
+        <button type="button" className="floating-cart" aria-label="Ver carrinho" onClick={() => setCarrinhoAberto(true)}>
+          <span className="floating-cart-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="19" cy="21" r="1" />
+              <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
+            </svg>
+            <span className="badge cart-count">{totalItens}</span>
+          </span>
+          <span className="floating-cart-label">
+            Ver carrinho · {totalItens} {totalItens === 1 ? 'item' : 'itens'}
+          </span>
+          <span className="floating-cart-total">{formatBRL(totalGeral)}</span>
+        </button>
+      )}
+
+      {produtoAberto && (
+        <ModalProduto
+          produto={produtoAberto}
+          onFechar={() => setProdutoAberto(null)}
+          onAdicionar={(escolhas, obs, qtd) => {
+            adicionar(produtoAberto, escolhas, obs, qtd);
+            setCarrinhoAberto(true);
+          }}
+        />
+      )}
+
+      <Carrinho
+        loja={loja}
+        linhas={linhas}
+        aberto={carrinhoAberto}
+        nome={nome}
+        endereco={endereco}
+        modo={modo}
+        erro={erro}
+        onFechar={() => setCarrinhoAberto(false)}
+        onMudarQtd={mudarQtd}
+        onRemover={(lineId) => setLinhas((a) => a.filter((l) => l.lineId !== lineId))}
+        onNome={setNome}
+        onEndereco={setEndereco}
+        onModo={(m) => {
+          setModo(m);
+          setErro(null);
+        }}
+        onFinalizar={finalizar}
+      />
+    </div>
+  );
+}
