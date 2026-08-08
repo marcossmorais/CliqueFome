@@ -1,6 +1,6 @@
 -- Schema multi-tenant — várias lojas (restaurantes/lanchonetes/açaiterias/
 -- hamburguerias) em um único projeto Supabase.
--- Base: index.html + admin.html
+-- Base: cardapio.html + admin.html
 --
 -- Como usar: Supabase → seu projeto → SQL Editor → New query → cola tudo
 -- → Run. Pode rodar uma vez só. Se precisar rodar de novo, apague as
@@ -31,6 +31,11 @@ create table lojas (
   nicho text,
   logo_url text,
   banner_url text,
+  -- Cor da marca DA LOJA (não do CliqueFome): pinta a faixa do topo, os
+  -- botões e os destaques do cardápio, que é whitelabel.
+  cor_marca text not null default '#1E7A4E',
+  cidade text,
+  sobre text,
   whatsapp_numero text,
   tempo_entrega_min integer,
   tempo_entrega_max integer,
@@ -90,6 +95,9 @@ create table categorias (
   id uuid primary key default gen_random_uuid(),
   loja_id uuid not null references lojas(id) on delete cascade,
   nome text not null,
+  emoji text,
+  -- "ativo = false" esconde a categoria inteira do cardápio sem apagar nada.
+  ativo boolean not null default true,
   ordem integer not null default 0
 );
 
@@ -107,6 +115,8 @@ create policy "categorias_all_dono"
   using (loja_id in (select id from lojas where dono_id = auth.uid()) or is_admin())
   with check (loja_id in (select id from lojas where dono_id = auth.uid()) or is_admin());
 
+create sequence produtos_codigo_interno_seq start 10000;
+
 create table produtos (
   id uuid primary key default gen_random_uuid(),
   loja_id uuid not null references lojas(id) on delete cascade,
@@ -114,7 +124,28 @@ create table produtos (
   nome text not null,
   descricao text,
   preco numeric(10,2) not null,
+  -- Quando preenchido, é o preço que vale na venda e o normal aparece
+  -- riscado. null = sem promoção rolando.
+  preco_promocional numeric(10,2),
+  -- Custo entra em relatório de margem; nunca aparece pro cliente.
+  preco_custo numeric(10,2),
   imagem_url text,
+  -- Selo no card do produto. null = sem etiqueta.
+  etiqueta text check (etiqueta is null or etiqueta in ('mais_pedido','novidade','recomendado','edicao_limitada')),
+  -- Produto em destaque sobe pro topo do cardápio.
+  destaque boolean not null default false,
+  codigo_pdv text,
+  -- Código sequencial só pra referência rápida do dono ("me manda o 32886").
+  codigo_interno bigint default nextval('produtos_codigo_interno_seq'),
+  unidade_medida text,
+  -- Escondem, só neste produto, o campo de observação e os botões de
+  -- quantidade no cardápio.
+  esconder_observacao boolean not null default false,
+  esconder_quantidade boolean not null default false,
+  -- Disponibilidade: array vazio = sem restrição. dias_semana segue o
+  -- padrão do JS (0 = domingo … 6 = sábado).
+  dias_semana smallint[] not null default '{}',
+  tipos_pedido text[] not null default '{}',
   ativo boolean not null default true,
   ordem integer not null default 0,
   created_at timestamptz not null default now()
@@ -144,6 +175,17 @@ create table grupos_complemento (
   nome text not null,
   qtd_min integer not null default 0,
   qtd_max integer not null default 1,
+  -- Como o cliente escolhe dentro do grupo:
+  --   uma            = só uma opção (ex: tamanho)
+  --   varias         = mais de uma, sem repetir a mesma
+  --   varias_repetir = mais de uma, podendo repetir (ex: 2x bacon)
+  tipo_selecao text not null default 'uma' check (tipo_selecao in ('uma','varias','varias_repetir')),
+  -- Como o preço entra no total quando o cliente marca várias opções
+  -- (pizza meio a meio costuma usar média ou mais caro em vez de somar).
+  modo_preco text not null default 'soma' check (modo_preco in ('soma','media','maior','menor')),
+  -- Em quais tipos de pedido o grupo aparece. Vazio = todos.
+  tipos_pedido text[] not null default '{}',
+  ativo boolean not null default true,
   ordem integer not null default 0,
   constraint grupos_complemento_min_max check (qtd_min >= 0 and qtd_max >= qtd_min)
 );
@@ -169,7 +211,12 @@ create table complementos (
   id uuid primary key default gen_random_uuid(),
   grupo_id uuid not null references grupos_complemento(id) on delete cascade,
   nome text not null,
+  descricao text,
   preco numeric(10,2) not null default 0,
+  -- Quantas vezes a MESMA opção pode repetir quando a lista está no modo
+  -- "varias_repetir" (ex: no máximo 3x bacon). null = sem limite próprio.
+  qtd_max integer,
+  imagem_url text,
   ativo boolean not null default true,
   ordem integer not null default 0
 );
