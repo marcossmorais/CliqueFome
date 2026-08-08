@@ -6,6 +6,76 @@ O ledger completo da auditoria está em
 
 ## Bloqueando
 
+**Rodar `schema-migracao-checkout-publico.sql` — a persistência do checkout
+público (branch `checkout-persistente`).** Cria a idempotência, o rate
+limit em banco, `criar_pedido_publico_v1()`, fecha o UPDATE amplo em
+`pedidos` (SEC-06) com `transicionar_pedido()`/`marcar_pagamento_manual()`,
+liga Realtime na tabela e prepara `capacidades_checkout()`. Antes de rodar
+em produção:
+
+1. Rodar em staging primeiro. O arquivo tem um bloco de CONFERÊNCIA no fim
+   — as três últimas consultas devem voltar vazias/corretas (nenhuma policy
+   de UPDATE amplo sobrando, `anon` sem EXECUTE nas RPCs sensíveis,
+   `pedidos` na publicação de realtime).
+2. Testar com `anon`, com o dono da própria loja e com o dono de outra loja
+   (RLS + as duas RPCs novas) antes de liberar o Route Handler.
+3. Confirmar `SUPABASE_SERVICE_ROLE_KEY` na Vercel (já deve estar setada
+   pelo Delivery facilitado — é o mesmo client privilegiado, reaproveitado
+   em `lib/pedidos/servidor.ts`). Sem ela, a rota responde 503 em vez de
+   quebrar.
+4. Fazer deploy do backend com `CHECKOUT_PUBLICO_ATIVO=false` primeiro,
+   rodar um smoke test manual direto na rota, e só então tirar a variável
+   (ou setar qualquer valor diferente de `"false"`) pra ligar de vez. Ver
+   `.env.example`.
+5. Depois de confirmado em produção, criar um pedido de teste pelo
+   cardápio público e verificar que ele aparece em **Gestão de pedidos**
+   (coluna "Em andamento", status pendente) e no `/pedido/[token]` da
+   resposta.
+
+**Rollback sem apagar pedido nenhum:** `CHECKOUT_PUBLICO_ATIVO=false` desliga
+a rota na hora. O bloco ROLLBACK comentado no fim do arquivo SQL cobre
+reverter os grants, se precisar. Nenhum pedido já criado é afetado.
+
+**O que ficou fora desta rodada, documentado mas não implementado** (pra não
+fingir proteção que não existe):
+- **CAPTCHA real.** `TURNSTILE_SECRET_KEY` é opcional — sem ela, a
+  verificação é pulada. A defesa contra abuso hoje são só os limites em
+  banco (`consumir_cota_checkout`: 8/10min por IP+loja, 5/10min por
+  telefone+loja, teto de 5000/dia). Pra um lançamento maior, vale colocar
+  o widget do Turnstile no carrinho e configurar a chave.
+- **Tabela `pagamentos` separada.** O domínio está preparado
+  (`capacidades_checkout()` sempre devolve `pagamento_online_habilitado:
+  false`), mas a tabela com provider/referência externa/idempotência do
+  webhook futuro não foi criada — não há gateway pra justificar o schema
+  ainda. Ver seção "Pagamento online (Pro/Pro+)" abaixo.
+- **Teste de carga/concorrência real** da idempotência (duas requisições
+  literalmente simultâneas com a mesma chave). A lógica foi desenhada pra
+  isso (constraint única reserva a chave antes de criar o pedido — é o
+  índice do Postgres que serializa, não uma variável), mas só dá pra provar
+  de verdade com um teste contra um Supabase real, fora do alcance desta
+  sessão sem acesso à produção.
+- **E2E de navegador** do checkout completo (retirada, delivery, duplo
+  clique, mobile). `tests/checkout.test.mjs` cobre a validação de payload e
+  o hash de idempotência — lógica pura, sem servidor.
+
+## Pagamento online (Pro/Pro+)
+
+Preparado, não ligado. `capacidades_checkout(loja_id)` (SQL) sempre devolve
+`pagamento_online_habilitado: false` — não há gateway, webhook, assinatura
+nem antifraude prontos. Quando isso for construído:
+
+- Pro e Pro+ terão a **mesma** capacidade de pagamento online — nenhum dos
+  dois ganha preço, limite ou benefício além do que já está decidido.
+- Vai precisar de uma tabela `pagamentos` separada de `pedidos` (provider,
+  referência externa, valor, moeda, status, chave de idempotência própria).
+- O webhook deve validar assinatura sobre o raw body, rejeitar replay por
+  `provider_event_id` único, conferir pedido/loja/moeda/valor, e nunca
+  atualizar `pagamento_status` a partir de um redirect do navegador.
+- `status` (operacional) e `pagamento_status` continuam campos separados —
+  já é assim hoje.
+
+## Delivery facilitado
+
 **Rodar `schema-migracao-delivery-facilitado.sql`.** Cria
 `configuracoes_delivery`, `configuracoes_delivery_cidades` e as funções de
 cotação/limite. Sem isso, `config_delivery_publica` devolve `PGRST202` e o

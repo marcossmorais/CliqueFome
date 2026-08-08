@@ -3,6 +3,16 @@
 Atualizado em 2026-08-08, depois da auditoria `CF-AUDIT-20260808-a4844b1` e
 da primeira rodada de remediação.
 
+## Checkout público agora persiste pedido (2026-08-08, branch `checkout-persistente`)
+
+Implementado nesta rodada, **ainda não aplicado em produção** — depende de
+`schema-migracao-checkout-publico.sql` rodar no Supabase. Detalhe completo em
+[DECISIONS.md](DECISIONS.md#substituído--checkout-público-passa-a-persistir-todo-pedido-2026-08-08).
+Resumo: `POST /api/lojas/[slug]/pedidos` cria o pedido de verdade no banco
+(idempotente, com rate limit e RPC estreita), a Gestão de pedidos ganhou
+Realtime, e existe uma tela pública de acompanhamento em `/pedido/[token]`.
+Ver `docs/PENDING_TASKS.md` pra checklist de deploy.
+
 ## Onde estamos
 
 Migração de HTML/CSS/JS puro para Next.js concluída em telas. O que trava a

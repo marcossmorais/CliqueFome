@@ -1,0 +1,48 @@
+// Espelha exatamente o jsonb devolvido por pedido_por_token() em
+// schema-pedidos.sql / schema-migracao-pedidos.sql. Não expõe telefone nem
+// dono_id — a função já não devolve esses campos.
+export type PedidoTracking = {
+  numero: number;
+  status: string;
+  pagamento_status: string;
+  tipo: string;
+  cliente_nome: string;
+  endereco: string | null;
+  observacao: string | null;
+  forma_pagamento: string | null;
+  subtotal: number;
+  taxa_entrega: number;
+  total: number;
+  data_hora_agendada: string | null;
+  origem: string;
+  criado_em: string;
+  confirmado_em: string | null;
+  loja_nome: string;
+  loja_slug: string;
+  loja_cor: string | null;
+  loja_whatsapp: string | null;
+  itens: {
+    nome: string;
+    quantidade: number;
+    preco_unitario: number;
+    subtotal: number;
+    observacao: string | null;
+    opcoes: { grupo: string; nome: string; preco: number; quantidade: number }[];
+  }[];
+};
+
+export const NOMES_STATUS: Record<string, string> = {
+  pendente: 'Pendente — aguardando confirmação da loja',
+  confirmado: 'Confirmado',
+  em_preparo: 'Em preparo',
+  pronto: 'Pronto',
+  saiu_entrega: 'Saiu para entrega',
+  concluido: 'Concluído',
+  cancelado: 'Cancelado',
+};
+
+export const NOMES_PAGAMENTO: Record<string, string> = {
+  pendente: 'Pagamento pendente',
+  confirmado: 'Pagamento confirmado',
+  estornado: 'Pagamento estornado',
+};

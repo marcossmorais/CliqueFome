@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
-import { Carrinho, type CotacaoEstado, type ModoEntrega } from './Carrinho';
+import { Carrinho, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado } from './Carrinho';
 import {
   apareceNoTipo,
   ehCarrinhoValido,
@@ -39,6 +39,7 @@ const ETIQUETAS: Record<string, string> = {
 // herdaria os itens da anterior.
 const chaveCarrinho = (slug: string) => `cf_carrinho_${slug}`;
 const CHAVE_NOME = 'cf_nome_cliente';
+const CHAVE_TELEFONE = 'cf_telefone_cliente';
 
 // Constante fora do componente: passar [] literal faria o snapshot do
 // servidor mudar de identidade a cada render.
@@ -67,9 +68,18 @@ export function CardapioClient({
   const [produtoAberto, setProdutoAberto] = useState<ProdutoPublico | null>(null);
   const [carrinhoAberto, setCarrinhoAberto] = useState(false);
   const [nome, setNome] = useLocalStorage<string>(CHAVE_NOME, '');
+  const [telefone, setTelefone] = useLocalStorage<string>(CHAVE_TELEFONE, '');
   const [endereco, setEndereco] = useState('');
   const [modo, setModo] = useState<ModoEntrega>('retirada');
   const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [pedidoRegistrado, setPedidoRegistrado] = useState<PedidoRegistrado | null>(null);
+  // Uma chave por tentativa de checkout: sobrevive a retry (clique de novo
+  // depois de erro de rede) e só é trocada depois que um pedido é
+  // efetivamente criado — é o que garante que duplo clique ou timeout não
+  // viram dois pedidos (a garantia real é o índice único no banco; isto
+  // aqui só evita gerar chave nova a cada tentativa da mesma compra).
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const usaCotacaoDinamica = !!deliveryConfig?.configurada;
   const [cidadeEscolhida, setCidadeEscolhida] = useState(deliveryConfig?.cidade || '');
   const [cotacao, setCotacao] = useState<CotacaoEstado>(COTACAO_INICIAL);
@@ -214,12 +224,16 @@ export function CardapioClient({
     );
   }
 
-  function finalizar() {
+  async function finalizar() {
     setErro(null);
-    if (linhas.length === 0) return;
+    if (linhas.length === 0 || enviando) return;
 
     if (!nome.trim()) {
       setErro('Informe seu nome.');
+      return;
+    }
+    if (telefone.replace(/\D/g, '').length < 10) {
+      setErro('Informe um telefone válido com DDD.');
       return;
     }
     if (modo === 'entrega' && !endereco.trim()) {
@@ -242,37 +256,48 @@ export function CardapioClient({
 
     const enderecoFinal =
       modo === 'entrega' && cotacao.status === 'ok' ? cotacao.enderecoFormatado : endereco.trim();
-    const distanciaTexto =
-      modo === 'entrega' && cotacao.status === 'ok' && cotacao.distanciaKm != null
-        ? ` (~${cotacao.distanciaKm} km)`
-        : '';
 
-    const texto = [
-      'Olá! Gostaria de fazer o seguinte pedido:',
-      '',
-      `Nome: ${nome.trim()}`,
-      '',
-      ...linhas.flatMap((l) => [
-        `${l.qty}x ${l.nome} - ${formatBRL(subtotalLinha(l))}`,
-        // O preço da opção só aparece quando a lista soma. Em média/maior/
-        // menor o valor isolado não bate com o total da linha, e a loja
-        // recebia uma mensagem que parecia estar com a conta errada.
-        ...l.complementos.map((c) => {
-          const vezes = c.quantidade > 1 ? `${c.quantidade}x ` : '';
-          const valor = c.modoPreco === 'soma' && c.preco > 0 ? ` (${formatBRL(c.preco * c.quantidade)})` : '';
-          return `   + ${vezes}${c.nome}${valor}`;
+    setEnviando(true);
+    try {
+      const resposta = await fetch(`/api/lojas/${loja.slug}/pedidos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idempotencyKey,
+          clienteNome: nome.trim(),
+          clienteTelefone: telefone,
+          tipo: modo === 'entrega' ? 'delivery' : 'retirada',
+          endereco: modo === 'entrega' ? enderecoFinal : undefined,
+          totalEsperadoCentavos: Math.round(totalGeral * 100),
+          itens: linhas.map((l) => ({
+            produtoId: l.produtoId,
+            quantidade: l.qty,
+            observacao: l.observacao || undefined,
+            complementos: l.complementos.map((c) => ({
+              complementoId: c.complementoId,
+              quantidade: c.quantidade,
+            })),
+          })),
         }),
-        ...(l.observacao ? [`   Obs: ${l.observacao}`] : []),
-      ]),
-      '',
-      ...(modo === 'entrega'
-        ? [`Entrega no endereço: ${enderecoFinal}${distanciaTexto}`, `Taxa de entrega: ${formatBRL(taxa)}`]
-        : ['Retirada no local']),
-      `Total: ${formatBRL(totalGeral)}`,
-    ].join('\n');
+      });
+      const corpo = await resposta.json();
 
-    const numero = (loja.whatsapp_numero || '').replace(/\D/g, '');
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`, '_blank');
+      if (!resposta.ok) {
+        setErro(corpo.erro || 'Não foi possível registrar seu pedido. Tente novamente.');
+        setEnviando(false);
+        return;
+      }
+
+      // Só depois do commit no banco: limpa o carrinho e troca a chave de
+      // idempotência pra próxima compra ser uma tentativa nova.
+      atualizar(() => []);
+      setIdempotencyKey(crypto.randomUUID());
+      setPedidoRegistrado({ pedido: corpo.pedido, proximaAcao: corpo.proxima_acao });
+      setEnviando(false);
+    } catch {
+      setErro('Falha de conexão ao enviar seu pedido. Seu carrinho continua salvo — tente de novo.');
+      setEnviando(false);
+    }
   }
 
   return (
@@ -414,9 +439,12 @@ export function CardapioClient({
         linhas={linhas}
         aberto={carrinhoAberto}
         nome={nome}
+        telefone={telefone}
         endereco={endereco}
         modo={modo}
         erro={erro}
+        enviando={enviando}
+        pedidoRegistrado={pedidoRegistrado}
         deliveryConfig={deliveryConfig}
         cidadeEscolhida={cidadeEscolhida}
         cotacao={cotacao}
@@ -424,6 +452,7 @@ export function CardapioClient({
         onMudarQtd={mudarQtd}
         onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}
         onNome={setNome}
+        onTelefone={setTelefone}
         onEndereco={mudarEndereco}
         onCidade={mudarCidade}
         onCalcularFrete={calcularFrete}
@@ -432,6 +461,7 @@ export function CardapioClient({
           setErro(null);
         }}
         onFinalizar={finalizar}
+        onNovoPedido={() => setPedidoRegistrado(null)}
       />
     </div>
   );

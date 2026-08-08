@@ -17,6 +17,31 @@ export type CotacaoEstado =
   | { status: 'erro'; erro: string }
   | { status: 'ok'; taxa: number; distanciaKm: number | null; enderecoFormatado: string };
 
+/** Resposta oficial do backend depois do commit no banco — é o que a tela
+ * de sucesso mostra, nunca um recalculo feito no navegador. */
+export type PedidoRegistrado = {
+  pedido: {
+    numero: number;
+    token: string;
+    status: string;
+    pagamento_status: string;
+    subtotal: number;
+    taxa_entrega: number;
+    total: number;
+    tracking_url: string;
+  };
+  proximaAcao: { tipo: string; url: string };
+};
+
+/** Máscara só visual, (##) #####-####  — o servidor refaz a limpeza e
+ * valida os dígitos do zero, nunca confia neste formato. */
+function formatarTelefone(valor: string) {
+  const digitos = valor.replace(/\D/g, '').slice(0, 11);
+  if (digitos.length <= 2) return digitos;
+  if (digitos.length <= 7) return `(${digitos.slice(0, 2)}) ${digitos.slice(2)}`;
+  return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
+}
+
 /**
  * Estrutura e nomes de classe iguais aos do cardapio.html original — o CSS
  * veio de lá sem alteração, então divergir aqui quebra o layout.
@@ -26,9 +51,12 @@ export function Carrinho({
   linhas,
   aberto,
   nome,
+  telefone,
   endereco,
   modo,
   erro,
+  enviando,
+  pedidoRegistrado,
   deliveryConfig,
   cidadeEscolhida,
   cotacao,
@@ -36,19 +64,24 @@ export function Carrinho({
   onMudarQtd,
   onRemover,
   onNome,
+  onTelefone,
   onEndereco,
   onCidade,
   onCalcularFrete,
   onModo,
   onFinalizar,
+  onNovoPedido,
 }: {
   loja: LojaPublica;
   linhas: LinhaCarrinho[];
   aberto: boolean;
   nome: string;
+  telefone: string;
   endereco: string;
   modo: ModoEntrega;
   erro: string | null;
+  enviando: boolean;
+  pedidoRegistrado: PedidoRegistrado | null;
   deliveryConfig: ConfigDeliveryPublica | null;
   cidadeEscolhida: string;
   cotacao: CotacaoEstado;
@@ -56,11 +89,13 @@ export function Carrinho({
   onMudarQtd: (lineId: string, delta: number) => void;
   onRemover: (lineId: string) => void;
   onNome: (v: string) => void;
+  onTelefone: (v: string) => void;
   onEndereco: (v: string) => void;
   onCidade: (v: string) => void;
   onCalcularFrete: () => void;
   onModo: (m: ModoEntrega) => void;
   onFinalizar: () => void;
+  onNovoPedido: () => void;
 }) {
   const usaCotacaoDinamica = !!deliveryConfig?.configurada;
   const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
@@ -68,6 +103,50 @@ export function Carrinho({
   const total = subtotal + (modo === 'entrega' && linhas.length > 0 ? taxa : 0);
   const minimo = Number(loja.pedido_minimo) || 0;
   const abaixoDoMinimo = modo === 'entrega' && minimo > 0 && subtotal > 0 && subtotal < minimo;
+
+  if (pedidoRegistrado) {
+    const { pedido, proximaAcao } = pedidoRegistrado;
+    return (
+      <section id="carrinho" className={'cart-section' + (aberto ? ' open' : '')}>
+        <div className="cart-section-header">
+          <h2>Pedido registrado</h2>
+          <button type="button" className="cart-close" aria-label="Fechar carrinho" onClick={onFechar}>
+            ✕
+          </button>
+        </div>
+
+        <div className="cart-footer">
+          <p className="cart-item-price">
+            <strong>Pedido #{pedido.numero} registrado.</strong>
+          </p>
+          <p className="delivery-erro" role="status">
+            Pagamento pendente. Seu pedido ainda precisa ser confirmado pelo restaurante. Continue no
+            WhatsApp para combinar o pagamento e confirmar o atendimento.
+          </p>
+
+          <div className="cart-total-row">
+            <span>Total</span>
+            <span>{formatBRL(pedido.total)}</span>
+          </div>
+
+          <a
+            className="btn-primary btn-checkout"
+            href={proximaAcao.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Continuar no WhatsApp
+          </a>
+          <a className="btn-continue" href={pedido.tracking_url}>
+            Acompanhar meu pedido
+          </a>
+          <button type="button" className="btn-continue" onClick={onNovoPedido}>
+            Fazer novo pedido
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="carrinho" className={'cart-section' + (aberto ? ' open' : '')}>
@@ -142,7 +221,21 @@ export function Carrinho({
             id="nomeClienteInput"
             placeholder="Como podemos te chamar?"
             value={nome}
+            maxLength={80}
             onChange={(e) => onNome(e.target.value)}
+          />
+        </div>
+
+        <div className="delivery-address">
+          <label htmlFor="telefoneClienteInput">Seu telefone (com DDD)</label>
+          <input
+            type="tel"
+            id="telefoneClienteInput"
+            placeholder="(11) 91234-5678"
+            value={telefone}
+            autoComplete="tel"
+            maxLength={16}
+            onChange={(e) => onTelefone(formatarTelefone(e.target.value))}
           />
         </div>
 
@@ -225,10 +318,10 @@ export function Carrinho({
         <button
           type="button"
           className="btn-primary btn-checkout"
-          disabled={linhas.length === 0}
+          disabled={linhas.length === 0 || enviando}
           onClick={onFinalizar}
         >
-          Finalizar pedido no WhatsApp
+          {enviando ? 'Registrando pedido…' : 'Finalizar pedido'}
         </button>
         <button type="button" className="btn-continue" onClick={onFechar}>
           Continuar comprando
