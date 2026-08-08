@@ -4,14 +4,48 @@ Ordenadas por dependência: o que está em cima destrava o que está embaixo.
 O ledger completo da auditoria está em
 [REMEDIATION_STATUS.md](REMEDIATION_STATUS.md).
 
-## Bloqueando
+## Feito em 2026-08-08 (migration + deploy confirmados em produção)
 
-**Rodar `schema-migracao-checkout-publico.sql` — a persistência do checkout
-público (branch `checkout-persistente`).** Cria a idempotência, o rate
-limit em banco, `criar_pedido_publico_v1()`, fecha o UPDATE amplo em
-`pedidos` (SEC-06) com `transicionar_pedido()`/`marcar_pagamento_manual()`,
-liga Realtime na tabela e prepara `capacidades_checkout()`. Antes de rodar
-em produção:
+`schema-migracao-checkout-publico.sql` rodou em produção e foi confirmado
+por smoke test real: `POST /api/lojas/hamburgueria-teste/pedidos` respondeu
+`422` (validação de negócio, não `503` de config ausente) — prova que
+`SUPABASE_SERVICE_ROLE_KEY` está setada na Vercel e o caminho completo
+(Route Handler → RPC → banco) funciona em produção, não só localmente.
+`main` está publicado com: Delivery facilitado, persistência do checkout
+público, menu reorganizado com fundo verde, e agora **Cozinha (KDS)**.
+
+## Cozinha (KDS) — integrada em 2026-08-08
+
+Handoff recebido de outra sessão (branch `feature/cozinha-pedido-detalhado`,
+commits `20f183b` + `70247c9`, aplicados via `git am`) esperava exatamente o
+contrato de `transicionar_pedido()` que a persistência do checkout já tinha
+acabado de colocar em produção — nenhuma adaptação foi necessária em
+`lib/cozinha/acoes.ts`. Testado autenticado via Playwright: pedido avançou
+`confirmado → em_preparo → pronto`, contadores da fila atualizaram, zero
+erro de console. 11 testes unitários de `tests/cozinha/fluxo.test.mjs`
+passando.
+
+Gates de polimento que o handoff original listou e **ainda não foram
+feitos** (não bloqueiam o uso — a tela funciona sem eles):
+
+- **`pronto_em`** — coluna nova pra ordenar "Prontos para encaminhamento"
+  por quando ficou pronto, não por `criado_em`. Hoje a coluna "Prontos"
+  ordena por `criado_em` decrescente, que não é a mesma coisa.
+- **`pedidoEhEntrega` centralizado** — a lógica de "isso é uma entrega?"
+  (delivery, ou encomenda com endereço) está reimplementada em mais de um
+  lugar (Cozinha, Gestão). Devia virar uma função só, idealmente espelhada
+  no banco.
+- **Timezone da loja** nas datas exibidas (mesma pendência já registrada
+  pro resto do painel — hoje é `America/Sao_Paulo` fixo no código).
+- **Papel próprio de funcionário/cozinheiro.** Hoje quem acessa `/admin/kds`
+  é dono ou super admin, igual a qualquer outra tela — não há um login
+  "só cozinha".
+- **E2E autenticado em 320/375/desktop.** Testado nesta sessão só em
+  desktop (1280×900), via Playwright, uma vez.
+
+## Bloqueava (resolvido) — persistência do checkout público
+
+Antes de rodar em produção, o checklist era:
 
 1. Rodar em staging primeiro. O arquivo tem um bloco de CONFERÊNCIA no fim
    — as três últimas consultas devem voltar vazias/corretas (nenhuma policy
