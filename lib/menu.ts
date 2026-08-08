@@ -43,6 +43,7 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     grupo: 'Essenciais',
     itens: [
       { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', pronta: true },
+      { id: 'kds', nome: 'Cozinha', icone: 'kds', pronta: true },
       { id: 'historico', nome: 'Histórico de pedidos', icone: 'historico', pronta: true, desc: 'Pedidos entregues, retirados ou cancelados, com filtros e busca.' },
       { id: 'catalogo', nome: 'Catálogo', icone: 'catalogo', pronta: true },
       {
@@ -67,7 +68,6 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     grupo: 'Em breve',
     itens: [
       { id: 'mesas', nome: 'Mesas e comandas', icone: 'mesas', desc: 'Abrir mesa, lançar itens durante o consumo e fechar a conta com taxa de serviço.' },
-      { id: 'kds', nome: 'KDS — cozinha', icone: 'kds', desc: 'A cozinha vê o que preparar e marca item por item como pronto.' },
       { id: 'caixa', nome: 'Caixa', icone: 'caixa', desc: 'Abertura e fechamento com conferência, sangria, suprimento e resumo do movimento do dia.' },
       { id: 'entregadores', nome: 'Entregadores', icone: 'entregadores', desc: 'Cadastro dos seus motoboys pra vincular ao pedido na hora da entrega.' },
       { id: 'desempenho', nome: 'Desempenho', icone: 'desempenho', desc: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.' },
