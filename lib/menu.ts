@@ -57,7 +57,7 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     grupo: 'Gestão',
     itens: [
       { id: 'desempenho', nome: 'Desempenho', icone: 'desempenho', desc: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.' },
-      { id: 'historico', nome: 'Histórico de pedidos', icone: 'historico', desc: 'Todos os pedidos já feitos, com busca por cliente ou número e filtros avançados.' },
+      { id: 'historico', nome: 'Histórico de pedidos', icone: 'historico', pronta: true, desc: 'Pedidos entregues, retirados ou cancelados, com filtros e busca.' },
       { id: 'financeiro', nome: 'Financeiro', icone: 'financeiro', desc: 'Contas a pagar e a receber, fluxo de caixa e categorias financeiras.' },
       { id: 'fiscal', nome: 'Fiscal', icone: 'fiscal', desc: 'Emissão de notas dos pedidos direto pelo sistema.' },
     ],
