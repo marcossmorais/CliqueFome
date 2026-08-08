@@ -67,7 +67,7 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     itens: [
       { id: 'empresa', nome: 'Minha empresa', icone: 'empresa', pronta: true },
       { id: 'config', nome: 'Configurações', icone: 'config', desc: 'Impressão, agendamentos e integrações do sistema.' },
-      { id: 'avaliacoes', nome: 'Avaliações', icone: 'avaliacoes', desc: 'Veja o que os clientes acharam dos pedidos.' },
+      { id: 'avaliacoes', nome: 'Avaliações', icone: 'avaliacoes', pronta: true, desc: 'Configure avaliações de produtos e da marca conforme o plano da loja.' },
       { id: 'suporte', nome: 'Ajuda e suporte', icone: 'suporte', pronta: true, desc: 'Central de ajuda, tutoriais e canais de suporte.' },
     ],
   },
