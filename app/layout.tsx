@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Poppins, Inter } from 'next/font/google';
+import './base.css';
 
 // next/font faz self-host: as fontes deixam de vir do Google Fonts, o que
 // tira um host externo da CSP e remove o flash de fonte na primeira carga.
