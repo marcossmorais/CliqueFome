@@ -18,11 +18,14 @@ import {
 
 export function PainelDetalhePedido({
   pedido,
+  agora,
   onFechar,
   onAtualizado,
   onErro,
 }: {
   pedido: PedidoResumo;
+  /** null enquanto não hidratou — ver useAgora. */
+  agora: Date | null;
   onFechar: () => void;
   onAtualizado: () => Promise<void> | void;
   onErro: (msg: string) => void;
@@ -133,7 +136,7 @@ export function PainelDetalhePedido({
               <span>{pedido.cliente_telefone}</span>
             </div>
             <p className="dica" style={{ margin: '4px 0 0' }}>
-              Pedido feito {textoTempo(pedido)} · {NOMES_TIPO[pedido.tipo]}
+              Pedido feito {agora ? textoTempo(pedido, agora) : '—'} · {NOMES_TIPO[pedido.tipo]}
               {pedido.origem !== 'site' && ` · via ${NOMES_ORIGEM[pedido.origem]}`}
             </p>
           </div>
