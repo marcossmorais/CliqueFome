@@ -9,8 +9,8 @@ import { useAgora } from '@/hooks/useAgora';
 import { IconeBusca } from '@/components/admin/IconesCatalogo';
 import { CardPedido } from './CardPedido';
 import { PainelDetalhePedido } from './PainelDetalhePedido';
-import { ModalPedidoManual } from './ModalPedidoManual';
-import type { ProdutoPicker } from './page';
+import { NovoPedidoPainel } from './NovoPedidoPainel';
+import type { CategoriaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
 
 /**
  * Colunas fixas por status, como na referência — e não Kanban de arrastar:
@@ -32,12 +32,14 @@ export function PedidosClient({
   lojaId,
   lojaSlug,
   pedidosIniciais,
+  categorias,
   produtos,
 }: {
   lojaId: string;
   lojaSlug: string;
   pedidosIniciais: PedidoResumo[];
-  produtos: ProdutoPicker[];
+  categorias: CategoriaPublica[];
+  produtos: ProdutoPublico[];
 }) {
   const [pedidos, setPedidos] = useState(pedidosIniciais);
   const [busca, setBusca] = useState('');
@@ -282,8 +284,9 @@ export function PedidosClient({
       </div>
 
       {modalManualAberto && (
-        <ModalPedidoManual
+        <NovoPedidoPainel
           lojaSlug={lojaSlug}
+          categorias={categorias}
           produtos={produtos}
           onFechar={() => setModalManualAberto(false)}
           onErro={(m) => mostrarMsg(m, 'erro')}

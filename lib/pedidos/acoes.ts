@@ -95,6 +95,10 @@ export type ItemPedidoManual = {
   produto_id: string;
   quantidade: number;
   observacao?: string;
+  /** Mesmo formato que criar_pedido() já valida pro cardápio público —
+   * grupo obrigatório, qtd_min/qtd_max e preço são conferidos no banco,
+   * nunca aceitos do formulário. */
+  opcoes?: { complemento_id: string; quantidade: number }[];
 };
 
 /** Pedido lançado pelo dono da loja (telefone, Instagram etc). Passa pela
