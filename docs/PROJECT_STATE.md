@@ -26,6 +26,8 @@ pré-migração — e é justamente por isso que o achado SEC-02 existe).
 | Gestão de pedidos | `/admin/pedidos` | Testado com dados mockados — **falta teste com pedido real** |
 | Cardápio público | `/[loja]` | Testado contra o Supabase real, incluindo carrinho corrompido e logo patológica |
 | Conta sem loja | `/admin/criar-loja` | Rota criada nesta rodada; antes era 404 |
+| Ajuda e suporte | `/admin/suporte` | 11 perguntas, 6 tutoriais, busca sem acento. Chatbot e atendimento humano marcados "Em breve" |
+| Termos e privacidade | `/termos` | No ar com `noindex` e aviso de rascunho até os dados jurídicos serem preenchidos |
 
 ## Qualidade
 
@@ -34,7 +36,8 @@ pré-migração — e é justamente por isso que o achado SEC-02 existe).
 | `npm run build` | passa |
 | `npx tsc --noEmit` | passa |
 | `npx eslint .` | passa — **eram 5 erros**, corrigidos nesta rodada |
-| Testes automatizados | **zero.** Não existe harness. Toda verificação é manual |
+| `npm run test:ajuda` | 5/5 — os **únicos** testes do projeto, cobrindo só a busca da Central de Ajuda e o bloqueio dos dados jurídicos |
+| Testes do resto do sistema | **zero.** Preço, carrinho, pedidos e RLS não têm nenhum. Toda verificação é manual |
 
 O `eslint-config-next` reporta cada erro **duas vezes**: ele registra o
 plugin `@next/next` em dois blocos internos do `core-web-vitals`. É upstream,

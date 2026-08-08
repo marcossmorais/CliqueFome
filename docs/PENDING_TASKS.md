@@ -23,6 +23,17 @@ Rode o bloco de CONFERÊNCIA no fim do arquivo. O esperado:
 HTML estático com `innerHTML` está no ar e é stored XSS. Nenhuma linha de
 código resolve isso — é configuração de deploy.
 
+**Preencher os dados jurídicos de `/termos`.** A página está no ar, mas com
+`noindex` e um aviso visível de rascunho — de propósito, enquanto faltarem
+`CLIQUEFOME_RAZAO_SOCIAL`, `CLIQUEFOME_CNPJ`, `CLIQUEFOME_ENDERECO`,
+`CLIQUEFOME_EMAIL_PRIVACIDADE` e `CLIQUEFOME_DATA_VIGENCIA` nas variáveis de
+ambiente da Vercel. São variáveis de servidor, não levam `NEXT_PUBLIC_`.
+
+Preencher só apaga o aviso; **não** torna o texto válido. Ele é uma base
+técnica e precisa ser confrontado com os contratos, os fornecedores reais e a
+retenção de dados que o sistema de fato pratica, e revisado por profissional
+jurídico antes de virar documento definitivo.
+
 ## Decisões de produto que travam correções
 
 - **Onboarding** (SEC-04): cadastro por convite, aprovação ou aberto? Quota
@@ -84,7 +95,10 @@ Aparecem no menu com bolinha laranja e caem no placeholder "Em breve":
 
 Mesas e comandas · KDS (cozinha) · Caixa · Áreas de entrega · Entregadores ·
 Desempenho · Histórico de pedidos · Financeiro · Fiscal · Configurações ·
-Avaliações · Dúvidas e suporte
+Avaliações
+
+"Ajuda e suporte" saiu desta lista: `/admin/suporte` foi construída e está no
+ar.
 
 ## Sem cobertura de teste
 
