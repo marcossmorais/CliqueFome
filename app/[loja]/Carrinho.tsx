@@ -7,8 +7,15 @@ import {
   type LinhaCarrinho,
   type LojaPublica,
 } from '@/lib/cardapio/tipos';
+import type { ConfigDeliveryPublica } from '@/lib/delivery/tipos';
 
 export type ModoEntrega = 'retirada' | 'entrega';
+
+export type CotacaoEstado =
+  | { status: 'idle' }
+  | { status: 'calculando' }
+  | { status: 'erro'; erro: string }
+  | { status: 'ok'; taxa: number; distanciaKm: number | null; enderecoFormatado: string };
 
 /**
  * Estrutura e nomes de classe iguais aos do cardapio.html original — o CSS
@@ -22,11 +29,16 @@ export function Carrinho({
   endereco,
   modo,
   erro,
+  deliveryConfig,
+  cidadeEscolhida,
+  cotacao,
   onFechar,
   onMudarQtd,
   onRemover,
   onNome,
   onEndereco,
+  onCidade,
+  onCalcularFrete,
   onModo,
   onFinalizar,
 }: {
@@ -37,16 +49,22 @@ export function Carrinho({
   endereco: string;
   modo: ModoEntrega;
   erro: string | null;
+  deliveryConfig: ConfigDeliveryPublica | null;
+  cidadeEscolhida: string;
+  cotacao: CotacaoEstado;
   onFechar: () => void;
   onMudarQtd: (lineId: string, delta: number) => void;
   onRemover: (lineId: string) => void;
   onNome: (v: string) => void;
   onEndereco: (v: string) => void;
+  onCidade: (v: string) => void;
+  onCalcularFrete: () => void;
   onModo: (m: ModoEntrega) => void;
   onFinalizar: () => void;
 }) {
+  const usaCotacaoDinamica = !!deliveryConfig?.configurada;
   const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
-  const taxa = Number(loja.taxa_entrega) || 0;
+  const taxa = usaCotacaoDinamica ? (cotacao.status === 'ok' ? cotacao.taxa : 0) : Number(loja.taxa_entrega) || 0;
   const total = subtotal + (modo === 'entrega' && linhas.length > 0 ? taxa : 0);
   const minimo = Number(loja.pedido_minimo) || 0;
   const abaixoDoMinimo = modo === 'entrega' && minimo > 0 && subtotal > 0 && subtotal < minimo;
@@ -141,9 +159,30 @@ export function Carrinho({
             className={'delivery-btn' + (modo === 'entrega' ? ' active' : '')}
             onClick={() => onModo('entrega')}
           >
-            {taxa > 0 ? `Entrega (+ ${formatBRL(taxa)})` : 'Entrega'}
+            {!usaCotacaoDinamica && taxa > 0
+              ? `Entrega (+ ${formatBRL(taxa)})`
+              : usaCotacaoDinamica && cotacao.status === 'ok'
+                ? `Entrega (+ ${formatBRL(cotacao.taxa)})`
+                : 'Entrega'}
           </button>
         </div>
+
+        {modo === 'entrega' && usaCotacaoDinamica && deliveryConfig?.setor === 'avancado' && (
+          <div className="delivery-address">
+            <label htmlFor="cidadeInput">Cidade da entrega</label>
+            <select id="cidadeInput" value={cidadeEscolhida} onChange={(e) => onCidade(e.target.value)}>
+              <option value="" disabled>
+                Selecione a cidade
+              </option>
+              {deliveryConfig.cidade && <option value={deliveryConfig.cidade}>{deliveryConfig.cidade}</option>}
+              {deliveryConfig.cidades.map((c) => (
+                <option key={c.cidade} value={c.cidade}>
+                  {c.cidade}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {modo === 'entrega' && (
           <div className="delivery-address">
@@ -155,6 +194,21 @@ export function Carrinho({
               value={endereco}
               onChange={(e) => onEndereco(e.target.value)}
             />
+          </div>
+        )}
+
+        {modo === 'entrega' && usaCotacaoDinamica && (
+          <div className="delivery-address">
+            <button type="button" className="btn-continue" onClick={onCalcularFrete} disabled={cotacao.status === 'calculando'}>
+              {cotacao.status === 'calculando' ? 'Calculando frete…' : 'Calcular frete'}
+            </button>
+            {cotacao.status === 'ok' && (
+              <p className="cart-item-price">
+                Frete: {formatBRL(cotacao.taxa)}
+                {cotacao.distanciaKm != null ? ` · ${cotacao.distanciaKm} km` : ''}
+              </p>
+            )}
+            {cotacao.status === 'erro' && <p className="delivery-erro">{cotacao.erro}</p>}
           </div>
         )}
 

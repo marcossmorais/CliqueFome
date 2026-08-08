@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import './cardapio.css';
 import { CardapioClient } from './CardapioClient';
 import type { CategoriaPublica, GrupoPublico, LojaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
+import { normalizarSetor, normalizarTipoTaxa, type ConfigDeliveryPublica } from '@/lib/delivery/tipos';
 
 /**
  * Cardápio público de uma loja: /oh-taal
@@ -72,6 +73,7 @@ async function carregar(slug: string) {
   const [
     { data: categorias, error: erroCategorias },
     { data: produtos, error: erroProdutos },
+    { data: deliveryBruto },
   ] = await Promise.all([
     sb.from('categorias').select('id, nome, emoji, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
     sb
@@ -83,9 +85,30 @@ async function carregar(slug: string) {
       // Traz também os inativos: viram card "Esgotado" em vez de sumir, pra
       // o cliente ver que o item existe.
       .order('ordem'),
+    // RPC pública (SECURITY DEFINER): nunca falha por RLS, só devolve
+    // "configurada: false" quando a loja não tem delivery facilitado.
+    // Erro aqui não é fatal pro cardápio — cai no fallback de taxa_entrega.
+    sb.rpc('config_delivery_publica', { p_loja_id: loja.id }),
   ]);
   if (erroCategorias) throw new FalhaAoCarregar(erroCategorias.message);
   if (erroProdutos) throw new FalhaAoCarregar(erroProdutos.message);
+
+  const bruto = deliveryBruto as {
+    configurada: boolean;
+    tipo_taxa: string;
+    setor: string;
+    cidade: string | null;
+    cidades: { cidade: string; taxa: number }[];
+  } | null;
+  const deliveryConfig: ConfigDeliveryPublica | null = bruto
+    ? {
+        configurada: bruto.configurada,
+        tipoTaxa: normalizarTipoTaxa(bruto.tipo_taxa),
+        setor: normalizarSetor(bruto.setor),
+        cidade: bruto.cidade,
+        cidades: bruto.cidades || [],
+      }
+    : null;
 
   const hoje = diaDaSemanaNaLoja();
   const listaCategorias = (categorias as CategoriaPublica[]) || [];
@@ -121,6 +144,7 @@ async function carregar(slug: string) {
     loja: loja as LojaPublica,
     categorias: listaCategorias,
     produtos: produtosTratados,
+    deliveryConfig,
   };
 }
 
@@ -146,6 +170,11 @@ export default async function CardapioPage({ params }: { params: Promise<{ loja:
   if (!dados) notFound();
 
   return (
-    <CardapioClient loja={dados.loja} categorias={dados.categorias} produtos={dados.produtos} />
+    <CardapioClient
+      loja={dados.loja}
+      categorias={dados.categorias}
+      produtos={dados.produtos}
+      deliveryConfig={dados.deliveryConfig}
+    />
   );
 }

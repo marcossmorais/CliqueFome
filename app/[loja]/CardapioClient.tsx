@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
-import { Carrinho, type ModoEntrega } from './Carrinho';
+import { Carrinho, type CotacaoEstado, type ModoEntrega } from './Carrinho';
 import {
   apareceNoTipo,
   ehCarrinhoValido,
@@ -19,6 +19,7 @@ import {
   type LojaPublica,
   type ProdutoPublico,
 } from '@/lib/cardapio/tipos';
+import type { ConfigDeliveryPublica } from '@/lib/delivery/tipos';
 
 const TEXTO_AVISO: Record<string, string> = {
   removido: 'saiu do cardápio',
@@ -43,14 +44,18 @@ const CHAVE_NOME = 'cf_nome_cliente';
 // servidor mudar de identidade a cada render.
 const VAZIO: LinhaCarrinho[] = [];
 
+const COTACAO_INICIAL: CotacaoEstado = { status: 'idle' };
+
 export function CardapioClient({
   loja,
   categorias,
   produtos,
+  deliveryConfig,
 }: {
   loja: LojaPublica;
   categorias: CategoriaPublica[];
   produtos: ProdutoPublico[];
+  deliveryConfig: ConfigDeliveryPublica | null;
 }) {
   const [linhasSalvas, setLinhas] = useLocalStorage<LinhaCarrinho[]>(
     chaveCarrinho(loja.slug),
@@ -65,6 +70,59 @@ export function CardapioClient({
   const [endereco, setEndereco] = useState('');
   const [modo, setModo] = useState<ModoEntrega>('retirada');
   const [erro, setErro] = useState<string | null>(null);
+  const usaCotacaoDinamica = !!deliveryConfig?.configurada;
+  const [cidadeEscolhida, setCidadeEscolhida] = useState(deliveryConfig?.cidade || '');
+  const [cotacao, setCotacao] = useState<CotacaoEstado>(COTACAO_INICIAL);
+
+  function mudarEndereco(v: string) {
+    setEndereco(v);
+    // Qualquer edição no endereço invalida a cotação anterior: usar a taxa
+    // velha pra um endereço novo é exatamente o bug de "frete errado" que
+    // a spec pediu pra evitar.
+    if (cotacao.status !== 'idle') setCotacao(COTACAO_INICIAL);
+  }
+
+  function mudarCidade(v: string) {
+    setCidadeEscolhida(v);
+    if (cotacao.status !== 'idle') setCotacao(COTACAO_INICIAL);
+  }
+
+  async function calcularFrete() {
+    setErro(null);
+    if (endereco.trim().length < 8) {
+      setErro('Informe rua, número, bairro e CEP para calcular o frete.');
+      return;
+    }
+    if (deliveryConfig?.setor === 'avancado' && !cidadeEscolhida) {
+      setErro('Escolha a cidade da entrega.');
+      return;
+    }
+    setCotacao({ status: 'calculando' });
+    try {
+      const resposta = await fetch('/api/delivery/cotacao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lojaSlug: loja.slug,
+          endereco: endereco.trim(),
+          cidade: deliveryConfig?.setor === 'avancado' ? cidadeEscolhida : undefined,
+        }),
+      });
+      const corpo = await resposta.json();
+      if (!resposta.ok) {
+        setCotacao({ status: 'erro', erro: corpo.erro || 'Não foi possível calcular o frete.' });
+        return;
+      }
+      setCotacao({
+        status: 'ok',
+        taxa: Number(corpo.taxa),
+        distanciaKm: corpo.distanciaKm ?? null,
+        enderecoFormatado: corpo.enderecoFormatado,
+      });
+    } catch {
+      setCotacao({ status: 'erro', erro: 'Falha de conexão ao calcular o frete. Tente novamente.' });
+    }
+  }
 
   // O carrinho exibido é sempre o conferido contra o catálogo que acabou de
   // chegar do servidor — nunca o retrato salvo no navegador.
@@ -94,7 +152,11 @@ export function CardapioClient({
 
   const totalItens = linhas.reduce((s, l) => s + l.qty, 0);
   const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
-  const taxa = Number(loja.taxa_entrega) || 0;
+  // Loja sem delivery facilitado configurado cai na taxa fixa antiga, que
+  // já existia antes desta funcionalidade — nenhuma loja fica sem taxa por
+  // não ter migrado ainda.
+  const taxaEstatica = Number(loja.taxa_entrega) || 0;
+  const taxa = usaCotacaoDinamica ? (cotacao.status === 'ok' ? cotacao.taxa : 0) : taxaEstatica;
   const totalGeral = subtotal + (modo === 'entrega' && linhas.length > 0 ? taxa : 0);
 
   function idDaLinha(produtoId: string, escolhas: EscolhaComplemento[], obs: string) {
@@ -173,6 +235,17 @@ export function CardapioClient({
       setErro('A loja não está aceitando entregas no momento.');
       return;
     }
+    if (modo === 'entrega' && usaCotacaoDinamica && cotacao.status !== 'ok') {
+      setErro('Calcule o frete antes de finalizar o pedido.');
+      return;
+    }
+
+    const enderecoFinal =
+      modo === 'entrega' && cotacao.status === 'ok' ? cotacao.enderecoFormatado : endereco.trim();
+    const distanciaTexto =
+      modo === 'entrega' && cotacao.status === 'ok' && cotacao.distanciaKm != null
+        ? ` (~${cotacao.distanciaKm} km)`
+        : '';
 
     const texto = [
       'Olá! Gostaria de fazer o seguinte pedido:',
@@ -193,7 +266,7 @@ export function CardapioClient({
       ]),
       '',
       ...(modo === 'entrega'
-        ? [`Entrega no endereço: ${endereco.trim()}`, `Taxa de entrega: ${formatBRL(taxa)}`]
+        ? [`Entrega no endereço: ${enderecoFinal}${distanciaTexto}`, `Taxa de entrega: ${formatBRL(taxa)}`]
         : ['Retirada no local']),
       `Total: ${formatBRL(totalGeral)}`,
     ].join('\n');
@@ -344,11 +417,16 @@ export function CardapioClient({
         endereco={endereco}
         modo={modo}
         erro={erro}
+        deliveryConfig={deliveryConfig}
+        cidadeEscolhida={cidadeEscolhida}
+        cotacao={cotacao}
         onFechar={() => setCarrinhoAberto(false)}
         onMudarQtd={mudarQtd}
         onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}
         onNome={setNome}
-        onEndereco={setEndereco}
+        onEndereco={mudarEndereco}
+        onCidade={mudarCidade}
+        onCalcularFrete={calcularFrete}
         onModo={(m) => {
           setModo(m);
           setErro(null);

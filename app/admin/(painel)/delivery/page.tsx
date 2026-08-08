@@ -1,0 +1,26 @@
+import { ShellPainel } from '@/components/admin/ShellPainel';
+import { obterLojaAtual } from '@/lib/loja';
+import { DeliveryFacilitadoForm } from './DeliveryFacilitadoForm';
+
+/**
+ * Configuração de "Áreas de entrega" — hoje só cobre o Delivery facilitado
+ * (taxa única da cidade, ou taxa por km via Geoapify, mais o modo avançado
+ * com cidades vizinhas). Áreas por raio/polígono/bairro do menu original
+ * ficam para depois; o rótulo do menu já avisa isso.
+ *
+ * O carregamento inicial fica no client (DeliveryFacilitadoForm faz o GET)
+ * e não aqui no server: os valores (endereço, coordenadas, cidades) só
+ * existem atrás do client privilegiado, e replicar essa leitura aqui
+ * duplicaria a lógica de autorização que já vive em
+ * app/api/admin/delivery/configuracao/route.ts.
+ */
+export default async function DeliveryPage() {
+  const { loja, souAdmin } = await obterLojaAtual();
+  if (!loja) return null;
+
+  return (
+    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Áreas de entrega">
+      <DeliveryFacilitadoForm lojaId={loja.id} />
+    </ShellPainel>
+  );
+}

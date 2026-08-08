@@ -6,6 +6,38 @@ O ledger completo da auditoria está em
 
 ## Bloqueando
 
+**Rodar `schema-migracao-delivery-facilitado.sql`.** Cria
+`configuracoes_delivery`, `configuracoes_delivery_cidades` e as funções de
+cotação/limite. Sem isso, `config_delivery_publica` devolve `PGRST202` e o
+cardápio cai no fallback de `lojas.taxa_entrega` fixo — o que não quebra a
+loja, mas deixa a tela `/admin/delivery` sem ter o que carregar. Preencher
+antes na Vercel: `SUPABASE_SERVICE_ROLE_KEY`, `GEOAPIFY_API_KEY` e
+(recomendado) `DELIVERY_QUOTE_SECRET` — ver `.env.example`.
+
+O que já está pronto e testado (`tests/delivery.test.mjs`, `tsc --noEmit`,
+`eslint`, sem rodar contra produção ainda):
+- `/admin/delivery` — escolha entre setor **facilitado** (taxa única da
+  cidade, fixa ou por km) e **avançado** (mais cidades vizinhas com taxa fixa
+  própria cada).
+- `POST /api/delivery/cotacao` — cotação pública assinada (HMAC), usada pelo
+  carrinho do cardápio (`app/[loja]/Carrinho.tsx`); Geoapify só é chamado no
+  modo por km da cidade principal, nunca em taxa fixa nem cidade vizinha.
+- `taxa_maxima` (default R$ 40) e `distancia_maxima_km` barram cotações fora
+  do razoável antes de chegarem ao cliente — é a proteção contra o bug de
+  "frete de R$ 200" citado na spec.
+- Carrinho público: no modo entrega, se a loja tem delivery facilitado
+  configurado, o cliente precisa clicar em "Calcular frete" (endereço válido,
+  e cidade escolhida no modo avançado) antes de finalizar — qualquer edição
+  no endereço ou na cidade invalida a cotação anterior.
+
+O que ainda falta:
+- **Pedido público não persiste no banco** (segue WhatsApp-only). O token
+  HMAC da cotação é gerado e mostrado, mas nada no servidor valida esse token
+  hoje — ele só existe pronto pra quando `criar_pedido` passar a ser chamado
+  também pelo cardápio público (ver "Pedido público na versão Pro" abaixo).
+- Testar contra produção real com endereço de verdade (a suíte só cobre a
+  matemática pura de `lib/delivery/tipos.ts`).
+
 **Rodar `schema-migracao-seguranca.sql` (versão corrigida).** A primeira
 tentativa passou sem erro e sem efeito — `revoke select (coluna)` é ignorado
 enquanto existe `SELECT` na tabela. O arquivo agora revoga a tabela e concede
@@ -93,15 +125,18 @@ Os 28 pendentes estão detalhados no ledger. Os de maior peso:
 
 Aparecem no menu com bolinha laranja e caem no placeholder "Em breve":
 
-Mesas e comandas · KDS (cozinha) · Caixa · Áreas de entrega · Entregadores ·
+Mesas e comandas · KDS (cozinha) · Caixa · Entregadores ·
 Desempenho · Histórico de pedidos · Financeiro · Fiscal · Configurações ·
 Avaliações
 
-"Ajuda e suporte" saiu desta lista: `/admin/suporte` foi construída e está no
-ar.
+"Ajuda e suporte" e "Áreas de entrega" saíram desta lista: `/admin/suporte` e
+`/admin/delivery` foram construídas — a segunda ainda depende da migração
+rodar em produção (ver "Bloqueando" acima).
 
-## Sem cobertura de teste
+## Cobertura de teste
 
-O repositório tem **zero** teste automatizado. Tudo nesta rodada foi
-verificado à mão, no navegador, com o build de produção. Nada disso pega
-regressão amanhã.
+`tests/ajuda-suporte.test.mjs`, `tests/historico-pedidos.test.mjs`,
+`tests/avaliacoes.test.mjs` e `tests/delivery.test.mjs` (`npm run
+test:delivery`) cobrem lógica pura. Fluxos de UI (catálogo, pedidos,
+carrinho, formulário de delivery) continuam só verificados à mão, no
+navegador — nada disso pega regressão de layout ou de integração amanhã.

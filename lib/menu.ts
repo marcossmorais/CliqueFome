@@ -49,7 +49,13 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
   {
     grupo: 'Entrega',
     itens: [
-      { id: 'delivery', nome: 'Áreas de entrega', icone: 'delivery', desc: 'Áreas por raio, polígono ou bairro, cada uma com taxa e tempo de entrega próprios.' },
+      {
+        id: 'delivery',
+        nome: 'Áreas de entrega',
+        icone: 'delivery',
+        pronta: true,
+        desc: 'Delivery facilitado: taxa única, por distância ou por cidade vizinha.',
+      },
       { id: 'entregadores', nome: 'Entregadores', icone: 'entregadores', desc: 'Cadastro dos seus motoboys pra vincular ao pedido na hora da entrega.' },
     ],
   },
