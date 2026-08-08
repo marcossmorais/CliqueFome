@@ -2,6 +2,13 @@
 -- + data/hora combinada), origem do pedido e suporte a pedido criado
 -- manualmente pelo dono da loja (telefone, Instagram etc).
 --
+-- Traz junto o ENDURECIMENTO de criar_pedido(): a versão de
+-- schema-pedidos.sql valida a quantidade do item, mas aceita qualquer
+-- complemento de qualquer produto, em qualquer quantidade — inclusive
+-- negativa, que abate o total. Aqui entram vínculo produto_grupos,
+-- qtd_min/qtd_max, tipo_selecao e tetos de payload. Rodar isto substitui a
+-- definição antiga da função.
+--
 -- Como usar: Supabase → SQL Editor → New query → cola tudo → Run.
 -- Precisa do schema-pedidos.sql já aplicado antes. Seguro rodar mais de
 -- uma vez.
@@ -25,6 +32,29 @@ alter table pedidos add column if not exists origem text not null default 'site'
 
 create index if not exists idx_pedidos_agendado on pedidos(loja_id, data_hora_agendada)
   where data_hora_agendada is not null;
+
+-- ---------------------------------------------------------------
+-- CATÁLOGO: preço nunca negativo
+-- ---------------------------------------------------------------
+-- criar_pedido() confia no preço do catálogo pra fazer a conta. Sem estes
+-- CHECKs, um preço negativo cadastrado no painel vira desconto em pedido —
+-- a validação do formulário não é fronteira de segurança.
+-- Se algum destes falhar, existe dado negativo gravado: rode o select
+-- comentado ao lado pra achar e corrigir antes de tentar de novo.
+--   select id, nome, preco, preco_promocional from produtos where preco < 0 or preco_promocional < 0;
+--   select id, nome, preco from complementos where preco < 0;
+alter table produtos drop constraint if exists produtos_preco_nao_negativo;
+alter table produtos add constraint produtos_preco_nao_negativo
+  check (preco >= 0 and (preco_promocional is null or preco_promocional >= 0)
+         and (preco_custo is null or preco_custo >= 0));
+
+alter table complementos drop constraint if exists complementos_preco_nao_negativo;
+alter table complementos add constraint complementos_preco_nao_negativo
+  check (preco >= 0);
+
+alter table lojas drop constraint if exists lojas_valores_nao_negativos;
+alter table lojas add constraint lojas_valores_nao_negativos
+  check (taxa_entrega >= 0 and pedido_minimo >= 0);
 
 -- ---------------------------------------------------------------
 -- criar_pedido() — adiciona encomenda, origem e status inicial manual
@@ -71,6 +101,11 @@ declare
   v_precos numeric[];
   v_status_final text := 'pendente';
   v_sou_dono boolean := false;
+  -- Validação de complementos (ver bloco "regras do grupo" abaixo).
+  v_opcoes jsonb;
+  v_qtd_opcao integer;
+  v_escolhas integer;
+  v_distintas integer;
 begin
   if p_cliente_nome is null or length(trim(p_cliente_nome)) < 2 then
     raise exception 'Informe o nome de quem está pedindo.';
@@ -78,11 +113,34 @@ begin
   if p_cliente_telefone is null or length(regexp_replace(p_cliente_telefone, '\D', '', 'g')) < 10 then
     raise exception 'Informe um telefone válido com DDD.';
   end if;
-  if p_itens is null or jsonb_array_length(p_itens) = 0 then
+  if p_itens is null or jsonb_typeof(p_itens) <> 'array' or jsonb_array_length(p_itens) = 0 then
     raise exception 'O pedido está vazio.';
   end if;
   if p_tipo not in ('delivery','retirada','balcao','mesa','encomenda') then
     raise exception 'Tipo de pedido inválido.';
+  end if;
+
+  -- Tetos de payload. A função é chamável por anon: sem isso, um único POST
+  -- pode mandar um array gigante e transformar a RPC em amplificador de
+  -- CPU/armazenamento. Os limites são folgados pro uso real e baratos de
+  -- checar antes de qualquer ida ao catálogo.
+  if jsonb_array_length(p_itens) > 100 then
+    raise exception 'Pedido com itens demais.';
+  end if;
+  if length(p_cliente_nome) > 80 then
+    raise exception 'Nome muito longo.';
+  end if;
+  if length(p_cliente_telefone) > 20 then
+    raise exception 'Telefone inválido.';
+  end if;
+  if p_endereco is not null and length(p_endereco) > 300 then
+    raise exception 'Endereço muito longo.';
+  end if;
+  if p_observacao is not null and length(p_observacao) > 500 then
+    raise exception 'Observação muito longa.';
+  end if;
+  if p_forma_pagamento is not null and length(p_forma_pagamento) > 40 then
+    raise exception 'Forma de pagamento inválida.';
   end if;
 
   select * into v_loja from lojas where slug = p_loja_slug;
@@ -154,37 +212,118 @@ begin
     v_preco_base := coalesce(v_produto.preco_promocional, v_produto.preco);
     v_extra := 0;
 
-    if v_item ? 'opcoes' then
-      for v_grupo_id in
-        select distinct c.grupo_id
-        from jsonb_array_elements(v_item->'opcoes') o
-        join complementos c on c.id = (o->>'complemento_id')::uuid
-      loop
-        select * into v_grupo from grupos_complemento
-          where id = v_grupo_id and loja_id = v_loja.id;
-        if not found then
-          raise exception 'Complemento inválido.';
-        end if;
-
-        select array_agg(c.preco * coalesce((o->>'quantidade')::integer, 1))
-          into v_precos
-          from jsonb_array_elements(v_item->'opcoes') o
-          join complementos c on c.id = (o->>'complemento_id')::uuid
-          where c.grupo_id = v_grupo_id and c.ativo;
-
-        if v_precos is not null then
-          v_extra := v_extra + case v_grupo.modo_preco
-            when 'soma'  then (select coalesce(sum(x), 0) from unnest(v_precos) x)
-            when 'media' then (select coalesce(avg(x), 0) from unnest(v_precos) x)
-            when 'maior' then (select coalesce(max(x), 0) from unnest(v_precos) x)
-            when 'menor' then (select coalesce(min(x), 0) from unnest(v_precos) x)
-            else (select coalesce(sum(x), 0) from unnest(v_precos) x)
-          end;
-        end if;
-      end loop;
+    -- --------------------------------------------------------------
+    -- Regras do complemento. Sem este bloco a RPC aceita qualquer opção
+    -- de qualquer produto, em qualquer quantidade — inclusive negativa,
+    -- que abate o total. O navegador não é fonte confiável de nada disso:
+    -- ele manda ids, e é aqui que se decide se aquele conjunto de ids é
+    -- um pedido legítimo.
+    -- --------------------------------------------------------------
+    v_opcoes := coalesce(v_item->'opcoes', '[]'::jsonb);
+    if jsonb_typeof(v_opcoes) <> 'array' then
+      raise exception 'Complementos inválidos.';
+    end if;
+    if jsonb_array_length(v_opcoes) > 50 then
+      raise exception 'Complementos demais em "%".', v_produto.nome;
     end if;
 
+    -- 1) cada opção existe, está ativa e pertence a um grupo DESTE produto.
+    for v_opcao in select * from jsonb_array_elements(v_opcoes) loop
+      v_qtd_opcao := coalesce((v_opcao->>'quantidade')::integer, 1);
+
+      select * into v_compl from complementos
+        where id = (v_opcao->>'complemento_id')::uuid and ativo;
+      if not found then
+        raise exception 'Complemento indisponível.';
+      end if;
+
+      select * into v_grupo from grupos_complemento
+        where id = v_compl.grupo_id and loja_id = v_loja.id and ativo;
+      if not found then
+        raise exception 'Complemento inválido.';
+      end if;
+
+      -- É o vínculo em produto_grupos que impede pendurar o adicional
+      -- barato de um produto no produto caro de outro.
+      if not exists (
+        select 1 from produto_grupos
+        where produto_id = v_produto.id and grupo_id = v_grupo.id
+      ) then
+        raise exception 'O complemento "%" não pertence a "%".', v_compl.nome, v_produto.nome;
+      end if;
+
+      -- Repetir a mesma opção só vale em lista 'varias_repetir', e ainda
+      -- assim até o teto da própria opção (ex: no máximo 3x bacon).
+      if v_grupo.tipo_selecao = 'varias_repetir' then
+        if v_qtd_opcao < 1 or v_qtd_opcao > coalesce(v_compl.qtd_max, 99) then
+          raise exception 'Quantidade inválida em "%".', v_compl.nome;
+        end if;
+      elsif v_qtd_opcao <> 1 then
+        raise exception 'A opção "%" não pode repetir.', v_compl.nome;
+      end if;
+    end loop;
+
+    -- 2) mínimo, máximo e repetição de cada lista ligada ao produto. Roda
+    -- sobre os grupos do produto (não sobre o que veio no JSON), senão
+    -- omitir o grupo obrigatório inteiro passaria batido.
+    for v_grupo in
+      select g.* from produto_grupos pg
+      join grupos_complemento g on g.id = pg.grupo_id
+      where pg.produto_id = v_produto.id and g.loja_id = v_loja.id and g.ativo
+    loop
+      select coalesce(sum(coalesce((o->>'quantidade')::integer, 1)), 0),
+             count(distinct o->>'complemento_id')
+        into v_escolhas, v_distintas
+        from jsonb_array_elements(v_opcoes) o
+        join complementos c on c.id = (o->>'complemento_id')::uuid
+        where c.grupo_id = v_grupo.id;
+
+      if v_escolhas < v_grupo.qtd_min then
+        raise exception 'Escolha pelo menos % opção(ões) em "%".', v_grupo.qtd_min, v_grupo.nome;
+      end if;
+      if v_escolhas > v_grupo.qtd_max then
+        raise exception 'Escolha no máximo % opção(ões) em "%".', v_grupo.qtd_max, v_grupo.nome;
+      end if;
+      if v_grupo.tipo_selecao <> 'varias_repetir' and v_distintas <> v_escolhas then
+        raise exception 'Não dá pra repetir a mesma opção em "%".', v_grupo.nome;
+      end if;
+    end loop;
+
+    -- Preço dos complementos, respeitando o modo de preço de cada lista.
+    for v_grupo_id in
+      select distinct c.grupo_id
+      from jsonb_array_elements(v_opcoes) o
+      join complementos c on c.id = (o->>'complemento_id')::uuid
+    loop
+      select * into v_grupo from grupos_complemento
+        where id = v_grupo_id and loja_id = v_loja.id;
+      if not found then
+        raise exception 'Complemento inválido.';
+      end if;
+
+      select array_agg(c.preco * coalesce((o->>'quantidade')::integer, 1))
+        into v_precos
+        from jsonb_array_elements(v_opcoes) o
+        join complementos c on c.id = (o->>'complemento_id')::uuid
+        where c.grupo_id = v_grupo_id and c.ativo;
+
+      if v_precos is not null then
+        v_extra := v_extra + case v_grupo.modo_preco
+          when 'soma'  then (select coalesce(sum(x), 0) from unnest(v_precos) x)
+          when 'media' then (select coalesce(avg(x), 0) from unnest(v_precos) x)
+          when 'maior' then (select coalesce(max(x), 0) from unnest(v_precos) x)
+          when 'menor' then (select coalesce(min(x), 0) from unnest(v_precos) x)
+          else (select coalesce(sum(x), 0) from unnest(v_precos) x)
+        end;
+      end if;
+    end loop;
+
     v_unitario := v_preco_base + v_extra;
+    -- Rede de segurança: preço negativo no catálogo (ou conta que deu
+    -- errado) nunca vira desconto em pedido.
+    if v_unitario < 0 then
+      raise exception 'Preço inválido em "%".', v_produto.nome;
+    end if;
     v_subtotal := v_subtotal + (v_unitario * v_qtd);
   end loop;
 
@@ -220,30 +359,32 @@ begin
 
     v_preco_base := coalesce(v_produto.preco_promocional, v_produto.preco);
     v_extra := 0;
+    -- Mesmíssima conta da primeira passada — inclusive a fonte (v_opcoes).
+    -- Se as duas divergirem, o pedido grava um total diferente do que foi
+    -- somado e conferido contra o pedido mínimo.
+    v_opcoes := coalesce(v_item->'opcoes', '[]'::jsonb);
 
-    if v_item ? 'opcoes' then
-      for v_grupo_id in
-        select distinct c.grupo_id
-        from jsonb_array_elements(v_item->'opcoes') o
+    for v_grupo_id in
+      select distinct c.grupo_id
+      from jsonb_array_elements(v_opcoes) o
+      join complementos c on c.id = (o->>'complemento_id')::uuid
+    loop
+      select * into v_grupo from grupos_complemento where id = v_grupo_id;
+      select array_agg(c.preco * coalesce((o->>'quantidade')::integer, 1))
+        into v_precos
+        from jsonb_array_elements(v_opcoes) o
         join complementos c on c.id = (o->>'complemento_id')::uuid
-      loop
-        select * into v_grupo from grupos_complemento where id = v_grupo_id;
-        select array_agg(c.preco * coalesce((o->>'quantidade')::integer, 1))
-          into v_precos
-          from jsonb_array_elements(v_item->'opcoes') o
-          join complementos c on c.id = (o->>'complemento_id')::uuid
-          where c.grupo_id = v_grupo_id and c.ativo;
-        if v_precos is not null then
-          v_extra := v_extra + case v_grupo.modo_preco
-            when 'soma'  then (select coalesce(sum(x), 0) from unnest(v_precos) x)
-            when 'media' then (select coalesce(avg(x), 0) from unnest(v_precos) x)
-            when 'maior' then (select coalesce(max(x), 0) from unnest(v_precos) x)
-            when 'menor' then (select coalesce(min(x), 0) from unnest(v_precos) x)
-            else (select coalesce(sum(x), 0) from unnest(v_precos) x)
-          end;
-        end if;
-      end loop;
-    end if;
+        where c.grupo_id = v_grupo_id and c.ativo;
+      if v_precos is not null then
+        v_extra := v_extra + case v_grupo.modo_preco
+          when 'soma'  then (select coalesce(sum(x), 0) from unnest(v_precos) x)
+          when 'media' then (select coalesce(avg(x), 0) from unnest(v_precos) x)
+          when 'maior' then (select coalesce(max(x), 0) from unnest(v_precos) x)
+          when 'menor' then (select coalesce(min(x), 0) from unnest(v_precos) x)
+          else (select coalesce(sum(x), 0) from unnest(v_precos) x)
+        end;
+      end if;
+    end loop;
 
     v_unitario := v_preco_base + v_extra;
 
@@ -252,8 +393,8 @@ begin
             nullif(trim(coalesce(v_item->>'observacao', '')), ''), v_unitario * v_qtd)
     returning id into v_item_id;
 
-    if v_item ? 'opcoes' then
-      for v_opcao in select * from jsonb_array_elements(v_item->'opcoes') loop
+    if jsonb_array_length(v_opcoes) > 0 then
+      for v_opcao in select * from jsonb_array_elements(v_opcoes) loop
         select * into v_compl from complementos where id = (v_opcao->>'complemento_id')::uuid and ativo;
         if found then
           select * into v_grupo from grupos_complemento where id = v_compl.grupo_id;
@@ -269,7 +410,15 @@ begin
 end;
 $$;
 
-grant execute on function criar_pedido(text,text,text,text,text,text,text,jsonb,timestamptz,text,text) to anon, authenticated;
+-- Quem executa criar_pedido(). Na versão básica o cardápio público NÃO
+-- grava pedido — ele monta a mensagem do WhatsApp (ver docs/DECISIONS.md).
+-- Quem lança pedido no sistema é a loja, logada, pelo painel. Manter a
+-- concessão a anon deixava aberta uma porta que ninguém usa e que dá pra
+-- floodar sem custo. Quando a versão Pro passar a persistir pedido do
+-- cliente, esta concessão volta JUNTO com rate limit fora do banco.
+revoke execute on function criar_pedido(text,text,text,text,text,text,text,jsonb,timestamptz,text,text) from public;
+revoke execute on function criar_pedido(text,text,text,text,text,text,text,jsonb,timestamptz,text,text) from anon;
+grant execute on function criar_pedido(text,text,text,text,text,text,text,jsonb,timestamptz,text,text) to authenticated;
 
 -- ---------------------------------------------------------------
 -- pedido_por_token() — inclui os campos novos na tela de acompanhamento

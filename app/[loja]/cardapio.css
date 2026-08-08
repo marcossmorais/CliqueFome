@@ -21,84 +21,18 @@
     overflow-x: hidden;
   }
 
-  /* NAV */
-  nav{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 32px 60px;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
+  /* A barra de navegação do topo foi removida do cardápio (logo, links,
+     "Peça agora" e ícone do carrinho). Com ela saíram as regras de `nav`,
+     `.logo-nav*`, `.nav-links`, `.nav-actions`, `.icon-btn` e
+     `.btn-outline`, que não tinham mais nenhum elemento.
 
-  .logo-nav{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+     Efeito colateral bom: era na logo da nav que morava o pior bug visual
+     do cardápio — uma imagem sem dimensão CSS cobria a página inteira e
+     bloqueava o carrinho no celular. A logo agora aparece só no HeroLoja,
+     onde entra como `background-image` de uma caixa de tamanho fixo. */
 
-  .logo-nav svg{ width: 26px; height: 26px; stroke: var(--cinza-medio); }
-
-  .logo-nav-text{
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-  }
-
-  .logo-nav-text .prefixo{
-    font-family: var(--fonte-titulo), sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 3px;
-    color: var(--branco-gelo);
-    text-transform: uppercase;
-  }
-
-  .logo-nav-text .marca{
-    font-family: var(--fonte-script), cursive;
-    font-size: 26px;
-    color: var(--cinza-medio);
-  }
-
-  .nav-links{
-    display: flex;
-    gap: 40px;
-    list-style: none;
-  }
-
-  .nav-links a{
-    color: var(--branco-gelo);
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    opacity: 0.85;
-    transition: opacity 0.2s;
-  }
-
-  .nav-links a:hover{ opacity: 1; }
-
-  .nav-actions{
-    display: flex;
-    align-items: center;
-    gap: 18px;
-  }
-
-  .icon-btn{
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    border: 1px solid rgba(245,245,245,0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--branco-gelo);
-    text-decoration: none;
-    position: relative;
-    flex-shrink: 0;
-  }
-
-  .icon-btn svg{ width: 16px; height: 16px; }
-
+  /* Contador de itens. Fica aqui e não junto do carrinho flutuante porque
+     é a regra base que `.floating-cart .badge` estende. */
   .badge{
     position: absolute;
     top: -6px;
@@ -113,17 +47,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .btn-outline{
-    border: 1px solid var(--cinza-medio);
-    color: var(--cinza-medio);
-    padding: 10px 22px;
-    border-radius: 999px;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
   }
 
   .btn-primary{
@@ -296,11 +219,6 @@
     white-space: nowrap;
   }
 
-  @media (max-width: 900px){
-    nav{ padding: 24px 28px; }
-    .nav-links{ display: none; }
-  }
-
   /* CARDÁPIO — mobile-first */
   .menu-section{
     position: relative;
@@ -353,6 +271,26 @@
     font-weight: 400;
     color: var(--cinza-escuro);
   }
+
+  /* Aviso de carrinho reconciliado (item saiu do cardápio, esgotou ou
+     mudou de preço enquanto estava salvo no navegador). */
+  .carrinho-avisos{
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto 20px;
+    padding: 14px 16px;
+    border: 1px solid #E4B200;
+    border-left-width: 4px;
+    border-radius: 10px;
+    background: #FFF8E1;
+    color: #4A3A00;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .carrinho-avisos strong{ display: block; margin-bottom: 4px; }
+  .carrinho-avisos ul{ margin: 0; padding-left: 18px; }
 
   .menu-search{
     max-width: 800px;
@@ -934,14 +872,40 @@
   .produto-modal-info p{ font-size: 13px; line-height: 1.5; opacity: 0.7; margin-bottom: 8px; }
   .produto-modal-preco-base{ font-size: 14px; font-weight: 700; color: var(--cinza-escuro); }
 
+  /* <fieldset>/<legend>: é o agrupamento nativo que o leitor de tela usa
+     pra anunciar "Escolha o tamanho" junto de cada opção. As duas regras a
+     seguir zeram a aparência que o navegador dá por padrão. */
   .grupo-bloco{
+    position: relative;
     padding: 16px 20px;
-    border-top: 1px solid rgba(26,26,26,0.1);
+    border: 0;
+    min-width: 0;
   }
 
-  .grupo-header{ display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
-  .grupo-header h4{ font-size: 14.5px; font-weight: 700; }
-  .grupo-regra{ font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; opacity: 0.6; white-space: nowrap; }
+  /* O separador é pseudo-elemento e não `border-top` porque o <legend>
+     abre um vão na borda nativa do <fieldset> — sobrava um risco solto à
+     direita do rótulo. */
+  .grupo-bloco::before{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(26,26,26,0.1);
+  }
+
+  .grupo-header{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 0;
+  }
+  .grupo-nome{ font-size: 14.5px; font-weight: 700; min-width: 0; }
+  .grupo-regra{ font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; opacity: 0.6; }
 
   .opcao-row{
     display: flex;
@@ -949,18 +913,29 @@
     gap: 12px;
     padding: 10px 2px;
     cursor: pointer;
+    min-width: 0;
   }
 
   .opcao-row input{ width: 20px; height: 20px; accent-color: var(--cinza-escuro); flex-shrink: 0; cursor: pointer; }
   .opcao-row input:disabled{ cursor: not-allowed; opacity: 0.4; }
   .opcao-row.disabled{ opacity: 0.45; }
 
-  .opcao-nome{ flex: 1; font-size: 13.5px; }
+  /* Contador das listas "pode repetir" (ex: 2x bacon). */
+  .opcao-stepper{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+  }
+  .opcao-stepper .menu-qty-value{ min-width: 18px; text-align: center; font-size: 13.5px; }
+  .opcao-stepper .menu-qty-btn:disabled{ opacity: 0.35; cursor: not-allowed; }
+
+  .opcao-nome{ flex: 1; font-size: 13.5px; min-width: 0; overflow-wrap: anywhere; }
   .opcao-preco{ font-size: 12.5px; font-weight: 600; opacity: 0.7; white-space: nowrap; }
 
   .grupo-erro{ color: #B23B3B; font-size: 11.5px; margin-top: 4px; display: none; }
   .grupo-bloco.invalido .grupo-erro{ display: block; }
-  .grupo-bloco.invalido .grupo-header h4{ color: #B23B3B; }
+  .grupo-bloco.invalido .grupo-nome{ color: #B23B3B; }
 
   .produto-modal-obs{ padding: 16px 20px; border-top: 1px solid rgba(26,26,26,0.1); }
   .produto-modal-obs label{ display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; }

@@ -7,9 +7,12 @@ import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
 import { Carrinho, type ModoEntrega } from './Carrinho';
 import {
+  apareceNoTipo,
+  ehCarrinhoValido,
   formatBRL,
   precoBase,
   precoMinimo,
+  reconciliarCarrinho,
   subtotalLinha,
   type CategoriaPublica,
   type EscolhaComplemento,
@@ -17,6 +20,13 @@ import {
   type LojaPublica,
   type ProdutoPublico,
 } from '@/lib/cardapio/tipos';
+
+const TEXTO_AVISO: Record<string, string> = {
+  removido: 'saiu do cardápio',
+  pausado: 'está esgotado',
+  'opcao-indisponivel': 'tinha uma opção que saiu do cardápio',
+  reprecificado: 'mudou de preço',
+};
 
 const ETIQUETAS: Record<string, string> = {
   mais_pedido: 'Mais pedido',
@@ -43,7 +53,11 @@ export function CardapioClient({
   categorias: CategoriaPublica[];
   produtos: ProdutoPublico[];
 }) {
-  const [linhas, setLinhas] = useLocalStorage<LinhaCarrinho[]>(chaveCarrinho(loja.slug), VAZIO);
+  const [linhasSalvas, setLinhas] = useLocalStorage<LinhaCarrinho[]>(
+    chaveCarrinho(loja.slug),
+    VAZIO,
+    ehCarrinhoValido
+  );
   const [busca, setBusca] = useState('');
   const [categoriaId, setCategoriaId] = useState('todos');
   const [produtoAberto, setProdutoAberto] = useState<ProdutoPublico | null>(null);
@@ -53,14 +67,31 @@ export function CardapioClient({
   const [modo, setModo] = useState<ModoEntrega>('retirada');
   const [erro, setErro] = useState<string | null>(null);
 
+  // O carrinho exibido é sempre o conferido contra o catálogo que acabou de
+  // chegar do servidor — nunca o retrato salvo no navegador.
+  const { linhas, avisos } = useMemo(
+    () => reconciliarCarrinho(linhasSalvas, produtos),
+    [linhasSalvas, produtos]
+  );
+
+  /** Toda alteração parte do carrinho já conferido: é isso que faz a
+   * reconciliação virar permanente na primeira mexida do cliente. */
+  function atualizar(fn: (atual: LinhaCarrinho[]) => LinhaCarrinho[]) {
+    setLinhas(fn(linhas));
+  }
+
+  // Vocabulário do banco (pedidos.tipo), não o rótulo da tela.
+  const tipoPedido = modo === 'entrega' ? 'delivery' : 'retirada';
+
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return produtos.filter((p) => {
       if (categoriaId !== 'todos' && p.categoria_id !== categoriaId) return false;
+      if (!apareceNoTipo(p.tipos_pedido, tipoPedido)) return false;
       if (termo && !`${p.nome} ${p.descricao || ''}`.toLowerCase().includes(termo)) return false;
       return true;
     });
-  }, [produtos, busca, categoriaId]);
+  }, [produtos, busca, categoriaId, tipoPedido]);
 
   const totalItens = linhas.reduce((s, l) => s + l.qty, 0);
   const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
@@ -68,8 +99,10 @@ export function CardapioClient({
   const totalGeral = subtotal + (modo === 'entrega' && linhas.length > 0 ? taxa : 0);
 
   function idDaLinha(produtoId: string, escolhas: EscolhaComplemento[], obs: string) {
+    // A quantidade entra na chave: 2x bacon é uma linha diferente de 1x
+    // bacon, senão as duas se fundiriam e o preço sairia errado.
     const chave = escolhas
-      .map((c) => c.complementoId)
+      .map((c) => `${c.complementoId}x${c.quantidade}`)
       .sort()
       .join(',');
     return `${produtoId}::${chave}::${obs}`;
@@ -77,7 +110,7 @@ export function CardapioClient({
 
   function adicionar(p: ProdutoPublico, escolhas: EscolhaComplemento[], obs: string, qtd: number) {
     const lineId = idDaLinha(p.id, escolhas, obs);
-    setLinhas((atual) => {
+    atualizar((atual) => {
       const existente = atual.find((l) => l.lineId === lineId);
       if (existente) {
         return atual.map((l) => (l.lineId === lineId ? { ...l, qty: l.qty + qtd } : l));
@@ -102,7 +135,9 @@ export function CardapioClient({
     // Esgotado não abre nem entra no carrinho. A trava fica aqui, no
     // comportamento — não só no CSS, senão bastava um clique pra furar.
     if (!p.ativo) return;
-    if (p.grupos.length > 0) {
+    // Lista restrita a outro tipo de pedido não conta pra decidir se abre o
+    // modal: senão o cliente vê um modal sem nenhuma opção.
+    if (p.grupos.some((g) => apareceNoTipo(g.tipos_pedido, tipoPedido))) {
       setProdutoAberto(p);
       return;
     }
@@ -111,7 +146,7 @@ export function CardapioClient({
   }
 
   function mudarQtd(lineId: string, delta: number) {
-    setLinhas((atual) =>
+    atualizar((atual) =>
       atual
         .map((l) => (l.lineId === lineId ? { ...l, qty: l.qty + delta } : l))
         .filter((l) => l.qty > 0)
@@ -147,7 +182,14 @@ export function CardapioClient({
       '',
       ...linhas.flatMap((l) => [
         `${l.qty}x ${l.nome} - ${formatBRL(subtotalLinha(l))}`,
-        ...l.complementos.map((c) => `   + ${c.nome}${c.preco > 0 ? ` (${formatBRL(c.preco)})` : ''}`),
+        // O preço da opção só aparece quando a lista soma. Em média/maior/
+        // menor o valor isolado não bate com o total da linha, e a loja
+        // recebia uma mensagem que parecia estar com a conta errada.
+        ...l.complementos.map((c) => {
+          const vezes = c.quantidade > 1 ? `${c.quantidade}x ` : '';
+          const valor = c.modoPreco === 'soma' && c.preco > 0 ? ` (${formatBRL(c.preco * c.quantidade)})` : '';
+          return `   + ${vezes}${c.nome}${valor}`;
+        }),
         ...(l.observacao ? [`   Obs: ${l.observacao}`] : []),
       ]),
       '',
@@ -163,10 +205,23 @@ export function CardapioClient({
 
   return (
     <div style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
-      <TopoCardapio loja={loja} onAbrirCarrinho={() => setCarrinhoAberto(true)} />
+      <TopoCardapio loja={loja} />
 
       <section id="cardapio" className="menu-section">
         <HeroLoja loja={loja} />
+
+        {avisos.length > 0 && (
+          <div className="carrinho-avisos" role="status">
+            <strong>Seu carrinho mudou desde a última visita</strong>
+            <ul>
+              {avisos.map((a, i) => (
+                <li key={`${a.nome}-${a.motivo}-${i}`}>
+                  {a.nome} {TEXTO_AVISO[a.motivo]}.
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="menu-search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -275,6 +330,7 @@ export function CardapioClient({
       {produtoAberto && (
         <ModalProduto
           produto={produtoAberto}
+          tipoPedido={tipoPedido}
           onFechar={() => setProdutoAberto(null)}
           onAdicionar={(escolhas, obs, qtd) => {
             adicionar(produtoAberto, escolhas, obs, qtd);
@@ -293,7 +349,7 @@ export function CardapioClient({
         erro={erro}
         onFechar={() => setCarrinhoAberto(false)}
         onMudarQtd={mudarQtd}
-        onRemover={(lineId) => setLinhas((a) => a.filter((l) => l.lineId !== lineId))}
+        onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}
         onNome={setNome}
         onEndereco={setEndereco}
         onModo={(m) => {

@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { useEscFechar } from '@/hooks/useEscFechar';
-import { avancarStatus, buscarDetalhePedido, cancelarPedido, marcarPagamento } from '@/lib/pedidos/acoes';
+import {
+  ConflitoDePedido,
+  avancarStatus,
+  buscarDetalhePedido,
+  cancelarPedido,
+  marcarPagamento,
+} from '@/lib/pedidos/acoes';
 import { textoTempo } from '@/lib/pedidos/prioridade';
 import {
   formatBRL,
@@ -67,16 +73,28 @@ export function PainelDetalhePedido({
   const rotulo = rotuloAvancar(pedido);
   const ativo = pedido.status !== 'concluido' && pedido.status !== 'cancelado';
 
+  /** Em conflito o estado da tela está velho: recarrega e fecha, em vez de
+   * insistir numa transição que partia de um status que não existe mais. */
+  async function tratarErro(err: unknown, prefixo: string) {
+    if (err instanceof ConflitoDePedido) {
+      onErro(err.message);
+      await onAtualizado();
+      onFechar();
+      return;
+    }
+    onErro(prefixo + (err as Error).message);
+  }
+
   async function avancar() {
     if (!proximo) return;
     setAvancando(true);
     try {
       const sb = criarClientNavegador();
-      await avancarStatus(sb, pedido.id, proximo);
+      await avancarStatus(sb, pedido.id, pedido.status, proximo);
       await onAtualizado();
       onFechar();
     } catch (err) {
-      onErro('Erro ao avançar status: ' + (err as Error).message);
+      await tratarErro(err, 'Erro ao avançar status: ');
     } finally {
       setAvancando(false);
     }
@@ -86,11 +104,11 @@ export function PainelDetalhePedido({
     if (!confirm(`Cancelar o pedido #${pedido.numero}?`)) return;
     try {
       const sb = criarClientNavegador();
-      await cancelarPedido(sb, pedido.id);
+      await cancelarPedido(sb, pedido.id, pedido.status);
       await onAtualizado();
       onFechar();
     } catch (err) {
-      onErro('Erro ao cancelar: ' + (err as Error).message);
+      await tratarErro(err, 'Erro ao cancelar: ');
     }
   }
 
@@ -98,10 +116,10 @@ export function PainelDetalhePedido({
     const novo = pedido.pagamento_status === 'confirmado' ? 'pendente' : 'confirmado';
     try {
       const sb = criarClientNavegador();
-      await marcarPagamento(sb, pedido.id, novo);
+      await marcarPagamento(sb, pedido.id, pedido.pagamento_status, novo);
       await onAtualizado();
     } catch (err) {
-      onErro('Erro ao atualizar pagamento: ' + (err as Error).message);
+      await tratarErro(err, 'Erro ao atualizar pagamento: ');
     }
   }
 

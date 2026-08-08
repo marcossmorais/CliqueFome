@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 /**
@@ -106,9 +107,9 @@ export function PlanosSecao() {
                   </li>
                 ))}
               </ul>
-              <a href="/admin/catalogo" className={'btn ' + plano.cta}>
+              <Link href="/admin/catalogo" className={'btn ' + plano.cta}>
                 Começar agora
-              </a>
+              </Link>
             </div>
           );
         })}

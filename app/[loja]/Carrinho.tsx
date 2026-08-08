@@ -1,6 +1,12 @@
 'use client';
 
-import { formatBRL, subtotalLinha, type LinhaCarrinho, type LojaPublica } from '@/lib/cardapio/tipos';
+import {
+  extraDaLinha,
+  formatBRL,
+  subtotalLinha,
+  type LinhaCarrinho,
+  type LojaPublica,
+} from '@/lib/cardapio/tipos';
 
 export type ModoEntrega = 'retirada' | 'entrega';
 
@@ -64,14 +70,18 @@ export function Carrinho({
           </>
         ) : (
           linhas.map((linha) => {
-            const precoUnit = linha.precoUnit + linha.complementos.reduce((s, c) => s + c.preco, 0);
+            // Mesma função do modal e do WhatsApp. Somar os complementos
+            // aqui na mão ignorava o modo de preço da lista.
+            const precoUnit = linha.precoUnit + extraDaLinha(linha);
             return (
               <div key={linha.lineId} className="cart-item">
                 <div className="cart-item-info">
                   <span className="cart-item-name">{linha.nome}</span>
                   {linha.complementos.length > 0 && (
                     <span className="cart-item-custom">
-                      {linha.complementos.map((c) => c.nome).join(', ')}
+                      {linha.complementos
+                        .map((c) => (c.quantidade > 1 ? `${c.quantidade}x ${c.nome}` : c.nome))
+                        .join(', ')}
                     </span>
                   )}
                   {linha.observacao && <span className="cart-item-obs">Obs: {linha.observacao}</span>}

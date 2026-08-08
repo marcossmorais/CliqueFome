@@ -133,6 +133,33 @@
   .msg-erro{ background: #FDECEC; color: #90302F; border: 1px solid #F3CFCF; }
   .msg-ok{ background: var(--verde-tint); color: #15703F; border: 1px solid #BCE3CC; }
 
+  /* ---------- CONTA SEM LOJA (/admin/criar-loja) ---------- */
+  .onboarding{
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--fundo-2);
+  }
+
+  .onboarding-caixa{
+    max-width: 460px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 32px;
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    background: var(--superficie);
+  }
+
+  .onboarding-caixa h1{ font-size: 20px; font-weight: 700; color: var(--texto); }
+  .onboarding-caixa p{ font-size: 14px; line-height: 1.55; color: var(--texto-suave); }
+  .onboarding-caixa .onboarding-ajuda{ font-size: 13px; }
+  .onboarding-caixa .btn-ghost{ align-self: flex-start; margin-top: 6px; min-height: 44px; }
+
   /* ---------- TELA DE AUTENTICAÇÃO (login / escolher loja / criar loja) ---------- */
   #authView{ padding: 40px 20px 80px; background: var(--fundo-2); min-height:100vh; }
   #authView .wrap{ max-width: 880px; margin: 0 auto; }

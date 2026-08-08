@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { criarClientNavegador } from '@/lib/supabase/client';
-import { avancarStatus, buscarPedidos } from '@/lib/pedidos/acoes';
+import { ConflitoDePedido, avancarStatus, buscarPedidos } from '@/lib/pedidos/acoes';
 import { minutosAteOPrazo, ordenarPorUrgencia } from '@/lib/pedidos/prioridade';
 import { proximoStatus, type PedidoResumo, type StatusPedido } from '@/lib/pedidos/tipos';
 import { useAgora } from '@/hooks/useAgora';
@@ -106,9 +106,16 @@ export function PedidosClient({
     if (!proximo) return;
     try {
       const sb = criarClientNavegador();
-      await avancarStatus(sb, p.id, proximo);
+      await avancarStatus(sb, p.id, p.status, proximo);
       await recarregar();
     } catch (err) {
+      // Conflito não é falha: outra aba já mexeu. Recarrega e mostra o
+      // estado real em vez de deixar o operador achar que o clique falhou.
+      if (err instanceof ConflitoDePedido) {
+        mostrarMsg(err.message);
+        await recarregar();
+        return;
+      }
       mostrarMsg('Erro ao avançar status: ' + (err as Error).message);
     }
   }

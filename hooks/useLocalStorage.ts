@@ -37,17 +37,42 @@ function assinar(aoMudar: () => void) {
 const cacheCru = new Map<string, string | null>();
 const cacheValor = new Map<string, unknown>();
 
+// Espelho em memória, usado quando o localStorage não aceita escrita
+// (navegação anônima, cota estourada). Sem ele o valor voltava pro padrão
+// na leitura seguinte e o carrinho não funcionava nem dentro da sessão.
+const memoria = new Map<string, string>();
+const semStorage = new Set<string>();
+
 function lerCru(chave: string): string | null {
+  if (semStorage.has(chave)) return memoria.get(chave) ?? null;
   try {
     return localStorage.getItem(chave);
   } catch {
-    // localStorage bloqueado (navegação anônima em alguns navegadores):
-    // a página segue funcionando, só não lembra entre visitas.
-    return null;
+    semStorage.add(chave);
+    return memoria.get(chave) ?? null;
   }
 }
 
-export function useLocalStorage<T>(chave: string, padrao: T) {
+function escreverCru(chave: string, cru: string) {
+  if (!semStorage.has(chave)) {
+    try {
+      localStorage.setItem(chave, cru);
+      return;
+    } catch {
+      // Cai pra memória e não tenta de novo nesta sessão.
+      semStorage.add(chave);
+    }
+  }
+  memoria.set(chave, cru);
+}
+
+/**
+ * `validar` é a defesa contra o que está gravado não ter mais o formato que
+ * o código espera — conteúdo adulterado à mão ou salvo por uma versão
+ * anterior. Sem ela, `JSON.parse('{}')` passa e o erro só aparece lá na
+ * frente, no primeiro `.reduce`.
+ */
+export function useLocalStorage<T>(chave: string, padrao: T, validar?: (v: unknown) => boolean) {
   const getSnapshot = useCallback((): T => {
     const cru = lerCru(chave);
     if (cacheCru.get(chave) !== cru) {
@@ -55,7 +80,8 @@ export function useLocalStorage<T>(chave: string, padrao: T) {
       let valor: unknown = padrao;
       if (cru !== null) {
         try {
-          valor = JSON.parse(cru);
+          const bruto = JSON.parse(cru);
+          valor = !validar || validar(bruto) ? bruto : padrao;
         } catch {
           valor = padrao; // conteúdo corrompido: volta pro padrão
         }
@@ -63,9 +89,9 @@ export function useLocalStorage<T>(chave: string, padrao: T) {
       cacheValor.set(chave, valor);
     }
     return cacheValor.get(chave) as T;
-    // `padrao` fica de fora de propósito: só é usado quando não há valor
-    // salvo, e incluí-lo faria o snapshot mudar a cada render se quem
-    // chamar passar um literal.
+    // `padrao` e `validar` ficam de fora de propósito: são usados só na
+    // leitura, e incluí-los faria o snapshot mudar a cada render se quem
+    // chamar passar um literal ou uma função inline.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave]);
 
@@ -77,11 +103,7 @@ export function useLocalStorage<T>(chave: string, padrao: T) {
     (novo: T | ((atual: T) => T)) => {
       const atual = getSnapshot();
       const resultado = typeof novo === 'function' ? (novo as (a: T) => T)(atual) : novo;
-      try {
-        localStorage.setItem(chave, JSON.stringify(resultado));
-      } catch {
-        /* idem: segue sem persistir */
-      }
+      escreverCru(chave, JSON.stringify(resultado));
       avisar();
     },
     [chave, getSnapshot]

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import './landing.css';
 import { LogoCliqueFome } from '@/components/LogoCliqueFome';
 import { PlanosSecao } from './PlanosSecao';
@@ -70,16 +71,16 @@ export default function Home() {
   return (
     <div className="wrap">
       <nav>
-        <a href="/" className="brand-logo">
+        <Link href="/" className="brand-logo">
           <LogoCliqueFome />
-        </a>
+        </Link>
         <div className="nav-links">
           <a href="#funcionalidades">Funcionalidades</a>
           <a href="#planos">Planos</a>
         </div>
-        <a href="/admin/catalogo" className="btn btn-primary btn-small">
+        <Link href="/admin/catalogo" className="btn btn-primary btn-small">
           Acessar conta
-        </a>
+        </Link>
       </nav>
 
       <section className="hero">
@@ -92,9 +93,9 @@ export default function Home() {
           lanchonetes, hamburguerias, pizzarias e açaiterias.
         </p>
         <div className="ctas">
-          <a href="/admin/catalogo" className="btn btn-primary">
+          <Link href="/admin/catalogo" className="btn btn-primary">
             Acessar conta
-          </a>
+          </Link>
           <a href="#planos" className="btn btn-ghost">
             Ver planos
           </a>
@@ -167,9 +168,9 @@ export default function Home() {
 
       <footer>
         <div className="foot-row">
-          <a href="/" className="brand-logo">
+          <Link href="/" className="brand-logo">
             <LogoCliqueFome />
-          </a>
+          </Link>
           <p>© 2026 CliqueFome. Todos os direitos reservados.</p>
         </div>
       </footer>

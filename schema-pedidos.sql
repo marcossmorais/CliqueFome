@@ -164,6 +164,12 @@ create policy "pedido_item_opcoes_select_dono"
 -- ---------------------------------------------------------------
 -- criar_pedido() — a única porta de entrada de pedido
 -- ---------------------------------------------------------------
+-- ATENÇÃO: esta definição é a ORIGINAL e valida menos do que deveria —
+-- aceita complemento de outro produto e quantidade de complemento
+-- negativa. A versão em vigor está em schema-migracao-pedidos.sql, que
+-- precisa ser rodado logo depois deste arquivo. Não use este arquivo
+-- sozinho pra montar um ambiente novo.
+--
 -- p_itens é um jsonb no formato:
 --   [{ "produto_id": "uuid",
 --      "quantidade": 2,

@@ -155,6 +155,21 @@ export function ModalLista({
       onErro('Adicione pelo menos uma opção com nome.');
       return;
     }
+    // Uma lista que exige 3 escolhas mas só tem 2 opções disponíveis torna o
+    // produto impossível de pedir — o cliente nunca consegue satisfazer o
+    // mínimo, e o banco recusa o pedido.
+    const ativas = opcoesValidas.filter((o) => o.ativo).length;
+    if (min > ativas) {
+      onErro(
+        `A lista exige ${min} escolha(s), mas só tem ${ativas} opção(ões) disponível(is). ` +
+          'Reduza o mínimo ou ative mais opções.'
+      );
+      return;
+    }
+    if (opcoesValidas.some((o) => (parseFloat(o.preco) || 0) < 0)) {
+      onErro('Preço de opção não pode ser negativo.');
+      return;
+    }
 
     setSalvando(true);
     try {
@@ -170,13 +185,31 @@ export function ModalLista({
         ativo,
       };
 
+      // ORDEM IMPORTA. As fotos sobem ANTES de qualquer escrita destrutiva:
+      // upload é a etapa mais lenta e a que mais falha (rede, tamanho,
+      // permissão). Quando o delete vinha primeiro, um upload que falhava
+      // deixava a lista sem nenhuma opção — e o produto que dependia dela
+      // ficava impossível de pedir.
+      const opcoesPreparadas = await Promise.all(
+        opcoesValidas.map(async (o, i) => ({
+          nome: o.nome.trim(),
+          preco: parseFloat(o.preco) || 0,
+          qtd_max: o.qtdMax === '' ? null : parseInt(o.qtdMax, 10) || null,
+          imagem_url: o.arquivo ? await subirImagemCatalogo(sb, lojaId, o.arquivo, 'opcao') : o.imagemUrl,
+          ativo: o.ativo,
+          ordem: i,
+        }))
+      );
+
       let grupoId: string;
       if (lista) {
         const { error } = await sb.from('grupos_complemento').update(dados).eq('id', lista.id);
         if (error) throw error;
         grupoId = lista.id;
-        // Regrava as opções do zero — mais simples e seguro que diffar
-        // linha a linha, e a lista costuma ter poucas opções.
+        // Regrava as opções do zero — mais simples que diffar linha a linha,
+        // e a lista costuma ter poucas opções. Só chega aqui com as fotos
+        // já no Storage, então a janela entre apagar e repor é uma ida ao
+        // banco, não um upload.
         const { error: delErr } = await sb.from('complementos').delete().eq('grupo_id', grupoId);
         if (delErr) throw delErr;
       } else {
@@ -185,23 +218,9 @@ export function ModalLista({
         grupoId = nova.id;
       }
 
-      // Sobe as fotos novas antes de gravar as opções.
-      const opcoesFinais = await Promise.all(
-        opcoesValidas.map(async (o, i) => {
-          const imagemUrl = o.arquivo ? await subirImagemCatalogo(sb, lojaId, o.arquivo, 'opcao') : o.imagemUrl;
-          return {
-            grupo_id: grupoId,
-            nome: o.nome.trim(),
-            preco: parseFloat(o.preco) || 0,
-            qtd_max: o.qtdMax === '' ? null : parseInt(o.qtdMax, 10) || null,
-            imagem_url: imagemUrl,
-            ativo: o.ativo,
-            ordem: i,
-          };
-        })
-      );
-
-      const { error: opErr } = await sb.from('complementos').insert(opcoesFinais);
+      const { error: opErr } = await sb
+        .from('complementos')
+        .insert(opcoesPreparadas.map((o) => ({ ...o, grupo_id: grupoId })));
       if (opErr) throw opErr;
 
       onSalvo();

@@ -13,19 +13,68 @@ export async function buscarPedidos(sb: Sb, lojaId: string): Promise<PedidoResum
   return (data as PedidoResumo[]) || [];
 }
 
-export async function avancarStatus(sb: Sb, pedidoId: string, novoStatus: StatusPedido) {
-  const { error } = await sb.from('pedidos').update({ status: novoStatus }).eq('id', pedidoId);
-  if (error) throw error;
+/**
+ * Erro de disputa: o pedido mudou no banco entre a tela ter sido carregada
+ * e o clique. Tem tipo próprio pra tela poder tratar diferente de uma falha
+ * de rede — aqui a resposta certa é recarregar, não tentar de novo.
+ */
+export class ConflitoDePedido extends Error {
+  constructor() {
+    super('Este pedido mudou em outro lugar. Recarregando pra mostrar o estado atual.');
+    this.name = 'ConflitoDePedido';
+  }
 }
 
-export async function cancelarPedido(sb: Sb, pedidoId: string) {
-  const { error } = await sb.from('pedidos').update({ status: 'cancelado' }).eq('id', pedidoId);
+/**
+ * Compare-and-set: a transição só vale se o pedido AINDA estiver no status
+ * que a tela viu. Um `update ... where id = ?` sozinho é incondicional — a
+ * cozinha e o balcão abertos lado a lado conseguiam regredir o pedido, ou
+ * ressuscitar um que já tinha sido cancelado. O `eq('status', esperado)`
+ * transforma isso em uma única instrução atômica no Postgres: ou casa, ou
+ * não altera linha nenhuma.
+ */
+export async function avancarStatus(
+  sb: Sb,
+  pedidoId: string,
+  statusEsperado: StatusPedido,
+  novoStatus: StatusPedido
+) {
+  const { data, error } = await sb
+    .from('pedidos')
+    .update({ status: novoStatus })
+    .eq('id', pedidoId)
+    .eq('status', statusEsperado)
+    .select('id');
   if (error) throw error;
+  if (!data || data.length === 0) throw new ConflitoDePedido();
 }
 
-export async function marcarPagamento(sb: Sb, pedidoId: string, status: 'pendente' | 'confirmado' | 'estornado') {
-  const { error } = await sb.from('pedidos').update({ pagamento_status: status }).eq('id', pedidoId);
+/** Cancelar também é uma transição: pedido já entregue não volta atrás. */
+export async function cancelarPedido(sb: Sb, pedidoId: string, statusEsperado: StatusPedido) {
+  const { data, error } = await sb
+    .from('pedidos')
+    .update({ status: 'cancelado' })
+    .eq('id', pedidoId)
+    .eq('status', statusEsperado)
+    .select('id');
   if (error) throw error;
+  if (!data || data.length === 0) throw new ConflitoDePedido();
+}
+
+export async function marcarPagamento(
+  sb: Sb,
+  pedidoId: string,
+  esperado: 'pendente' | 'confirmado' | 'estornado',
+  novo: 'pendente' | 'confirmado' | 'estornado'
+) {
+  const { data, error } = await sb
+    .from('pedidos')
+    .update({ pagamento_status: novo })
+    .eq('id', pedidoId)
+    .eq('pagamento_status', esperado)
+    .select('id');
+  if (error) throw error;
+  if (!data || data.length === 0) throw new ConflitoDePedido();
 }
 
 /** Itens + opções de um pedido, buscados só quando o card é aberto — não

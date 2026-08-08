@@ -30,26 +30,69 @@ type RowProdutoGrupo = {
   grupos_complemento: GrupoBruto | null;
 };
 
+const DIAS: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/**
+ * Dia da semana no fuso da loja, não no do servidor. Na Vercel o servidor
+ * roda em UTC: às 21h de sábado no Brasil já é domingo lá, e um produto
+ * configurado só pra sábado sumia do cardápio no melhor horário.
+ *
+ * O fuso é fixo por enquanto — quando `lojas` ganhar uma coluna de
+ * timezone, é só passar ela aqui.
+ */
+function diaDaSemanaNaLoja() {
+  const abrev = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'short',
+  }).format(new Date());
+  return DIAS[abrev] ?? new Date().getDay();
+}
+
+/** Erro de infraestrutura não é "loja não encontrada". Sem esta distinção,
+ * Supabase fora do ar vira 404 e o cliente acha que a loja fechou. */
+class FalhaAoCarregar extends Error {}
+
 async function carregar(slug: string) {
   const sb = clientePublico();
 
-  const { data: loja } = await sb.from('lojas').select('*').eq('slug', slug).maybeSingle();
+  // Colunas explícitas, nunca `*`: o cardápio é anônimo, e `select('*')`
+  // devolveria também `dono_id` e o que for adicionado à tabela no futuro.
+  // A migração de segurança revoga essas colunas de `anon`, então `*` aqui
+  // passaria a falhar de qualquer forma.
+  const { data: loja, error: erroLoja } = await sb
+    .from('lojas')
+    .select(
+      'id, slug, nome, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_entrega_min, tempo_entrega_max, taxa_entrega, pedido_minimo, delivery_ativo, recebendo_encomendas'
+    )
+    .eq('slug', slug)
+    .maybeSingle();
+  if (erroLoja) throw new FalhaAoCarregar(erroLoja.message);
   if (!loja) return null;
 
-  const [{ data: categorias }, { data: produtos }] = await Promise.all([
+  const [
+    { data: categorias, error: erroCategorias },
+    { data: produtos, error: erroProdutos },
+  ] = await Promise.all([
     sb.from('categorias').select('id, nome, emoji, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
     sb
       .from('produtos')
       .select(
-        'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, ordem, dias_semana, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, ordem, ativo, complementos(id, nome, preco, imagem_url, ativo, ordem)))'
+        'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, ordem, dias_semana, tipos_pedido, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, tipos_pedido, ordem, ativo, complementos(id, nome, preco, qtd_max, imagem_url, ativo, ordem)))'
       )
       .eq('loja_id', loja.id)
       // Traz também os inativos: viram card "Esgotado" em vez de sumir, pra
       // o cliente ver que o item existe.
       .order('ordem'),
   ]);
+  if (erroCategorias) throw new FalhaAoCarregar(erroCategorias.message);
+  if (erroProdutos) throw new FalhaAoCarregar(erroProdutos.message);
 
-  const hoje = new Date().getDay();
+  const hoje = diaDaSemanaNaLoja();
+  const listaCategorias = (categorias as CategoriaPublica[]) || [];
+  // Só as categorias ativas vieram na consulta acima. Este conjunto é o que
+  // impede o produto de uma categoria pausada de continuar aparecendo no
+  // filtro "Todos" — o dono escondeu a categoria e o item vazava assim.
+  const categoriasAtivas = new Set(listaCategorias.map((c) => c.id));
 
   // Achata produto_grupos -> grupos e ordena tudo aqui, no servidor. O HTML
   // antigo refazia esse trabalho no navegador a cada render da lista.
@@ -57,6 +100,7 @@ async function carregar(slug: string) {
     dias_semana: number[] | null;
     produto_grupos: RowProdutoGrupo[];
   })[]) || [])
+    .filter((p) => p.categoria_id === null || categoriasAtivas.has(p.categoria_id))
     .filter((p) => !p.dias_semana?.length || p.dias_semana.includes(hoje))
     .map((p) => ({
       ...p,
@@ -68,11 +112,14 @@ async function carregar(slug: string) {
           ...g,
           complementos: (g.complementos || []).filter((c) => c.ativo).sort((a, b) => a.ordem - b.ordem),
         })),
-    }));
+    }))
+    // Destaque sobe pro topo — é o que o painel promete ao marcar a opção.
+    // A ordem manual continua desempatando dentro de cada faixa.
+    .sort((a, b) => Number(b.destaque) - Number(a.destaque) || a.ordem - b.ordem);
 
   return {
     loja: loja as LojaPublica,
-    categorias: (categorias as CategoriaPublica[]) || [],
+    categorias: listaCategorias,
     produtos: produtosTratados,
   };
 }

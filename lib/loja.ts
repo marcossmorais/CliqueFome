@@ -51,9 +51,11 @@ export const obterUsuario = cache(async () => {
  * esta função, e antes disso cada chamada repetia is_admin() + a query de
  * lojas, dobrando a latência de toda navegação.
  *
- * A RLS é quem garante que ninguém abra loja alheia — mesmo forjando o
- * cookie, o select não retorna nada.
+ * O cookie `cf_loja` é PREFERÊNCIA, não autorização — ver o filtro por
+ * dono_id abaixo.
  */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const obterLojaAtual = cache(async (): Promise<{ loja: Loja | null; souAdmin: boolean }> => {
   const sb = await criarClientServidor();
 
@@ -64,14 +66,20 @@ export const obterLojaAtual = cache(async (): Promise<{ loja: Loja | null; souAd
   ]);
 
   const souAdmin = !!adminData;
+  if (!user) return { loja: null, souAdmin };
+
   const lojaEscolhida = cookieStore.get(COOKIE_LOJA)?.value;
 
-  if (lojaEscolhida) {
-    const { data } = await sb.from('lojas').select('*').eq('id', lojaEscolhida).maybeSingle();
+  if (lojaEscolhida && UUID.test(lojaEscolhida)) {
+    // Não dá pra confiar na RLS aqui: a policy de select em `lojas` é
+    // pública (`using (true)`), pra o cardápio anônimo funcionar. Um id
+    // forjado neste cookie devolveria a loja de outra pessoa. Quem impede
+    // isso é o filtro por dono_id — e o super admin é a exceção, porque
+    // escolher qualquer loja é exatamente a função dele.
+    const consulta = sb.from('lojas').select('*').eq('id', lojaEscolhida);
+    const { data } = await (souAdmin ? consulta : consulta.eq('dono_id', user.id)).maybeSingle();
     if (data) return { loja: data as Loja, souAdmin };
   }
-
-  if (!user) return { loja: null, souAdmin };
 
   const { data } = await sb
     .from('lojas')
