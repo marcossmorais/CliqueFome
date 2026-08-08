@@ -21,6 +21,11 @@ const csp = [
 ].join('; ');
 
 const nextConfig: NextConfig = {
+  // O Next gera AGENTS.md e CLAUDE.md na raiz por padrao. Desligado porque
+  // um CLAUDE.md de projeto vira instrucao pra assistentes e conflitaria
+  // com o CLAUDE.md global do usuario.
+  agentRules: false,
+
   async headers() {
     return [
       {
