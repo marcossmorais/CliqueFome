@@ -16,7 +16,7 @@ import {
   type PedidoResumo,
 } from '@/lib/pedidos/tipos';
 
-export function ModalDetalhePedido({
+export function PainelDetalhePedido({
   pedido,
   onFechar,
   onAtualizado,
@@ -112,9 +112,11 @@ export function ModalDetalhePedido({
       : 'Retirada no local';
 
   return (
-    <div className="modal aberto">
-      <div className="modal-backdrop" onClick={onFechar} />
-      <div className="modal-sheet estreito">
+    <>
+      {/* Só existe no mobile, onde o painel vira drawer sobre a lista. */}
+      <div className="pedido-painel-backdrop" onClick={onFechar} />
+
+      <aside className="pedido-painel">
         <div className="modal-topo">
           <div className="modal-titulo">
             Pedido #{pedido.numero} <span className="tag tag-inativo">{NOMES_STATUS[pedido.status]}</span>
@@ -124,7 +126,7 @@ export function ModalDetalhePedido({
           </button>
         </div>
 
-        <div className="modal-corpo">
+        <div className="pedido-painel-corpo">
           <div className="pedido-detalhe-bloco">
             <div className="pedido-detalhe-linha">
               <strong>{pedido.cliente_nome}</strong>
@@ -216,22 +218,21 @@ export function ModalDetalhePedido({
           </div>
         </div>
 
-        <div className="modal-rodape">
-          {ativo && (
-            <button type="button" className="btn-danger" style={{ marginRight: 'auto' }} onClick={cancelar}>
-              Cancelar pedido
-            </button>
-          )}
-          <button type="button" className="btn-ghost" onClick={onFechar}>
-            Fechar
-          </button>
+        {/* Ação principal fixa no rodapé do painel: numa cozinha o botão de
+            avançar precisa estar sempre alcançável, sem rolar o detalhe. */}
+        <div className="pedido-painel-rodape">
           {proximo && rotulo && (
-            <button type="button" className="btn-primary" disabled={avancando} onClick={avancar}>
+            <button type="button" className="btn-primary pedido-acao-principal" disabled={avancando} onClick={avancar}>
               {avancando ? 'Salvando...' : rotulo}
             </button>
           )}
+          {ativo && (
+            <button type="button" className="btn-ghost btn-small" onClick={cancelar}>
+              Cancelar pedido
+            </button>
+          )}
         </div>
-      </div>
-    </div>
+      </aside>
+    </>
   );
 }

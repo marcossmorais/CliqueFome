@@ -69,8 +69,12 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    // Tudo menos assets estáticos e imagens.
-    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  // Só as rotas do painel e o redirect de link antigo.
+  //
+  // O matcher anterior pegava TODAS as rotas, o que fazia a landing e o
+  // cardápio público — que não têm sessão nem nada a proteger — pagarem uma
+  // chamada de rede ao Supabase (getUser) a cada visita. Restringir aqui
+  // não abre brecha: quem protege /admin continua sendo este proxy, e o
+  // layout do painel revalida a sessão no servidor por cima.
+  matcher: ['/admin/:path*', '/cardapio.html'],
 };

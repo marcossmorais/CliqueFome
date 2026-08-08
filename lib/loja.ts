@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { criarClientServidor } from './supabase/server';
 
@@ -23,22 +24,46 @@ export type Loja = {
 export const COOKIE_LOJA = 'cf_loja';
 
 /**
+ * Usuário da requisição atual.
+ *
+ * Envolto em cache() do React: layout e page são renderizados no mesmo
+ * passe, e sem isso cada um faria a própria chamada de rede ao Supabase.
+ * O cache é POR REQUISIÇÃO (o React descarta entre requests), então não há
+ * risco de uma sessão vazar pra outro usuário — continua sendo getUser(),
+ * que valida o token no servidor do Supabase, e não getSession().
+ */
+export const obterUsuario = cache(async () => {
+  const sb = await criarClientServidor();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  return user;
+});
+
+/**
  * Resolve a loja do painel no servidor.
  *
  * No admin.html isso era estado em memória do JS. Aqui precisa vir a cada
  * request: dono normal cai na própria loja; super admin escolhe uma e a
  * escolha fica num cookie.
  *
+ * Também memoizado por requisição — o layout do painel e a página chamam
+ * esta função, e antes disso cada chamada repetia is_admin() + a query de
+ * lojas, dobrando a latência de toda navegação.
+ *
  * A RLS é quem garante que ninguém abra loja alheia — mesmo forjando o
  * cookie, o select não retorna nada.
  */
-export async function obterLojaAtual(): Promise<{ loja: Loja | null; souAdmin: boolean }> {
+export const obterLojaAtual = cache(async (): Promise<{ loja: Loja | null; souAdmin: boolean }> => {
   const sb = await criarClientServidor();
 
-  const { data: adminData } = await sb.rpc('is_admin');
-  const souAdmin = !!adminData;
+  const [{ data: adminData }, user, cookieStore] = await Promise.all([
+    sb.rpc('is_admin'),
+    obterUsuario(),
+    cookies(),
+  ]);
 
-  const cookieStore = await cookies();
+  const souAdmin = !!adminData;
   const lojaEscolhida = cookieStore.get(COOKIE_LOJA)?.value;
 
   if (lojaEscolhida) {
@@ -46,7 +71,6 @@ export async function obterLojaAtual(): Promise<{ loja: Loja | null; souAdmin: b
     if (data) return { loja: data as Loja, souAdmin };
   }
 
-  const { data: { user } } = await sb.auth.getUser();
   if (!user) return { loja: null, souAdmin };
 
   const { data } = await sb
@@ -58,4 +82,4 @@ export async function obterLojaAtual(): Promise<{ loja: Loja | null; souAdmin: b
     .maybeSingle();
 
   return { loja: (data as Loja) ?? null, souAdmin };
-}
+});

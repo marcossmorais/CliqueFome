@@ -3,10 +3,12 @@ import { formatBRL, NOMES_ORIGEM, NOMES_TIPO, rotuloAvancar, type PedidoResumo }
 
 export function CardPedido({
   pedido,
+  selecionado,
   onAbrir,
   onAvancarRapido,
 }: {
   pedido: PedidoResumo;
+  selecionado: boolean;
   onAbrir: () => void;
   onAvancarRapido: () => void;
 }) {
@@ -17,7 +19,7 @@ export function CardPedido({
   const qtdItens = pedido.pedido_itens?.length ?? 0;
 
   return (
-    <div className="pedido-card" onClick={onAbrir}>
+    <div className={'pedido-card' + (selecionado ? ' selecionado' : '')} onClick={onAbrir}>
       <span className={'pedido-dot pedido-dot-' + nivel} title="Urgência" />
       <div className="pedido-card-corpo">
         <div className="pedido-card-topo">

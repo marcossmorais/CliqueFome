@@ -6,7 +6,7 @@ import { avancarStatus, buscarPedidos } from '@/lib/pedidos/acoes';
 import { ordenarPorUrgencia } from '@/lib/pedidos/prioridade';
 import { proximoStatus, type PedidoResumo, type StatusPedido } from '@/lib/pedidos/tipos';
 import { CardPedido } from './CardPedido';
-import { ModalDetalhePedido } from './ModalDetalhePedido';
+import { PainelDetalhePedido } from './PainelDetalhePedido';
 import { ModalPedidoManual } from './ModalPedidoManual';
 import type { ProdutoPicker } from './page';
 
@@ -122,29 +122,41 @@ export function PedidosClient({
         </div>
       </div>
 
-      {lista.length === 0 ? (
-        <div className="lista-vazia">Nenhum pedido nesta aba.</div>
-      ) : (
-        <div className="pedidos-lista">
-          {lista.map((p) => (
-            <CardPedido
-              key={p.id}
-              pedido={p}
-              onAbrir={() => setPedidoAbertoId(p.id)}
-              onAvancarRapido={() => avancarRapido(p)}
-            />
-          ))}
+      {/* Lista à esquerda, detalhe fixo à direita — o detalhe não cobre a
+          lista, então dá pra conferir um pedido sem perder de vista a fila.
+          No mobile o painel vira drawer, porque as duas colunas não cabem. */}
+      <div className={'pedidos-split' + (pedidoAberto ? ' com-painel' : '')}>
+        <div className="pedidos-coluna">
+          {lista.length === 0 ? (
+            <div className="lista-vazia">Nenhum pedido nesta aba.</div>
+          ) : (
+            <div className="pedidos-lista">
+              {lista.map((p) => (
+                <CardPedido
+                  key={p.id}
+                  pedido={p}
+                  selecionado={p.id === pedidoAbertoId}
+                  onAbrir={() => setPedidoAbertoId(p.id)}
+                  onAvancarRapido={() => avancarRapido(p)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      )}
 
-      {pedidoAberto && (
-        <ModalDetalhePedido
-          pedido={pedidoAberto}
-          onFechar={() => setPedidoAbertoId(null)}
-          onAtualizado={recarregar}
-          onErro={(m) => mostrarMsg(m, 'erro')}
-        />
-      )}
+        {pedidoAberto ? (
+          <PainelDetalhePedido
+            pedido={pedidoAberto}
+            onFechar={() => setPedidoAbertoId(null)}
+            onAtualizado={recarregar}
+            onErro={(m) => mostrarMsg(m, 'erro')}
+          />
+        ) : (
+          <aside className="pedido-painel pedido-painel-vazio">
+            <p>Selecione um pedido pra ver os detalhes.</p>
+          </aside>
+        )}
+      </div>
 
       {modalManualAberto && (
         <ModalPedidoManual
