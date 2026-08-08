@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { formatBRL, subtotalLinha, type LinhaCarrinho } from '@/lib/cardapio/tipos';
 import { formatarCep, type ConfigDeliveryPublica, type EnderecoEstruturado } from '@/lib/delivery/tipos';
+import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
 import { formatarTelefone, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado } from './Carrinho';
 
 export function CheckoutModal({
@@ -22,6 +23,8 @@ export function CheckoutModal({
 }) {
   const tituloRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
+  const enderecoAtualRef = useRef(endereco);
+  const buscaCep = useBuscaCep();
   const subtotal = linhas.reduce((s, linha) => s + subtotalLinha(linha), 0);
   const usaCotacaoDinamica = !!deliveryConfig?.configurada;
   const taxa = modo === 'entrega'
@@ -30,6 +33,10 @@ export function CheckoutModal({
       : taxaEstatica
     : 0;
   const total = subtotal + taxa;
+
+  useEffect(() => {
+    enderecoAtualRef.current = endereco;
+  }, [endereco]);
 
   useEffect(() => {
     if (!aberto) return;
@@ -52,6 +59,22 @@ export function CheckoutModal({
 
   if (!aberto) return null;
   const atualizar = (campo: keyof EnderecoEstruturado, valor: string) => onEndereco({ ...endereco, [campo]: valor });
+  const alterarCep = (valor: string) => {
+    const cep = formatarCep(valor);
+    atualizar('cep', cep);
+    void buscaCep.consultar(cep, (localizado) => {
+      const atual = enderecoAtualRef.current;
+      onEndereco({
+        ...atual,
+        cep: formatarCep(localizado.cep),
+        logradouro: localizado.logradouro || atual.logradouro,
+        bairro: localizado.bairro || atual.bairro,
+        cidade: localizado.cidade,
+        uf: localizado.uf,
+      });
+      if (deliveryConfig?.setor === 'avancado') onCidade(localizado.cidade);
+    });
+  };
 
   return (
     <div className="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-titulo">
@@ -103,7 +126,7 @@ export function CheckoutModal({
                   <label className="checkout-campo checkout-largo">Cidade atendida<select value={cidadeEscolhida} onChange={(e) => onCidade(e.target.value)}><option value="">Selecione</option>{deliveryConfig.cidade && <option>{deliveryConfig.cidade}</option>}{deliveryConfig.cidades.map((c) => <option key={c.cidade}>{c.cidade}</option>)}</select></label>
                 )}
                 <div className="checkout-endereco-grid">
-                  <label className="checkout-campo">CEP<input inputMode="numeric" autoComplete="postal-code" value={formatarCep(endereco.cep)} onChange={(e) => atualizar('cep', formatarCep(e.target.value))} placeholder="00000-000" /></label>
+                  <label className="checkout-campo">CEP<input inputMode="numeric" autoComplete="postal-code" value={formatarCep(endereco.cep)} onChange={(e) => alterarCep(e.target.value)} placeholder="00000-000" />{buscaCep.mensagem && <small className={`checkout-cep-status${buscaCep.status === 'erro' ? ' erro' : ''}`} aria-live="polite">{buscaCep.mensagem}</small>}</label>
                   <label className="checkout-campo checkout-largo">Logradouro<input autoComplete="address-line1" maxLength={120} value={endereco.logradouro} onChange={(e) => atualizar('logradouro', e.target.value)} placeholder="Rua ou avenida" /></label>
                   <label className="checkout-campo">Número<input maxLength={20} value={endereco.numero} onChange={(e) => atualizar('numero', e.target.value)} /></label>
                   <label className="checkout-campo">Bairro<input maxLength={80} value={endereco.bairro} onChange={(e) => atualizar('bairro', e.target.value)} /></label>

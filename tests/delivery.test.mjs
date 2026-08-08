@@ -12,6 +12,7 @@ import {
 } from '../lib/delivery/tipos.ts';
 import { criarTokenCotacao, verificarTokenCotacao } from '../lib/delivery/cotacao.ts';
 import { geocodificarEndereco } from '../lib/delivery/geoapify.ts';
+import { somenteDigitosCep } from '../lib/endereco/cep.ts';
 
 test('taxa por km arredonda em centavos', () => {
   assert.equal(calcularTaxaPorDistancia(5000, 2), 10);
@@ -117,4 +118,10 @@ test('Geoapify diferencia chave ausente de chave recusada sem expor o valor', as
     if (chaveAnterior == null) delete process.env.GEOAPIFY_API_KEY;
     else process.env.GEOAPIFY_API_KEY = chaveAnterior;
   }
+});
+
+test('CEP aceita máscara, limita a oito dígitos e rejeita letras na normalização', () => {
+  assert.equal(somenteDigitosCep('01001-000'), '01001000');
+  assert.equal(somenteDigitosCep('CEP 01001-000 extra 999'), '01001000');
+  assert.equal(somenteDigitosCep('abc'), '');
 });

@@ -925,6 +925,7 @@
   .checkout-campo input,.checkout-campo select{ width:100%; min-width:0; min-height:43px; margin:0; padding:9px 11px; border:1px solid #cbd5d0; border-radius:9px; color:#17261f; background:#fff; font:500 13px inherit; }
   .checkout-campo input:focus,.checkout-campo select:focus{ outline:3px solid rgba(23,106,69,.14); border-color:#176a45; }
   .checkout-campo input[readonly]{ color:#52625b; background:#f3f6f4; }
+  .checkout-cep-status{ color:#176a45; font-size:10.5px; font-weight:650; line-height:1.35; }.checkout-cep-status.erro{ color:#a32e26; }
   .checkout-largo{ grid-column:span 2; }.checkout-uf{ max-width:90px; }
   .checkout-calcular{ width:100%; min-height:43px; margin-top:13px; border:0; border-radius:10px; color:#fff; background:#176a45; font-weight:800; cursor:pointer; }
   .checkout-calcular:disabled{ opacity:.6; cursor:wait; }

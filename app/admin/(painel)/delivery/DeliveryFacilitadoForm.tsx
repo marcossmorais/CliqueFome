@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ENDERECO_VAZIO, formatarCep, type EnderecoEstruturado } from '@/lib/delivery/tipos';
+import { ENDERECO_VAZIO, enderecoEstruturadoValido, formatarCep, type EnderecoEstruturado } from '@/lib/delivery/tipos';
+import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
 import styles from './delivery.module.css';
 
 type ConfigApi = {
@@ -38,6 +39,22 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
   const [enderecoFormatado, setEnderecoFormatado] = useState('');
   const [editandoEndereco, setEditandoEndereco] = useState(true);
   const [cidades, setCidades] = useState<Cidade[]>([]);
+  const buscaCep = useBuscaCep();
+
+  function alterarCep(valor: string) {
+    const cep = formatarCep(valor);
+    setEndereco((atual) => ({ ...atual, cep }));
+    void buscaCep.consultar(cep, (localizado) => {
+      setEndereco((atual) => ({
+        ...atual,
+        cep: formatarCep(localizado.cep),
+        logradouro: localizado.logradouro || atual.logradouro,
+        bairro: localizado.bairro || atual.bairro,
+        cidade: localizado.cidade,
+        uf: localizado.uf,
+      }));
+    });
+  }
 
   useEffect(() => {
     let cancelado = false;
@@ -92,6 +109,13 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
   }
 
   async function salvar() {
+    if (!enderecoEstruturadoValido(endereco)) {
+      setMensagem({
+        tipo: 'erro',
+        texto: 'Confira CEP, logradouro, número, bairro, cidade e UF antes de salvar.',
+      });
+      return;
+    }
     setSalvando(true);
     setMensagem(null);
 
@@ -205,7 +229,12 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
             <div className={styles.campo}>
               <label htmlFor="est-cep">CEP</label>
               <input id="est-cep" inputMode="numeric" autoComplete="postal-code" value={endereco.cep}
-                onChange={(e) => setEndereco((a) => ({ ...a, cep: formatarCep(e.target.value) }))} placeholder="00000-000" />
+                onChange={(e) => alterarCep(e.target.value)} placeholder="00000-000" />
+              {buscaCep.mensagem && (
+                <small className={buscaCep.status === 'erro' ? styles.erro : undefined} aria-live="polite">
+                  {buscaCep.mensagem}
+                </small>
+              )}
             </div>
             <div className={`${styles.campo} ${styles.campoLargo}`}>
               <label htmlFor="est-logradouro">Logradouro</label>
@@ -375,8 +404,8 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
             <span className={mensagem.tipo === 'sucesso' ? styles.sucesso : styles.erro}>{mensagem.texto}</span>
           )}
         </div>
-        <button type="button" className={styles.salvar} disabled={salvando} onClick={salvar}>
-          {salvando ? 'Salvando…' : 'Salvar configuração'}
+        <button type="button" className={styles.salvar} disabled={salvando || buscaCep.status === 'carregando'} onClick={salvar}>
+          {salvando ? 'Salvando…' : buscaCep.status === 'carregando' ? 'Buscando CEP…' : 'Salvar configuração'}
         </button>
       </div>
     </main>
