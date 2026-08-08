@@ -305,6 +305,12 @@
   }
   .prod-info{ flex:1; min-width:0; }
   .prod-nome{ font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* Posição do item na lista exibida (1, 2, 3...) — não é o "ordem" bruto
+     do banco, que pode ter buracos entre categorias diferentes. */
+  .prod-ordem{
+    font-size:10.5px; font-weight:700; color:var(--texto-suave);
+    font-variant-numeric:tabular-nums; margin-right:5px;
+  }
   .prod-preco{ font-size:12.5px; color:var(--texto-suave); margin-top:3px; }
   .prod-preco .antigo{ text-decoration:line-through; margin-right:5px; opacity:.7; }
   .prod-tags{ display:flex; align-items:center; gap:5px; margin-top:5px; flex-wrap:wrap; }
@@ -540,3 +546,63 @@
     border-radius:10px; padding:11px 12px; margin-bottom:10px;
   }
   .link-box code{ flex:1; min-width:200px; font-size:12.5px; word-break:break-all; color:var(--texto-suave); }
+
+  /* ---------- GESTÃO DE PEDIDOS ---------- */
+  .pedidos-lista{ display:flex; flex-direction:column; gap:10px; }
+  .pedido-card{
+    display:flex; align-items:center; gap:12px;
+    background:var(--superficie); border:1px solid var(--borda); border-radius:12px;
+    padding:14px 16px; cursor:pointer;
+  }
+  .pedido-card:hover{ border-color:#C2CCC7; }
+
+  .pedido-dot{ width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .pedido-dot-verde{ background:#2FA968; }
+  .pedido-dot-amarelo{ background:#E0A020; }
+  .pedido-dot-vermelho{ background:var(--erro); }
+
+  .pedido-card-corpo{ flex:1; min-width:0; }
+  .pedido-card-topo{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+  .pedido-numero{ font-family:'Poppins',sans-serif; font-weight:700; font-size:14px; }
+  .pedido-cliente{ font-size:13.5px; font-weight:600; }
+  .pedido-card-meta{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    font-size:12.5px; color:var(--texto-suave); margin-bottom:3px;
+  }
+  .pedido-pagamento-pendente{
+    color:#B4650F; font-weight:600; background:#FEF1E3;
+    border-radius:999px; padding:1px 8px; font-size:11px;
+  }
+  .pedido-card-tempo{ font-size:12px; color:var(--texto-suave); }
+
+  /* Painel de detalhe */
+  .pedido-detalhe-bloco{ padding:14px 0; border-bottom:1px solid var(--borda); }
+  .pedido-detalhe-bloco:first-child{ padding-top:0; }
+  .pedido-detalhe-bloco:last-child{ border-bottom:none; padding-bottom:0; }
+  .pedido-detalhe-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .pedido-item-linha{ margin-bottom:10px; }
+  .pedido-item-linha:last-child{ margin-bottom:0; }
+  .pedido-item-topo{ display:flex; justify-content:space-between; font-size:13.5px; font-weight:600; }
+  .pedido-item-opcoes{ list-style:none; margin:4px 0 0; padding-left:14px; font-size:12.5px; color:var(--texto-suave); }
+  .pedido-item-opcoes li{ margin-bottom:2px; }
+  .pedido-item-opcoes li span{ opacity:.8; }
+  .pedido-item-obs{ font-size:12px; color:var(--texto-suave); margin:4px 0 0; font-style:italic; }
+  .pedido-total-linha{ display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:4px; color:var(--texto-suave); }
+  .pedido-total-final{ font-weight:700; color:var(--texto); font-size:15px; margin-top:6px; }
+
+  /* Modal de pedido manual */
+  .pedido-manual-sugestoes{
+    border:1px solid var(--borda); border-radius:10px; overflow:hidden; margin-bottom:12px;
+  }
+  .pedido-manual-sugestao{
+    display:flex; justify-content:space-between; width:100%;
+    background:var(--superficie); border:none; border-bottom:1px solid var(--borda);
+    padding:9px 12px; font-size:13px; text-align:left; color:var(--texto);
+  }
+  .pedido-manual-sugestao:last-child{ border-bottom:none; }
+  .pedido-manual-sugestao:hover{ background:#F5F7F6; }
+  .pedido-manual-item{
+    display:flex; align-items:center; gap:12px; padding:8px 0;
+    border-bottom:1px solid var(--borda); font-size:13.5px;
+  }
+  .pedido-manual-item-nome{ flex:1; min-width:0; }

@@ -33,7 +33,7 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
   {
     grupo: 'Operação',
     itens: [
-      { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', desc: 'Pedidos de delivery, retirada e balcão numa tela só, avançando por status até a conclusão.' },
+      { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', pronta: true },
       { id: 'mesas', nome: 'Mesas e comandas', icone: 'mesas', desc: 'Abrir mesa, lançar itens durante o consumo e fechar a conta com taxa de serviço.' },
       { id: 'kds', nome: 'KDS — cozinha', icone: 'kds', desc: 'A cozinha vê o que preparar e marca item por item como pronto.' },
       { id: 'caixa', nome: 'Caixa', icone: 'caixa', desc: 'Abertura e fechamento com conferência, sangria, suprimento e resumo do movimento do dia.' },

@@ -45,10 +45,20 @@ create table if not exists pedidos (
   cliente_nome text not null,
   cliente_telefone text not null,
 
-  tipo text not null check (tipo in ('delivery','retirada','balcao','mesa')),
+  tipo text not null check (tipo in ('delivery','retirada','balcao','mesa','encomenda')),
   endereco text,
   observacao text,
   forma_pagamento text,
+
+  -- Data/hora combinada de entrega ou retirada, só quando tipo='encomenda'
+  -- (criar_pedido() garante isso). É o campo que a Gestão de pedidos usa
+  -- pra priorizar: encomenda pra daqui a 3 dias não compete com um pedido
+  -- de pronta-entrega parado há 10 minutos.
+  data_hora_agendada timestamptz,
+
+  -- De onde veio o pedido. 'site' é o cardápio público (sem sessão); os
+  -- outros só entram via painel, autenticado — checado dentro da função.
+  origem text not null default 'site' check (origem in ('site','instagram','telefone','outro')),
 
   -- Fluxo do pedido. "pendente" = caiu no painel e a loja ainda não
   -- confirmou; é o estado em que o cliente vê "aguardando confirmação".
@@ -169,7 +179,10 @@ create or replace function criar_pedido(
   p_endereco text,
   p_observacao text,
   p_forma_pagamento text,
-  p_itens jsonb
+  p_itens jsonb,
+  p_data_hora_agendada timestamptz default null,
+  p_origem text default 'site',
+  p_status_inicial text default null
 ) returns jsonb
 language plpgsql
 security definer
@@ -195,7 +208,8 @@ declare
   -- acumuladores por grupo, pro modo de preço (soma/media/maior/menor)
   v_grupo_id uuid;
   v_precos numeric[];
-  v_modo text;
+  v_status_final text := 'pendente';
+  v_sou_dono boolean := false;
 begin
   if p_cliente_nome is null or length(trim(p_cliente_nome)) < 2 then
     raise exception 'Informe o nome de quem está pedindo.';
@@ -206,10 +220,39 @@ begin
   if p_itens is null or jsonb_array_length(p_itens) = 0 then
     raise exception 'O pedido está vazio.';
   end if;
+  if p_tipo not in ('delivery','retirada','balcao','mesa','encomenda') then
+    raise exception 'Tipo de pedido inválido.';
+  end if;
 
   select * into v_loja from lojas where slug = p_loja_slug;
   if not found then
     raise exception 'Loja não encontrada.';
+  end if;
+
+  -- Pedido criado pelo próprio dono (ou super admin) via painel — é essa
+  -- checagem que autoriza origem != 'site' e status_inicial != null. Sem
+  -- ela, qualquer visitante anônimo do cardápio público poderia se passar
+  -- por "pedido manual" já confirmado, pulando a etapa de revisão da loja.
+  v_sou_dono := auth.uid() is not null and (
+    exists (select 1 from lojas where id = v_loja.id and dono_id = auth.uid())
+    or is_admin()
+  );
+
+  if p_origem not in ('site','instagram','telefone','outro') then
+    raise exception 'Origem de pedido inválida.';
+  end if;
+  if p_origem <> 'site' and not v_sou_dono then
+    raise exception 'Só o dono da loja pode registrar pedido de outra origem.';
+  end if;
+
+  if p_status_inicial is not null then
+    if p_status_inicial not in ('pendente','confirmado') then
+      raise exception 'Status inicial inválido.';
+    end if;
+    if p_status_inicial <> 'pendente' and not v_sou_dono then
+      raise exception 'Só o dono da loja pode criar pedido já confirmado.';
+    end if;
+    v_status_final := p_status_inicial;
   end if;
 
   -- Loja fechada não recebe pedido de delivery. A checagem é aqui e não
@@ -219,6 +262,17 @@ begin
   end if;
   if p_tipo = 'delivery' and (p_endereco is null or length(trim(p_endereco)) < 5) then
     raise exception 'Informe o endereço de entrega.';
+  end if;
+
+  -- Encomenda reaproveita o toggle "recebendo_encomendas" da loja.
+  if p_tipo = 'encomenda' and not v_loja.recebendo_encomendas then
+    raise exception 'A loja não está recebendo encomendas no momento.';
+  end if;
+  if p_tipo = 'encomenda' and p_data_hora_agendada is null then
+    raise exception 'Informe a data e hora combinada da encomenda.';
+  end if;
+  if p_tipo = 'encomenda' and p_data_hora_agendada < now() - interval '1 hour' then
+    raise exception 'A data/hora da encomenda já passou.';
   end if;
 
   for v_item in select * from jsonb_array_elements(p_itens) loop
@@ -253,7 +307,6 @@ begin
         if not found then
           raise exception 'Complemento inválido.';
         end if;
-        v_modo := v_grupo.modo_preco;
 
         select array_agg(c.preco * coalesce((o->>'quantidade')::integer, 1))
           into v_precos
@@ -262,7 +315,7 @@ begin
           where c.grupo_id = v_grupo_id and c.ativo;
 
         if v_precos is not null then
-          v_extra := v_extra + case v_modo
+          v_extra := v_extra + case v_grupo.modo_preco
             when 'soma'  then (select coalesce(sum(x), 0) from unnest(v_precos) x)
             when 'media' then (select coalesce(avg(x), 0) from unnest(v_precos) x)
             when 'maior' then (select coalesce(max(x), 0) from unnest(v_precos) x)
@@ -277,7 +330,9 @@ begin
     v_subtotal := v_subtotal + (v_unitario * v_qtd);
   end loop;
 
-  if p_tipo = 'delivery' then
+  -- Encomenda com endereço preenchido é tratada como entrega (cobra taxa);
+  -- sem endereço, é retirada (sem taxa).
+  if p_tipo = 'delivery' or (p_tipo = 'encomenda' and p_endereco is not null and length(trim(p_endereco)) >= 5) then
     v_taxa := coalesce(v_loja.taxa_entrega, 0);
   end if;
 
@@ -291,11 +346,14 @@ begin
 
   insert into pedidos (
     loja_id, numero, cliente_nome, cliente_telefone, tipo, endereco,
-    observacao, forma_pagamento, subtotal, taxa_entrega, total
+    observacao, forma_pagamento, subtotal, taxa_entrega, total,
+    data_hora_agendada, origem, status
   ) values (
     v_loja.id, v_numero, trim(p_cliente_nome), trim(p_cliente_telefone), p_tipo,
     nullif(trim(coalesce(p_endereco, '')), ''), nullif(trim(coalesce(p_observacao, '')), ''),
-    p_forma_pagamento, v_subtotal, v_taxa, v_subtotal + v_taxa
+    p_forma_pagamento, v_subtotal, v_taxa, v_subtotal + v_taxa,
+    case when p_tipo = 'encomenda' then p_data_hora_agendada else null end,
+    p_origem, v_status_final
   ) returning id, token into v_pedido_id, v_token;
 
   -- Segunda passada: grava os itens já com os valores calculados.
@@ -355,7 +413,7 @@ begin
 end;
 $$;
 
-grant execute on function criar_pedido(text,text,text,text,text,text,text,jsonb) to anon, authenticated;
+grant execute on function criar_pedido(text,text,text,text,text,text,text,jsonb,timestamptz,text,text) to anon, authenticated;
 
 -- ---------------------------------------------------------------
 -- pedido_por_token() — o cliente acompanha o próprio pedido
@@ -384,6 +442,8 @@ begin
     'subtotal', p.subtotal,
     'taxa_entrega', p.taxa_entrega,
     'total', p.total,
+    'data_hora_agendada', p.data_hora_agendada,
+    'origem', p.origem,
     'criado_em', p.criado_em,
     'confirmado_em', p.confirmado_em,
     'loja_nome', l.nome,
@@ -417,6 +477,47 @@ end;
 $$;
 
 grant execute on function pedido_por_token(text) to anon, authenticated;
+
+-- ---------------------------------------------------------------
+-- pedido_detalhe() — o painel busca itens + opções sob demanda (só quando
+-- o dono abre o card), pra não carregar tudo isso na lista inteira a cada
+-- atualização.
+-- ---------------------------------------------------------------
+create or replace function pedido_detalhe(p_pedido_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v jsonb;
+begin
+  if not exists (
+    select 1 from pedidos p join lojas l on l.id = p.loja_id
+    where p.id = p_pedido_id and (l.dono_id = auth.uid() or is_admin())
+  ) then
+    raise exception 'Pedido não encontrado.';
+  end if;
+
+  select jsonb_agg(jsonb_build_object(
+    'id', i.id,
+    'nome', i.nome,
+    'quantidade', i.quantidade,
+    'preco_unitario', i.preco_unitario,
+    'subtotal', i.subtotal,
+    'observacao', i.observacao,
+    'opcoes', coalesce((
+      select jsonb_agg(jsonb_build_object('grupo', o.grupo_nome, 'nome', o.nome, 'preco', o.preco, 'quantidade', o.quantidade))
+      from pedido_item_opcoes o where o.pedido_item_id = i.id
+    ), '[]'::jsonb)
+  )) into v
+  from pedido_itens i where i.pedido_id = p_pedido_id;
+
+  return coalesce(v, '[]'::jsonb);
+end;
+$$;
+
+grant execute on function pedido_detalhe(uuid) to authenticated;
 
 -- ---------------------------------------------------------------
 -- Carimbo de data nas transições de status
