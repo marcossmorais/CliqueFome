@@ -1,0 +1,133 @@
+.tracking-pagina {
+  --marca: #1e7a4e;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 24px 18px 48px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #1a201d;
+}
+
+.tracking-vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  color: #5b6560;
+}
+
+.tracking-topo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--marca), #0f3d2e);
+  margin-bottom: 18px;
+}
+
+.tracking-loja {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.tracking-topo h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.tracking-status {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tracking-status-cancelado {
+  background: rgba(220, 80, 70, 0.35);
+}
+
+.tracking-pagamento {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.tracking-aviso {
+  padding: 13px 15px;
+  border: 1px solid #efcf8f;
+  border-radius: 12px;
+  color: #684713;
+  background: #fff8e8;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.tracking-itens {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tracking-item {
+  padding: 12px 14px;
+  border: 1px solid #e2e6e3;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.tracking-item-linha {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tracking-item-opcao {
+  margin-top: 4px;
+  color: #5b6560;
+  font-size: 12.5px;
+}
+
+.tracking-resumo {
+  padding: 14px 16px;
+  border: 1px solid #e2e6e3;
+  border-radius: 12px;
+  background: #fafbfa;
+  margin-bottom: 18px;
+}
+
+.tracking-linha {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13.5px;
+  color: #3a423e;
+}
+
+.tracking-total {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e6e3;
+  font-weight: 800;
+  font-size: 16px;
+  color: #1a201d;
+}
+
+.tracking-whatsapp {
+  display: block;
+  padding: 14px;
+  border-radius: 12px;
+  color: #fff;
+  background: var(--marca);
+  text-align: center;
+  text-decoration: none;
+  font-weight: 700;
+}

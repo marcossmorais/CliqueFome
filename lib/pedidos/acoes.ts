@@ -26,12 +26,13 @@ export class ConflitoDePedido extends Error {
 }
 
 /**
- * Compare-and-set: a transição só vale se o pedido AINDA estiver no status
- * que a tela viu. Um `update ... where id = ?` sozinho é incondicional — a
- * cozinha e o balcão abertos lado a lado conseguiam regredir o pedido, ou
- * ressuscitar um que já tinha sido cancelado. O `eq('status', esperado)`
- * transforma isso em uma única instrução atômica no Postgres: ou casa, ou
- * não altera linha nenhuma.
+ * Compare-and-set, agora dentro da RPC `transicionar_pedido` — não existe
+ * mais policy de UPDATE amplo em `pedidos` (fechado o achado SEC-06: o
+ * dono podia sobrescrever total/loja_id/token de qualquer jeito). A função
+ * confere dono da loja, aplica a matriz de transição e só então faz o
+ * `update ... where status = esperado`, atômico dentro da própria RPC.
+ * `error.message === 'CONFLITO'` é o sinal de que o pedido mudou embaixo —
+ * mesmo contrato de antes, só a origem do erro que mudou.
  */
 export async function avancarStatus(
   sb: Sb,
@@ -39,26 +40,30 @@ export async function avancarStatus(
   statusEsperado: StatusPedido,
   novoStatus: StatusPedido
 ) {
-  const { data, error } = await sb
-    .from('pedidos')
-    .update({ status: novoStatus })
-    .eq('id', pedidoId)
-    .eq('status', statusEsperado)
-    .select('id');
-  if (error) throw error;
-  if (!data || data.length === 0) throw new ConflitoDePedido();
+  const { error } = await sb.rpc('transicionar_pedido', {
+    p_pedido_id: pedidoId,
+    p_status_esperado: statusEsperado,
+    p_novo_status: novoStatus,
+  });
+  if (error) {
+    if (error.message?.includes('CONFLITO')) throw new ConflitoDePedido();
+    throw error;
+  }
 }
 
-/** Cancelar também é uma transição: pedido já entregue não volta atrás. */
+/** Cancelar também é uma transição: pedido já entregue não volta atrás —
+ * a RPC libera cancelamento de qualquer status ativo, mas nunca a partir
+ * de concluído/cancelado. */
 export async function cancelarPedido(sb: Sb, pedidoId: string, statusEsperado: StatusPedido) {
-  const { data, error } = await sb
-    .from('pedidos')
-    .update({ status: 'cancelado' })
-    .eq('id', pedidoId)
-    .eq('status', statusEsperado)
-    .select('id');
-  if (error) throw error;
-  if (!data || data.length === 0) throw new ConflitoDePedido();
+  const { error } = await sb.rpc('transicionar_pedido', {
+    p_pedido_id: pedidoId,
+    p_status_esperado: statusEsperado,
+    p_novo_status: 'cancelado',
+  });
+  if (error) {
+    if (error.message?.includes('CONFLITO')) throw new ConflitoDePedido();
+    throw error;
+  }
 }
 
 export async function marcarPagamento(
@@ -67,14 +72,15 @@ export async function marcarPagamento(
   esperado: 'pendente' | 'confirmado' | 'estornado',
   novo: 'pendente' | 'confirmado' | 'estornado'
 ) {
-  const { data, error } = await sb
-    .from('pedidos')
-    .update({ pagamento_status: novo })
-    .eq('id', pedidoId)
-    .eq('pagamento_status', esperado)
-    .select('id');
-  if (error) throw error;
-  if (!data || data.length === 0) throw new ConflitoDePedido();
+  const { error } = await sb.rpc('marcar_pagamento_manual', {
+    p_pedido_id: pedidoId,
+    p_pagamento_esperado: esperado,
+    p_novo_pagamento: novo,
+  });
+  if (error) {
+    if (error.message?.includes('CONFLITO')) throw new ConflitoDePedido();
+    throw error;
+  }
 }
 
 /** Itens + opções de um pedido, buscados só quando o card é aberto — não

@@ -4,7 +4,9 @@ Ledger dos 56 achados da auditoria `CF-AUDIT-20260808-a4844b1` (commit
 auditado `a4844b1`). Nenhum item some desta lista: o que não foi corrigido
 fica como **PENDENTE** com o motivo.
 
-**Estado:** 20 corrigidos · 7 parciais · 28 pendentes · 1 positivo.
+**Estado:** 22 corrigidos · 6 parciais · 27 pendentes · 1 positivo. (SEC-05 e
+SEC-06 fechados em 2026-08-08 pela persistência do checkout público — ver
+`docs/PENDING_TASKS.md`, ainda não aplicado em produção.)
 
 **SEC-02 saiu de "condicionado" para CONFIRMADO NO AR** — ver a seção logo
 abaixo. É o item mais urgente da lista, e a contenção leva 30 segundos.
@@ -127,8 +129,8 @@ Build de produção (`npm start`), Chromium via Playwright:
 | SEC-02 | **CRÍTICO** | Stored XSS na versão estática publicada | **CONFIRMADO NO AR** | `cliquefome.vercel.app` serve o commit `e3578d7`, incluindo `/admin.html`. Sink verificado em `index.html:1163`. Ver seção acima. |
 | SEC-03 | ALTO | Leitura anônima alcança colunas internas | **FECHADO** | `revoke select (preco_custo, codigo_pdv, codigo_interno)` e `select (dono_id)` + colunas explícitas em `app/[loja]/page.tsx`. |
 | SEC-04 | ALTO | Signup externo cria lojas sem quota | **PENDENTE — URGENTE** | Depende do modelo de onboarding. Mas hoje é o que abre a cadeia do SEC-02: é o signup que deixa um estranho plantar o payload. Desligar no dashboard enquanto não se decide. |
-| SEC-05 | ALTO | RPC sem rate limit nem limites de cardinalidade | **PARCIAL** | Tetos de itens, opções e texto na RPC; `execute` revogado de `anon` — confirmado por probe (HTTP 401). Rate limit de verdade exige Edge Function na frente do banco. |
-| SEC-06 | ALTO | Dono pode atualizar todos os campos de `pedidos` | **PENDENTE** | O `UPDATE` amplo continua. O compare-and-set (FUN-12) mitiga a disputa, não a superfície. |
+| SEC-05 | ALTO | RPC sem rate limit nem limites de cardinalidade | **CORRIGIDO** (2026-08-08, `schema-migracao-checkout-publico.sql`) | O checkout público (`POST /api/lojas/[slug]/pedidos`) chama `criar_pedido_publico_v1()`, que passa por `consumir_cota_checkout()` — rate limit **dentro do banco** (8/10min por IP+loja, 5/10min por telefone+loja, teto de 5000/dia), não Edge Function nem Map em memória. `criar_pedido()` continua sem grant pra `anon`. Falta rodar em produção. |
+| SEC-06 | ALTO | Dono pode atualizar todos os campos de `pedidos` | **CORRIGIDO** (2026-08-08, `schema-migracao-checkout-publico.sql`) | A policy `pedidos_update_dono` (UPDATE amplo) foi removida. As únicas escritas pós-criação são `transicionar_pedido()` e `marcar_pagamento_manual()`, RPCs com `SELECT FOR UPDATE`, matriz de transição e compare-and-set — não dá mais pra sobrescrever `total`/`loja_id`/`token`/`origem`. Falta rodar em produção. |
 | SEC-07 | ALTO | Uploads sem tamanho, MIME ou quota | **CORRIGIDO** | `lib/catalogo/upload.ts` valida tamanho, MIME e *magic bytes*; bucket ganha `file_size_limit` e `allowed_mime_types`. Falta quota por loja. |
 | SEC-08 | MÉDIO | Open redirect depois do login | **PENDENTE** | `FormularioLogin.tsx` ainda aceita destino sem allowlist. |
 | SEC-09 | MÉDIO | Cookie `cf_loja` tratado como autorização | **CORRIGIDO** | `lib/loja.ts` valida o UUID e filtra por `dono_id` quando não é super admin. O comentário anterior afirmava que a RLS bloqueava — não bloqueava. |

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { ConflitoDePedido, avancarStatus, buscarPedidos } from '@/lib/pedidos/acoes';
 import { minutosAteOPrazo, ordenarPorUrgencia } from '@/lib/pedidos/prioridade';
@@ -55,21 +55,62 @@ export function PedidosClient({
     if (tipo === 'ok') setTimeout(() => setMsg(null), 3500);
   }
 
+  // Evita duas requisições de recarga concorrentes — o realtime pode
+  // disparar várias mudanças em rajada (pedido novo + item + opções, tudo
+  // no mesmo INSERT em cascata) e cada uma pediria um recarregar() próprio.
+  const carregandoRef = useRef(false);
+
   const recarregar = useCallback(async () => {
+    if (carregandoRef.current) return;
+    carregandoRef.current = true;
     try {
       const sb = criarClientNavegador();
       setPedidos(await buscarPedidos(sb, lojaId));
     } catch (err) {
       mostrarMsg('Erro ao atualizar pedidos: ' + (err as Error).message);
+    } finally {
+      carregandoRef.current = false;
     }
   }, [lojaId]);
 
   // Sem isso, um pedido novo do cardápio só apareceria depois de um F5 —
-  // numa cozinha corrida, isso é pedido perdido.
+  // numa cozinha corrida, isso é pedido perdido. Fica como rede de
+  // segurança mesmo com Realtime ligado: se o WebSocket cair, o polling
+  // continua trazendo pedido novo em até 20s. Pausa quando a aba está em
+  // segundo plano pra não gastar cota com quem nem está olhando a tela.
   useEffect(() => {
-    const id = setInterval(recarregar, INTERVALO_ATUALIZACAO_MS);
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') recarregar();
+    }, INTERVALO_ATUALIZACAO_MS);
     return () => clearInterval(id);
   }, [recarregar]);
+
+  // Realtime: qualquer INSERT/UPDATE em `pedidos` desta loja invalida a
+  // lista. A autorização continua sendo a RLS de "pedidos_select_dono" —
+  // o evento só avisa que algo mudou, não manda o payload como verdade;
+  // quem decide o que a tela mostra é sempre o recarregar() (SELECT com
+  // RLS), nunca o conteúdo bruto do evento do Postgres.
+  useEffect(() => {
+    const sb = criarClientNavegador();
+    let pausa: ReturnType<typeof setTimeout> | null = null;
+    const canal = sb
+      .channel(`pedidos-loja-${lojaId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pedidos', filter: `loja_id=eq.${lojaId}` },
+        () => {
+          // Debounce curto: uma rajada de eventos vira uma única recarga.
+          if (pausa) clearTimeout(pausa);
+          pausa = setTimeout(recarregar, 400);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (pausa) clearTimeout(pausa);
+      sb.removeChannel(canal);
+    };
+  }, [lojaId, recarregar]);
 
   const termo = busca.trim().toLowerCase();
   const filtrados = useMemo(

@@ -4,6 +4,47 @@ Só o que foi decidido contra uma alternativa razoável, com o motivo.
 
 ---
 
+## SUBSTITUÍDO — Checkout público passa a persistir todo pedido (2026-08-08)
+
+As três decisões abaixo ("`criar_pedido()` não é executável por `anon`",
+"Compare-and-set no cliente, em vez de RPC de transição" e "Cardápio público
+não grava pedido") **não valem mais**. Ficam registradas por histórico, não
+apagadas.
+
+**Nova decisão, pedida explicitamente pelo dono do projeto:** todo pedido
+finalizado no cardápio público precisa virar registro oficial em `pedidos`,
+**independente do plano da loja**. A persistência do pedido não é
+funcionalidade Pro — só o **pagamento online** é que fica condicionado a
+Pro/Pro+, e mesmo esses dois planos não têm pagamento habilitado ainda (não
+existe gateway, webhook, assinatura nem antifraude prontos).
+
+O que mudou pra isso ser seguro:
+- `criar_pedido()` continua sem grant pra `anon`. Quem cria pedido de origem
+  "site" é a nova `criar_pedido_publico_v1()`, chamada só pelo backend
+  (`service_role`) a partir de `POST /api/lojas/[slug]/pedidos` — nunca
+  direto do navegador. O rate limit que faltava (SEC-05) agora mora dentro
+  do banco (`consumir_cota_checkout`), não em memória.
+- A RPC pública fixa internamente `origem='site'`, status inicial
+  `'pendente'` e forma de pagamento "A combinar pelo WhatsApp" — nenhum
+  desses três vem do navegador.
+- Idempotência por `(loja_id, idempotency_key)` com constraint única:
+  duplo clique, timeout com retry ou duas abas nunca criam dois pedidos.
+- O `UPDATE` amplo em `pedidos` (SEC-06) foi fechado de vez: não existe mais
+  policy de UPDATE pra `authenticated`. `transicionar_pedido()` e
+  `marcar_pagamento_manual()` são as únicas portas de escrita depois da
+  criação, com `SELECT FOR UPDATE`, matriz de transição e compare-and-set.
+  `lib/pedidos/acoes.ts` passou a chamar essas RPCs; a assinatura das
+  funções exportadas não mudou, então `PedidosClient.tsx` e
+  `PainelDetalhePedido.tsx` não precisaram de alteração nenhuma.
+- WhatsApp só abre **depois** do commit no banco, com botão explícito (não
+  `window.open` automático) e mensagem montada a partir do snapshot
+  persistido, nunca do carrinho em memória.
+
+Ver `schema-migracao-checkout-publico.sql` e
+`app/api/lojas/[slug]/pedidos/route.ts` pro detalhe técnico completo.
+
+---
+
 ## `criar_pedido()` não é executável por `anon`
 
 Na versão básica o cardápio público não grava pedido — monta a mensagem do

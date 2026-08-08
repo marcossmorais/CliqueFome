@@ -10,7 +10,8 @@
     "test:ajuda": "node --test tests/ajuda-suporte.test.mjs",
     "test:historico": "node --test tests/historico-pedidos.test.mjs",
     "test:avaliacoes": "node --test tests/avaliacoes.test.mjs",
-    "test:delivery": "node --test tests/delivery.test.mjs"
+    "test:delivery": "node --test tests/delivery.test.mjs",
+    "test:checkout": "node --test tests/checkout.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
