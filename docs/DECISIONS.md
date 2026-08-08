@@ -4,6 +4,95 @@ Só o que foi decidido contra uma alternativa razoável, com o motivo.
 
 ---
 
+## `criar_pedido()` não é executável por `anon`
+
+Na versão básica o cardápio público não grava pedido — monta a mensagem do
+WhatsApp. Quem lança pedido é a loja, logada, pelo painel. Manter a
+concessão a `anon` deixava aberta uma porta que ninguém usa e que dá pra
+floodar sem custo.
+
+**Alternativa rejeitada:** manter `anon` "pro futuro". Custava uma migração
+a mais depois e uma superfície anônima agora.
+
+Quando a versão Pro passar a persistir pedido do cliente, a concessão volta
+— **junto** com rate limit fora do banco, não antes.
+
+---
+
+## Item esgotado continua aparecendo, contra a recomendação da auditoria
+
+A auditoria de 2026-08-08 manda "produto inativo deve ficar invisível". Isso
+contraria a decisão registrada mais abaixo neste arquivo, tomada com motivo:
+mostrar comunica que o item existe e volta.
+
+**Decisão mantida.** Foi corrigida só a parte que era bug de verdade:
+produto de **categoria inativa** vazava no filtro "Todos" — esse o dono
+escondeu de propósito, e agora some.
+
+---
+
+## Compare-and-set no cliente, em vez de RPC de transição
+
+As transições de pedido passaram a casar o status esperado
+(`.eq('status', esperado)`), o que é uma única instrução atômica no Postgres:
+ou casa, ou não altera linha nenhuma.
+
+**Alternativa rejeitada (por ora):** `transicionar_pedido()` como RPC
+estreita com `SELECT FOR UPDATE`, revogando o `UPDATE` amplo — que é o que a
+auditoria pede. Resolve mais: estreita a superfície de escrita, não só a
+disputa. Mas exige migração, mudança de policy e retrabalho no painel.
+
+O compare-and-set fecha o bug relatado (duas abas regredindo ou
+ressuscitando pedido) sem migração. A RPC continua na lista como SEC-06.
+
+---
+
+## Uma função só calcula preço de complemento
+
+`combinarPrecos` é a única implementação da regra no front — modal, carrinho
+e mensagem do WhatsApp passam por ela. Cada escolha carrega o `modoPreco` da
+lista pro carrinho poder recalcular sem ter o catálogo em mãos.
+
+**Motivo:** eram três contas diferentes. Numa lista "média", o modal
+mostrava R$ 45 e o carrinho cobrava R$ 90.
+
+O formato espelha o SQL de propósito: cada opção entra como
+`preço × quantidade`, um elemento por opção distinta — exatamente o que
+`array_agg(c.preco * quantidade)` faz em `criar_pedido()`. Manter a mesma
+forma é o que garante que os dois lados cheguem ao mesmo centavo.
+
+---
+
+## Carrinho inválido é removido com aviso, não bloqueado
+
+Linha cujo produto saiu do cardápio, esgotou ou perdeu uma opção é removida
+na conferência com o catálogo, e a pessoa vê um aviso nomeando o item.
+Mudança de preço atualiza e avisa.
+
+**Alternativa rejeitada:** manter a linha e travar o checkout, como a
+auditoria sugere. Deixa o carrinho num estado que a pessoa não sabe
+desfazer. Remover mantém o carrinho sempre finalizável; o aviso é que
+carrega a explicação.
+
+---
+
+## Cardápio sem barra de navegação
+
+A nav do topo (logo, "Cardápio", "Peça agora", ícone do carrinho) foi
+removida a pedido do dono do projeto. O cardápio de uma loja é uma página
+só, e a nav repetia o que o `HeroLoja` logo abaixo já mostra.
+
+**Consequência aceita:** com o carrinho vazio não há mais como abri-lo. O
+botão flutuante aparece assim que há item — e carrinho vazio não tem o que
+mostrar.
+
+**Efeito colateral bom:** era na logo da nav que morava o pior bug visual do
+cardápio (UI-01) — imagem sem dimensão CSS cobrindo a página e bloqueando o
+carrinho no celular. A logo agora só aparece no `HeroLoja`, onde entra como
+`background-image` de uma caixa de tamanho fixo.
+
+---
+
 ## Preço calculado no banco, nunca no navegador
 
 `criar_pedido()` recebe ids e quantidades, busca os preços no catálogo e faz a
