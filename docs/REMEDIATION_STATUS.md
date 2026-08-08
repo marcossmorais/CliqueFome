@@ -6,12 +6,58 @@ fica como **PENDENTE** com o motivo.
 
 **Estado:** 20 corrigidos · 7 parciais · 28 pendentes · 1 positivo.
 
-## Estado do banco em 2026-08-08, medido por probe anônimo
+**SEC-02 saiu de "condicionado" para CONFIRMADO NO AR** — ver a seção logo
+abaixo. É o item mais urgente da lista, e a contenção leva 30 segundos.
 
-`schema-migracao-pedidos.sql` foi rodado. `schema-migracao-seguranca.sql`
-**precisa ser rodado de novo**, na versão corrigida — a primeira passou sem
-erro e sem efeito. Dois problemas apareceram só ao testar contra o banco
-real, e nenhum dos dois estava na auditoria:
+## SEC-02 está no ar — confirmado em 2026-08-08
+
+`https://cliquefome.vercel.app` serve o **HTML estático antigo**. O commit
+publicado é `e3578d7` (o terceiro do repositório), identificado pelo tamanho
+exato dos arquivos: `index.html` 55787 bytes, `admin.html` 43601 bytes.
+
+```
+/                200   "Sua marca — Cardápio"
+/admin.html      200   "Admin — Cardápio"     ← o painel está publicado
+/pizzaria-teste  404                          ← o app Next NÃO está no ar
+```
+
+O sink, verificado no arquivo publicado (`e3578d7:index.html:1163`):
+
+```js
+'<img src="' + p.imagem_url + '" alt="' + p.nome + '" loading="lazy">'
+```
+
+`p` vem da tabela `produtos` sem escape nenhum e cai em `innerHTML`.
+
+**Cadeia de ataque com o que está configurado hoje:** signup aberto →
+qualquer pessoa cria conta e loja → payload no nome do produto → manda
+`?loja=loja-dela` pra um dono logado → script roda na mesma origem do
+`/admin.html` → lê o `localStorage` → assume a sessão da vítima.
+
+Contenção imediata, sem redeploy: Vercel → Settings → Deployment Protection
+→ Vercel Authentication → All Deployments. Depois, desligar o signup no
+Supabase. A cura definitiva é publicar o app Next (com o preset trocado de
+"Other" pra "Next.js") e apagar os `.html` da raiz.
+
+## Estado do banco em 2026-08-08 — fechado, medido por probe anônimo
+
+As duas migrações foram rodadas. Probe anônimo contra o banco real:
+
+```
+produtos.preco_custo      HTTP 401  permission denied
+produtos.codigo_interno   HTTP 401  permission denied
+produtos select=*         HTTP 401  permission denied
+lojas.dono_id             HTTP 401  permission denied
+criar_pedido (anon)       HTTP 401  permission denied for function
+colunas públicas          HTTP 200  seguem funcionando
+```
+
+O `PGRST203` desapareceu, o que confirma que a `criar_pedido` duplicada foi
+apagada. **SEC-01 e SEC-03 fechados.**
+
+Dois problemas apareceram só ao testar contra o banco real, e nenhum dos
+dois estava na auditoria — ficam registrados porque explicam por que a
+primeira tentativa da migração passou sem erro e sem efeito:
 
 ### `criar_pedido()` existe em duas versões
 
@@ -38,11 +84,13 @@ produtos.codigo_interno   HTTP 200  [{"codigo_interno":10000}]
 lojas.dono_id             HTTP 200  [{"dono_id":"379482c3-..."}]
 ```
 
-A versão corrigida revoga a tabela e concede coluna a coluna. **Enquanto
-não rodar, SEC-01, SEC-03 e SEC-05 continuam abertos**, independentemente
-do que a tabela abaixo diz sobre o código.
+A versão corrigida revoga a tabela e concede coluna a coluna, e já está
+aplicada — é o que o probe acima confirma.
 
-O arquivo termina com um bloco de CONFERÊNCIA — rode e leia o resultado.
+**Lição que vale pro resto da lista:** as duas falhas passaram por revisão
+de arquivo sem serem notadas, e só apareceram ao chamar o banco de verdade.
+O que está no `.sql` não é necessariamente o que está no Postgres. Todo item
+de banco ainda pendente merece um probe antes de ser marcado como fechado.
 
 ### O que muda no comportamento
 
@@ -75,11 +123,11 @@ Build de produção (`npm start`), Chromium via Playwright:
 
 | ID | Sev | Achado | Estado | Onde |
 |---|---|---|---|---|
-| SEC-01 | CRÍTICO | Manipulação de preço e regras em `criar_pedido()` | **CORRIGIDO** | `schema-migracao-pedidos.sql`: vínculo `produto_grupos`, `qtd_min`/`qtd_max`, `tipo_selecao`, quantidade por opção, tetos de payload. Exige rodar a migração. |
-| SEC-02 | CRÍTICO cond. | Stored XSS na versão estática de `origin/main` | **PENDENTE** | Depende de confirmar o que a Vercel publica hoje. Nenhuma mudança de código resolve. |
-| SEC-03 | ALTO | Leitura anônima alcança colunas internas | **CORRIGIDO** | `revoke select (preco_custo, codigo_pdv, codigo_interno)` e `select (dono_id)` + colunas explícitas em `app/[loja]/page.tsx`. |
-| SEC-04 | ALTO | Signup externo cria lojas sem quota | **PENDENTE** | Depende do modelo de onboarding (convite, aprovação ou aberto), ainda não decidido. |
-| SEC-05 | ALTO | RPC sem rate limit nem limites de cardinalidade | **PARCIAL** | Tetos de itens, opções e texto na RPC; `execute` revogado de `anon`. Rate limit de verdade exige Edge Function na frente do banco. |
+| SEC-01 | CRÍTICO | Manipulação de preço e regras em `criar_pedido()` | **FECHADO** | `schema-migracao-pedidos.sql`: vínculo `produto_grupos`, `qtd_min`/`qtd_max`, `tipo_selecao`, quantidade por opção, tetos de payload. Exige rodar a migração. |
+| SEC-02 | **CRÍTICO** | Stored XSS na versão estática publicada | **CONFIRMADO NO AR** | `cliquefome.vercel.app` serve o commit `e3578d7`, incluindo `/admin.html`. Sink verificado em `index.html:1163`. Ver seção acima. |
+| SEC-03 | ALTO | Leitura anônima alcança colunas internas | **FECHADO** | `revoke select (preco_custo, codigo_pdv, codigo_interno)` e `select (dono_id)` + colunas explícitas em `app/[loja]/page.tsx`. |
+| SEC-04 | ALTO | Signup externo cria lojas sem quota | **PENDENTE — URGENTE** | Depende do modelo de onboarding. Mas hoje é o que abre a cadeia do SEC-02: é o signup que deixa um estranho plantar o payload. Desligar no dashboard enquanto não se decide. |
+| SEC-05 | ALTO | RPC sem rate limit nem limites de cardinalidade | **PARCIAL** | Tetos de itens, opções e texto na RPC; `execute` revogado de `anon` — confirmado por probe (HTTP 401). Rate limit de verdade exige Edge Function na frente do banco. |
 | SEC-06 | ALTO | Dono pode atualizar todos os campos de `pedidos` | **PENDENTE** | O `UPDATE` amplo continua. O compare-and-set (FUN-12) mitiga a disputa, não a superfície. |
 | SEC-07 | ALTO | Uploads sem tamanho, MIME ou quota | **CORRIGIDO** | `lib/catalogo/upload.ts` valida tamanho, MIME e *magic bytes*; bucket ganha `file_size_limit` e `allowed_mime_types`. Falta quota por loja. |
 | SEC-08 | MÉDIO | Open redirect depois do login | **PENDENTE** | `FormularioLogin.tsx` ainda aceita destino sem allowlist. |
