@@ -11,7 +11,66 @@
 .filtros input,
 .filtros select { margin-bottom: 0; min-height: 42px; }
 
+/* input[type=search] e input[type=date] ficam de fora da regra global de
+   `input[type=text]...` em admin.css — sem isso caem no estilo nativo do
+   navegador (sem borda arredondada, ícone de calendário cru), destoando
+   do resto da página. Redeclarados aqui com o mesmo visual dos outros
+   campos, inclusive o estado de foco (não dá pra confiar só na regra
+   global `input:focus`: uma vez que o seletor abaixo fica mais específico,
+   ele venceria a disputa de cascata e a borda voltaria a ficar cinza). */
 .busca { margin-bottom: 16px; }
+.campoBusca { position: relative; }
+.campoBusca svg {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--texto-suave); pointer-events: none;
+}
+.campoBusca input[type='search'] {
+  width: 100%;
+  min-height: 42px;
+  margin: 0;
+  padding: 10px 12px 10px 34px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--superficie);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 14px;
+}
+.campoBusca input[type='search']:focus {
+  outline: none;
+  border-color: var(--verde);
+  box-shadow: 0 0 0 3px rgba(30, 122, 78, .12);
+}
+.campoBusca input[type='search']::placeholder { color: var(--texto-suave); }
+.campoBusca input[type='search']::-webkit-search-cancel-button,
+.campoBusca input[type='search']::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.periodo input[type='date'] {
+  width: 100%;
+  min-height: 42px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--superficie);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 14px;
+}
+.periodo input[type='date']:focus {
+  outline: none;
+  border-color: var(--verde);
+  box-shadow: 0 0 0 3px rgba(30, 122, 78, .12);
+}
+.periodo input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: .55;
+}
+.periodo input[type='date']::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
 .periodo { display: flex; align-items: end; gap: 12px; margin-bottom: 14px; }
 .periodo > div:not(.atalhos) { min-width: 160px; }
 .atalhos { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 1px; }

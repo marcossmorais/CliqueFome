@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { PainelDetalhePedido } from '../pedidos/PainelDetalhePedido';
 import { formatBRL, NOMES_ORIGEM, NOMES_TIPO } from '@/lib/pedidos/tipos';
 import { useAgora } from '@/hooks/useAgora';
+import { IconeBusca } from '@/components/admin/IconesCatalogo';
 import type { FiltrosHistorico, PedidoHistorico } from '@/lib/pedidos/historico';
 import styles from './historico.module.css';
 
@@ -65,13 +66,16 @@ export function HistoricoClient({
       <form className={styles.filtros} method="get" action="/admin/historico">
         <div className={styles.busca}>
           <label htmlFor="historicoBusca">Buscar pedido</label>
-          <input
-            id="historicoBusca"
-            name="busca"
-            type="search"
-            defaultValue={filtros.busca}
-            placeholder="Nome, telefone ou nº do pedido"
-          />
+          <div className={styles.campoBusca}>
+            <IconeBusca />
+            <input
+              id="historicoBusca"
+              name="busca"
+              type="search"
+              defaultValue={filtros.busca}
+              placeholder="Nome, telefone ou nº do pedido"
+            />
+          </div>
         </div>
 
         <div className={styles.periodo}>
