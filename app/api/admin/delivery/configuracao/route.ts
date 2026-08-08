@@ -117,7 +117,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ erro: 'Loja não autorizada.' }, { status: 403 });
   }
 
-  let geocodificado;
+  let geocodificado: Awaited<ReturnType<typeof geocodificarEndereco>> | null = null;
   try {
     geocodificado = await geocodificarEndereco(enderecoEmLinha(endereco));
     if (!geocodificado.cidade || normalizarTexto(geocodificado.cidade) !== normalizarTexto(endereco.cidade)) {
@@ -127,12 +127,28 @@ export async function PUT(request: Request) {
       );
     }
   } catch (erro) {
-    const mensagem =
-      erro instanceof ErroGeoapify && erro.codigo !== 'SERVICO_INDISPONIVEL'
-        ? 'Não encontramos esse endereço. Confira CEP, logradouro, número, bairro, cidade e UF.'
+    // Taxa fixa não depende de rota. Uma indisponibilidade externa não pode
+    // impedir a loja de salvar essa modalidade; as coordenadas serão exigidas
+    // e recalculadas quando o dono mudar para "por km".
+    if (tipoTaxa === 'fixa' && erro instanceof ErroGeoapify && [
+      'CHAVE_AUSENTE', 'CHAVE_RECUSADA', 'LIMITE_ATINGIDO', 'SERVICO_INDISPONIVEL',
+    ].includes(erro.codigo)) {
+      geocodificado = null;
+    } else {
+      const mensagens: Partial<Record<ErroGeoapify['codigo'], string>> = {
+        CHAVE_AUSENTE: 'A chave da Geoapify não está configurada no ambiente de produção.',
+        CHAVE_RECUSADA: 'A Geoapify recusou a chave configurada. Confira o valor e as restrições da chave.',
+        LIMITE_ATINGIDO: 'O limite de consultas da Geoapify foi atingido. Tente novamente mais tarde.',
+        SERVICO_INDISPONIVEL: 'O serviço de localização está indisponível. Tente novamente.',
+      };
+      const mensagem = erro instanceof ErroGeoapify
+        ? mensagens[erro.codigo] ?? 'Não encontramos esse endereço. Confira CEP, logradouro, número, bairro, cidade e UF.'
         : 'O serviço de localização está indisponível. Tente novamente.';
-    return NextResponse.json({ erro: mensagem }, { status: 503 });
+      return NextResponse.json({ erro: mensagem }, { status: 503 });
+    }
   }
+
+  const enderecoFormatado = geocodificado?.formatado ?? enderecoEmLinha(endereco);
 
   try {
     const sb = criarClientPrivilegiado();
@@ -151,13 +167,13 @@ export async function PUT(request: Request) {
       p_cidade: endereco.cidade,
       p_uf: endereco.uf,
       p_complemento: endereco.complemento || null,
-      p_latitude: geocodificado.latitude,
-      p_longitude: geocodificado.longitude,
-      p_endereco_formatado: geocodificado.formatado,
+      p_latitude: geocodificado?.latitude ?? null,
+      p_longitude: geocodificado?.longitude ?? null,
+      p_endereco_formatado: enderecoFormatado,
       p_cidades: cidades,
     });
     if (error) throw error;
-    return NextResponse.json({ ok: true, enderecoFormatado: geocodificado.formatado });
+    return NextResponse.json({ ok: true, enderecoFormatado });
   } catch {
     return NextResponse.json({ erro: 'Não foi possível salvar a configuração.' }, { status: 503 });
   }

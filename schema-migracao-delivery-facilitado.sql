@@ -594,3 +594,11 @@ grant execute on function public.salvar_config_delivery_v2(
 ) to service_role;
 
 commit;
+
+-- HOTFIX: taxa fixa não depende da Geoapify. Coordenadas podem ficar nulas
+-- até a loja escolher o cálculo por quilômetro, quando a API administrativa
+-- volta a exigir e validar a geocodificação antes de salvar.
+begin;
+alter table public.enderecos_estabelecimento alter column latitude drop not null;
+alter table public.enderecos_estabelecimento alter column longitude drop not null;
+commit;

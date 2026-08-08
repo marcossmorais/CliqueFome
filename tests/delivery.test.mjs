@@ -11,6 +11,7 @@ import {
   validarLimitesDaCotacao,
 } from '../lib/delivery/tipos.ts';
 import { criarTokenCotacao, verificarTokenCotacao } from '../lib/delivery/cotacao.ts';
+import { geocodificarEndereco } from '../lib/delivery/geoapify.ts';
 
 test('taxa por km arredonda em centavos', () => {
   assert.equal(calcularTaxaPorDistancia(5000, 2), 10);
@@ -93,4 +94,27 @@ test('token de cotacao rejeita adulteracao e expiracao', () => {
   const alterado = `${payload.slice(0, -1)}${payload.endsWith('A') ? 'B' : 'A'}.${assinatura}`;
   assert.equal(verificarTokenCotacao(alterado), null);
   assert.equal(verificarTokenCotacao(criarTokenCotacao({ ...conteudo, exp: Date.now() - 1 })), null);
+});
+
+test('Geoapify diferencia chave ausente de chave recusada sem expor o valor', async () => {
+  const chaveAnterior = process.env.GEOAPIFY_API_KEY;
+  const fetchAnterior = globalThis.fetch;
+  try {
+    delete process.env.GEOAPIFY_API_KEY;
+    await assert.rejects(
+      geocodificarEndereco('Rua Um, 123, Cidade - PB'),
+      (erro) => erro?.codigo === 'CHAVE_AUSENTE',
+    );
+
+    process.env.GEOAPIFY_API_KEY = 'chave-invalida-de-teste';
+    globalThis.fetch = async () => new Response('', { status: 401 });
+    await assert.rejects(
+      geocodificarEndereco('Rua Um, 123, Cidade - PB'),
+      (erro) => erro?.codigo === 'CHAVE_RECUSADA',
+    );
+  } finally {
+    globalThis.fetch = fetchAnterior;
+    if (chaveAnterior == null) delete process.env.GEOAPIFY_API_KEY;
+    else process.env.GEOAPIFY_API_KEY = chaveAnterior;
+  }
 });

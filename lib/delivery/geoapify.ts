@@ -1,16 +1,22 @@
 const GEOCODING_URL = 'https://api.geoapify.com/v1/geocode/search';
 const ROUTING_URL = 'https://api.geoapify.com/v1/routing';
 
+export type CodigoErroGeoapify =
+  | 'ENDERECO_NAO_ENCONTRADO'
+  | 'ENDERECO_IMPRECISO'
+  | 'ROTA_NAO_ENCONTRADA'
+  | 'CHAVE_AUSENTE'
+  | 'CHAVE_RECUSADA'
+  | 'LIMITE_ATINGIDO'
+  | 'SERVICO_INDISPONIVEL';
+
 export class ErroGeoapify extends Error {
-  constructor(
-    public readonly codigo:
-      | 'ENDERECO_NAO_ENCONTRADO'
-      | 'ENDERECO_IMPRECISO'
-      | 'ROTA_NAO_ENCONTRADA'
-      | 'SERVICO_INDISPONIVEL',
-  ) {
+  readonly codigo: CodigoErroGeoapify;
+
+  constructor(codigo: CodigoErroGeoapify) {
     super(codigo);
     this.name = 'ErroGeoapify';
+    this.codigo = codigo;
   }
 }
 
@@ -24,8 +30,15 @@ export type EnderecoGeocodificado = {
 
 function chaveGeoapify() {
   const chave = process.env.GEOAPIFY_API_KEY?.trim();
-  if (!chave) throw new ErroGeoapify('SERVICO_INDISPONIVEL');
+  if (!chave) throw new ErroGeoapify('CHAVE_AUSENTE');
   return chave;
+}
+
+function validarResposta(resposta: Response) {
+  if (resposta.ok) return;
+  if (resposta.status === 401 || resposta.status === 403) throw new ErroGeoapify('CHAVE_RECUSADA');
+  if (resposta.status === 429) throw new ErroGeoapify('LIMITE_ATINGIDO');
+  throw new ErroGeoapify('SERVICO_INDISPONIVEL');
 }
 
 async function fetchComTimeout(url: string, timeoutMs = 6500) {
@@ -50,7 +63,7 @@ export async function geocodificarEndereco(endereco: string): Promise<EnderecoGe
   url.searchParams.set('apiKey', chaveGeoapify());
 
   const resposta = await fetchComTimeout(url.toString());
-  if (!resposta.ok) throw new ErroGeoapify('SERVICO_INDISPONIVEL');
+  validarResposta(resposta);
   const corpo = (await resposta.json()) as {
     results?: Array<{
       lat?: number;
@@ -93,7 +106,7 @@ export async function calcularDistanciaDeRota(
   url.searchParams.set('apiKey', chaveGeoapify());
 
   const resposta = await fetchComTimeout(url.toString());
-  if (!resposta.ok) throw new ErroGeoapify('SERVICO_INDISPONIVEL');
+  validarResposta(resposta);
   const corpo = (await resposta.json()) as {
     features?: Array<{ properties?: { distance?: number } }>;
   };
