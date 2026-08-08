@@ -1,5 +1,14 @@
 /**
- * Menu do painel — as 16 áreas, na mesma ordem e agrupamento do admin.html.
+ * Menu do painel — as 16 áreas.
+ *
+ * Agrupamento por PRONTIDÃO, não por tipo de funcionalidade: as telas que
+ * já funcionam hoje ficam nos grupos de cima ("Essenciais" e "Sua loja"),
+ * e tudo que ainda é placeholder cai junto no grupo "Em breve", no fim do
+ * menu. O agrupamento antigo (Operação/Cardápio/Entrega/Gestão/Config)
+ * misturava pronto com placeholder dentro do mesmo grupo — quem abria o
+ * painel via "Mesas e comandas" antes de "Catálogo" só descobria que a
+ * tela estava vazia depois de clicar.
+ *
  * `pronta: false` desenha a bolinha de "em breve" e leva pra tela vazia.
  */
 export type ItemMenu = {
@@ -31,24 +40,11 @@ export const ICONES: Record<string, string> = {
 
 export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
   {
-    grupo: 'Operação',
+    grupo: 'Essenciais',
     itens: [
       { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', pronta: true },
-      { id: 'mesas', nome: 'Mesas e comandas', icone: 'mesas', desc: 'Abrir mesa, lançar itens durante o consumo e fechar a conta com taxa de serviço.' },
-      { id: 'kds', nome: 'KDS — cozinha', icone: 'kds', desc: 'A cozinha vê o que preparar e marca item por item como pronto.' },
-      { id: 'caixa', nome: 'Caixa', icone: 'caixa', desc: 'Abertura e fechamento com conferência, sangria, suprimento e resumo do movimento do dia.' },
-    ],
-  },
-  {
-    grupo: 'Cardápio',
-    itens: [
+      { id: 'historico', nome: 'Histórico de pedidos', icone: 'historico', pronta: true, desc: 'Pedidos entregues, retirados ou cancelados, com filtros e busca.' },
       { id: 'catalogo', nome: 'Catálogo', icone: 'catalogo', pronta: true },
-      { id: 'links', nome: 'Links do cardápio', icone: 'links', pronta: true },
-    ],
-  },
-  {
-    grupo: 'Entrega',
-    itens: [
       {
         id: 'delivery',
         nome: 'Áreas de entrega',
@@ -56,25 +52,28 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
         pronta: true,
         desc: 'Delivery facilitado: taxa única, por distância ou por cidade vizinha.',
       },
-      { id: 'entregadores', nome: 'Entregadores', icone: 'entregadores', desc: 'Cadastro dos seus motoboys pra vincular ao pedido na hora da entrega.' },
     ],
   },
   {
-    grupo: 'Gestão',
+    grupo: 'Sua loja',
     itens: [
-      { id: 'desempenho', nome: 'Desempenho', icone: 'desempenho', desc: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.' },
-      { id: 'historico', nome: 'Histórico de pedidos', icone: 'historico', pronta: true, desc: 'Pedidos entregues, retirados ou cancelados, com filtros e busca.' },
-      { id: 'financeiro', nome: 'Financeiro', icone: 'financeiro', desc: 'Contas a pagar e a receber, fluxo de caixa e categorias financeiras.' },
-      { id: 'fiscal', nome: 'Fiscal', icone: 'fiscal', desc: 'Emissão de notas dos pedidos direto pelo sistema.' },
-    ],
-  },
-  {
-    grupo: 'Configuração',
-    itens: [
+      { id: 'links', nome: 'Links do cardápio', icone: 'links', pronta: true },
       { id: 'empresa', nome: 'Minha empresa', icone: 'empresa', pronta: true },
-      { id: 'config', nome: 'Configurações', icone: 'config', desc: 'Impressão, agendamentos e integrações do sistema.' },
       { id: 'avaliacoes', nome: 'Avaliações', icone: 'avaliacoes', pronta: true, desc: 'Configure avaliações de produtos e da marca conforme o plano da loja.' },
       { id: 'suporte', nome: 'Ajuda e suporte', icone: 'suporte', pronta: true, desc: 'Central de ajuda, tutoriais e canais de suporte.' },
+    ],
+  },
+  {
+    grupo: 'Em breve',
+    itens: [
+      { id: 'mesas', nome: 'Mesas e comandas', icone: 'mesas', desc: 'Abrir mesa, lançar itens durante o consumo e fechar a conta com taxa de serviço.' },
+      { id: 'kds', nome: 'KDS — cozinha', icone: 'kds', desc: 'A cozinha vê o que preparar e marca item por item como pronto.' },
+      { id: 'caixa', nome: 'Caixa', icone: 'caixa', desc: 'Abertura e fechamento com conferência, sangria, suprimento e resumo do movimento do dia.' },
+      { id: 'entregadores', nome: 'Entregadores', icone: 'entregadores', desc: 'Cadastro dos seus motoboys pra vincular ao pedido na hora da entrega.' },
+      { id: 'desempenho', nome: 'Desempenho', icone: 'desempenho', desc: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.' },
+      { id: 'financeiro', nome: 'Financeiro', icone: 'financeiro', desc: 'Contas a pagar e a receber, fluxo de caixa e categorias financeiras.' },
+      { id: 'fiscal', nome: 'Fiscal', icone: 'fiscal', desc: 'Emissão de notas dos pedidos direto pelo sistema.' },
+      { id: 'config', nome: 'Configurações', icone: 'config', desc: 'Impressão, agendamentos e integrações do sistema.' },
     ],
   },
 ];

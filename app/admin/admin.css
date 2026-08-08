@@ -172,40 +172,42 @@
 
   #sidebar{
     width: 252px; flex-shrink: 0;
-    /* Cor sólida porque no mobile a sidebar vira drawer por cima do
-       conteúdo — com fundo translúcido o formulário aparecia atrás. */
-    background: var(--fundo-2);
-    border-right: 1px solid var(--borda);
+    /* Fundo sólido (gradiente, não translúcido) pelo mesmo motivo de
+       sempre: no mobile a sidebar vira drawer por cima do conteúdo, e um
+       fundo translúcido deixava o formulário de baixo aparecendo atrás.
+       O verde é a identidade visual da plataforma — mesmo gradiente usado
+       nos cabeçalhos de Avaliações e Delivery facilitado. */
+    background: linear-gradient(165deg, var(--verde-escuro), var(--verde));
     padding: 22px 14px;
     display:flex; flex-direction:column;
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
-  #sidebar .brand-logo{ padding: 0 8px; margin-bottom: 20px; }
+  #sidebar .brand-logo{ padding: 0 8px; margin-bottom: 20px; color: #fff; }
 
   .loja-chip{
-    background: var(--superficie);
-    border: 1px solid var(--borda);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.16);
     border-radius: 12px;
     padding: 11px 12px;
     margin-bottom: 8px;
   }
-  .loja-chip .loja-nome{ font-size: 14px; font-weight: 600; font-family: var(--fonte-titulo), sans-serif; }
-  .loja-chip .loja-slug{ font-size: 11.5px; color: var(--texto-suave); margin-top: 3px; word-break: break-all; }
+  .loja-chip .loja-nome{ font-size: 14px; font-weight: 600; font-family: var(--fonte-titulo), sans-serif; color: #fff; }
+  .loja-chip .loja-slug{ font-size: 11.5px; color: rgba(255,255,255,0.68); margin-top: 3px; word-break: break-all; }
   .loja-chip .badge-admin{ margin-top: 8px; }
 
   #menu{ flex: 1; padding-bottom: 12px; }
   .nav-grupo-titulo{
     font-size: 10px; text-transform: uppercase; letter-spacing: .7px;
-    color: var(--texto-suave); opacity:.8; font-weight: 700; margin: 16px 0 6px 10px;
+    color: rgba(255,255,255,0.6); font-weight: 700; margin: 16px 0 6px 10px;
   }
   .nav-item{
     display:flex; align-items:center; gap:10px; width:100%;
     text-align:left; background:transparent; border:none; border-radius:9px;
     padding: 9px 10px; font-size: 13.5px; font-weight: 500;
-    color: var(--texto);
+    color: rgba(255,255,255,0.86);
   }
-  .nav-item:hover{ background: #EFF2F0; }
-  .nav-item.ativo{ background: var(--verde-tint); color: var(--verde); font-weight: 600; }
+  .nav-item:hover{ background: rgba(255,255,255,0.1); }
+  .nav-item.ativo{ background: #fff; color: var(--verde-escuro); font-weight: 700; }
   .nav-item svg{ width:16px; height:16px; flex-shrink:0; }
   /* nowrap + reticências: sem isso nomes longos ("Histórico de pedidos")
      quebravam em duas linhas e desalinhavam o menu. */
@@ -218,12 +220,13 @@
   }
   .menu-legenda{
     display:flex; align-items:center; gap:7px;
-    font-size: 10.5px; color: var(--texto-suave); margin: 14px 0 0 10px;
+    font-size: 10.5px; color: rgba(255,255,255,0.6); margin: 14px 0 0 10px;
   }
   .menu-legenda .ponto{ width:6px; height:6px; border-radius:50%; background: var(--laranja); }
 
-  .sidebar-bottom{ display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--borda); padding-top: 14px; }
+  .sidebar-bottom{ display:flex; flex-direction:column; gap:8px; border-top:1px solid rgba(255,255,255,0.16); padding-top: 14px; }
   .sidebar-bottom button{ width:100%; }
+  .sidebar-bottom .btn-ghost{ background: rgba(255,255,255,0.94); }
 
   #main{ flex:1; min-width:0; padding: 26px 30px 80px; background: var(--fundo); min-height:100vh; }
   #mainTop{ display:flex; align-items:center; gap:12px; margin-bottom: 20px; }
