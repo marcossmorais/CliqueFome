@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { TopoCardapio } from './TopoCardapio';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
 import { Carrinho, type ModoEntrega } from './Carrinho';
@@ -205,8 +204,6 @@ export function CardapioClient({
 
   return (
     <div style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
-      <TopoCardapio loja={loja} />
-
       <section id="cardapio" className="menu-section">
         <HeroLoja loja={loja} />
 

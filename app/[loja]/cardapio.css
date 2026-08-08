@@ -70,87 +70,11 @@
   .btn-primary:hover{ transform: translateY(-2px); }
   .btn-primary:disabled{ opacity: 0.5; cursor: not-allowed; transform: none; }
 
-  /* STATUS DA LOJA (Delivery ON/OFF, Recebendo encomendas) */
-  .status-badges-wrap{
-    padding: 24px 20px 8px;
-    display: flex;
-    justify-content: center;
-  }
-
-  .status-badges{
-    position: relative;
-    z-index: 1;
-    display: flex;
-    justify-content: center;
-    align-items: stretch;
-    flex-wrap: wrap;
-    gap: 10px;
-    max-width: 360px;
-    width: 100%;
-  }
-
-  .status-badge{
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    border-radius: 999px;
-    font-weight: 700;
-  }
-
-  .status-badge svg{ width: 15px; height: 15px; flex-shrink: 0; }
-
-  .status-delivery, .status-encomendas{
-    flex: 1 1 150px;
-    min-width: 0;
-    padding: 11px 14px;
-    gap: 8px;
-    font-size: 11.5px;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.18);
-  }
-
-  .status-delivery svg{ width: 20px; height: 20px; }
-
-  .status-delivery-text{ flex: 1; text-align: center; }
-
-  .status-delivery-dot{
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  /* Verde/vermelho são cores universais de status (ligado/desligado),
-     não são cor de marca — mantidas idênticas ao projeto original. */
-  .status-delivery.on{
-    background: #4E6B49;
-    color: #F7F1EA;
-  }
-
-  .status-delivery.on .status-delivery-dot{ background: #F7F1EA; }
-
-  .status-delivery.off{
-    background: #F6DAD6;
-    color: #A8362E;
-  }
-
-  .status-delivery.off .status-delivery-dot{ background: #C0392B; }
-
-  .status-encomendas{
-    background: #4E6B49;
-    color: #F7F1EA;
-  }
-
-  .status-encomendas .status-delivery-dot{ background: #F7F1EA; }
-
-  .status-encomendas.pausado{
-    background: #F6DAD6;
-    color: #A8362E;
-  }
-
-  .status-encomendas.pausado .status-delivery-dot{ background: #C0392B; }
+  /* As faixas de status da loja (Delivery ON/OFF e Recebendo encomendas)
+     foram removidas do cardápio a pedido do dono, junto com o resto do
+     TopoCardapio. O estado de aberto/fechado continua no HeroLoja, e a
+     recusa de pedido com delivery desligado continua no banco, dentro de
+     criar_pedido() — nunca dependeu desses selos. */
 
   /* Linha de infos da loja (taxa de entrega / pedido mínimo / tempo) */
   .loja-info-line{
