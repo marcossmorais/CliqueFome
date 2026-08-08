@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-type ConteudoToken = {
+export type ConteudoTokenCotacao = {
   lojaId: string;
   enderecoHash: string;
   taxaCentavos: number;
@@ -20,12 +20,12 @@ function assinatura(payload: string) {
   return createHmac('sha256', segredo()).update(payload).digest('base64url');
 }
 
-export function criarTokenCotacao(conteudo: ConteudoToken) {
+export function criarTokenCotacao(conteudo: ConteudoTokenCotacao) {
   const payload = Buffer.from(JSON.stringify(conteudo)).toString('base64url');
   return `${payload}.${assinatura(payload)}`;
 }
 
-export function verificarTokenCotacao(token: string): ConteudoToken | null {
+export function verificarTokenCotacao(token: string): ConteudoTokenCotacao | null {
   const [payload, recebida] = token.split('.');
   if (!payload || !recebida) return null;
   const esperada = assinatura(payload);
@@ -33,7 +33,7 @@ export function verificarTokenCotacao(token: string): ConteudoToken | null {
   const b = Buffer.from(esperada);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
-    const conteudo = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as ConteudoToken;
+    const conteudo = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as ConteudoTokenCotacao;
     if (!conteudo.exp || conteudo.exp < Date.now()) return null;
     return conteudo;
   } catch {

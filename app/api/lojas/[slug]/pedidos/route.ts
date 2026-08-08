@@ -7,6 +7,9 @@ import {
 } from '@/lib/pedidos/checkout';
 import { montarMensagemPedido } from '@/lib/pedidos/mensagemWhatsapp';
 import { criarClientPrivilegiado, hashLimite, hashPayload } from '@/lib/pedidos/servidor';
+import { verificarTokenCotacao } from '@/lib/delivery/cotacao';
+import { hashEndereco } from '@/lib/delivery/servidor';
+import { normalizarTexto } from '@/lib/delivery/tipos';
 
 export const runtime = 'nodejs';
 
@@ -102,9 +105,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
   }
 
-  const payloadHash = hashPayload(payloadCanonico(entrada));
+  let taxaEntregaValidada: number | null = null;
+  if (entrada.tipo === 'delivery') {
+    const { data: loja } = await sb.from('lojas').select('id').eq('slug', slug).maybeSingle();
+    if (!loja) return respostaErro('Loja não encontrada.', 404);
+    const [{ data: config }, { data: enderecoLoja }] = await Promise.all([
+      sb.from('configuracoes_delivery').select('loja_id').eq('loja_id', loja.id).maybeSingle(),
+      sb.from('enderecos_estabelecimento').select('loja_id').eq('loja_id', loja.id).maybeSingle(),
+    ]);
+    // Só o fluxo V2 exige cotação. Loja ainda não migrada preserva a taxa fixa
+    // legada; depois da migração, nenhuma taxa do navegador é aceita solta.
+    if (config && enderecoLoja) {
+      if (!entrada.cotacaoToken || !entrada.enderecoCotacao) {
+        return respostaErro('Calcule novamente a taxa de entrega.', 422);
+      }
+      try {
+        const cotacao = verificarTokenCotacao(entrada.cotacaoToken);
+        const hashEsperado = hashEndereco(normalizarTexto(entrada.enderecoCotacao));
+        if (!cotacao || cotacao.lojaId !== loja.id || cotacao.enderecoHash !== hashEsperado) {
+          return respostaErro('A cotação expirou ou não pertence a este endereço. Calcule novamente.', 422);
+        }
+        taxaEntregaValidada = cotacao.taxaCentavos / 100;
+      } catch {
+        return respostaErro('Não foi possível validar a cotação de entrega.', 503);
+      }
+    }
+  }
 
-  const { data, error } = await sb.rpc('criar_pedido_publico_v1', {
+  const payloadHash = hashPayload(`${payloadCanonico(entrada)}|taxa:${taxaEntregaValidada ?? 'legada'}`);
+
+  const rpc = taxaEntregaValidada == null ? 'criar_pedido_publico_v1' : 'criar_pedido_publico_v2';
+  const parametros = {
     p_loja_slug: slug,
     p_cliente_nome: entrada.clienteNome,
     p_cliente_telefone: entrada.clienteTelefone,
@@ -117,7 +148,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     p_total_esperado_centavos: entrada.totalEsperadoCentavos,
     p_chave_ip: chaveIp,
     p_chave_telefone: chaveTelefone,
-  });
+    ...(taxaEntregaValidada == null ? {} : { p_taxa_entrega_validada: taxaEntregaValidada }),
+  };
+  const { data, error } = await sb.rpc(rpc, parametros);
 
   if (error) {
     // Nunca repassar error.message inteiro sem checar: pode conter detalhe

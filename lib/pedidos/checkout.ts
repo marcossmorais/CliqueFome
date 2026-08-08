@@ -15,6 +15,8 @@ export type PedidoCheckoutEntrada = {
   clienteTelefone: string;
   tipo: 'delivery' | 'retirada';
   endereco?: string;
+  enderecoCotacao?: string;
+  cotacaoToken?: string;
   observacao?: string;
   itens: ItemCheckoutEntrada[];
   totalEsperadoCentavos: number;
@@ -81,6 +83,14 @@ export function validarEntradaCheckout(corpo: unknown): PedidoCheckoutEntrada {
   if (!tipo) throw new ErroValidacaoCheckout('Tipo de pedido inválido.');
 
   const endereco = tipo === 'delivery' ? texto(c.endereco, 5, 300, 'endereço') : undefined;
+  const enderecoCotacao =
+    tipo === 'delivery' && typeof c.enderecoCotacao === 'string'
+      ? texto(c.enderecoCotacao, 5, 400, 'endereço da cotação')
+      : undefined;
+  const cotacaoToken =
+    tipo === 'delivery' && typeof c.cotacaoToken === 'string' && c.cotacaoToken.length <= 2000
+      ? c.cotacaoToken
+      : undefined;
   const observacao =
     c.observacao != null && String(c.observacao).trim() ? texto(c.observacao, 1, 500, 'observação') : undefined;
 
@@ -115,7 +125,10 @@ export function validarEntradaCheckout(corpo: unknown): PedidoCheckoutEntrada {
 
   const captchaToken = typeof c.captchaToken === 'string' ? c.captchaToken.slice(0, 4000) : undefined;
 
-  return { idempotencyKey, clienteNome, clienteTelefone, tipo, endereco, observacao, itens, totalEsperadoCentavos, captchaToken };
+  return {
+    idempotencyKey, clienteNome, clienteTelefone, tipo, endereco, enderecoCotacao,
+    cotacaoToken, observacao, itens, totalEsperadoCentavos, captchaToken,
+  };
 }
 
 /**

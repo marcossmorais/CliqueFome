@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { geocodificarEndereco, ErroGeoapify } from '@/lib/delivery/geoapify';
-import { normalizarSetor, normalizarTexto, normalizarTipoTaxa } from '@/lib/delivery/tipos';
+import {
+  enderecoEmLinha,
+  enderecoEstruturadoValido,
+  normalizarSetor,
+  normalizarTexto,
+  normalizarTipoTaxa,
+  type EnderecoEstruturado,
+} from '@/lib/delivery/tipos';
 import { criarClientPrivilegiado } from '@/lib/delivery/servidor';
 import { criarClientServidor } from '@/lib/supabase/server';
 
@@ -11,34 +18,39 @@ function numero(valor: unknown) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-/** Confere que quem chama é dono da loja (ou super admin) e devolve o id
- * autorizado. As duas rotas (GET e PUT) fazem a mesma checagem — a policy
- * de RLS em `configuracoes_delivery` cobre o SELECT direto, mas aqui a
- * escrita passa pelo client privilegiado, que ignora RLS de propósito.
- */
 async function autorizarLoja(lojaId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(lojaId)) return null;
-  const sbUsuario = await criarClientServidor();
-  const [{ data: usuario }, { data: souAdmin }] = await Promise.all([
-    sbUsuario.auth.getUser(),
-    sbUsuario.rpc('is_admin'),
-  ]);
+  const sb = await criarClientServidor();
+  const [{ data: usuario }, { data: souAdmin }] = await Promise.all([sb.auth.getUser(), sb.rpc('is_admin')]);
   if (!usuario.user) return null;
-  const consulta = sbUsuario.from('lojas').select('id').eq('id', lojaId);
-  const { data: loja } = await (souAdmin ? consulta.maybeSingle() : consulta.eq('dono_id', usuario.user.id).maybeSingle());
-  return loja ? usuario.user.id : null;
+  const consulta = sb.from('lojas').select('id').eq('id', lojaId);
+  const { data } = await (souAdmin ? consulta.maybeSingle() : consulta.eq('dono_id', usuario.user.id).maybeSingle());
+  return data ? usuario.user.id : null;
 }
 
 export async function GET(request: Request) {
   const lojaId = new URL(request.url).searchParams.get('lojaId') || '';
-  if (!(await autorizarLoja(lojaId))) return NextResponse.json({ erro: 'Loja não autorizada.' }, { status: 403 });
-
-  const sbAdmin = criarClientPrivilegiado();
-  const [{ data: config }, { data: cidades }] = await Promise.all([
-    sbAdmin.from('configuracoes_delivery').select('*').eq('loja_id', lojaId).maybeSingle(),
-    sbAdmin.from('configuracoes_delivery_cidades').select('cidade,taxa').eq('loja_id', lojaId).order('cidade'),
-  ]);
-  return NextResponse.json({ config: config ?? null, cidades: cidades ?? [] }, { headers: { 'Cache-Control': 'no-store' } });
+  if (!(await autorizarLoja(lojaId))) {
+    return NextResponse.json({ erro: 'Loja não autorizada.' }, { status: 403 });
+  }
+  try {
+    const sb = criarClientPrivilegiado();
+    const [{ data: config }, { data: cidades }, { data: endereco }] = await Promise.all([
+      sb.from('configuracoes_delivery').select('*').eq('loja_id', lojaId).maybeSingle(),
+      sb.from('configuracoes_delivery_cidades').select('cidade,taxa').eq('loja_id', lojaId).order('cidade'),
+      sb
+        .from('enderecos_estabelecimento')
+        .select('cep,logradouro,numero,bairro,cidade,uf,complemento,endereco_formatado')
+        .eq('loja_id', lojaId)
+        .maybeSingle(),
+    ]);
+    return NextResponse.json(
+      { config: config ?? null, cidades: cidades ?? [], endereco: endereco ?? null },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
+  } catch {
+    return NextResponse.json({ erro: 'Configuração de delivery indisponível.' }, { status: 503 });
+  }
 }
 
 export async function PUT(request: Request) {
@@ -50,106 +62,102 @@ export async function PUT(request: Request) {
   }
 
   const lojaId = typeof corpo.lojaId === 'string' ? corpo.lojaId : '';
-  const cidade = typeof corpo.cidade === 'string' ? corpo.cidade.trim() : '';
+  const bruto = (corpo.endereco && typeof corpo.endereco === 'object' ? corpo.endereco : {}) as EnderecoEstruturado;
+  const endereco: EnderecoEstruturado = {
+    cep: String(bruto.cep || '').replace(/\D/g, ''),
+    logradouro: String(bruto.logradouro || '').trim(),
+    numero: String(bruto.numero || '').trim(),
+    bairro: String(bruto.bairro || '').trim(),
+    cidade: String(bruto.cidade || '').trim(),
+    uf: String(bruto.uf || '').trim().toUpperCase(),
+    complemento: String(bruto.complemento || '').trim(),
+  };
   const setor = normalizarSetor(corpo.setor);
   const tipoTaxa = normalizarTipoTaxa(corpo.tipoTaxa);
   const taxaFixa = numero(corpo.taxaFixa);
   const valorPorKm = numero(corpo.valorPorKm);
   const taxaMaxima = numero(corpo.taxaMaxima);
   const distanciaMaximaKm = numero(corpo.distanciaMaximaKm);
-  const enderecoInformado = typeof corpo.enderecoOrigem === 'string' ? corpo.enderecoOrigem.trim() : '';
-  // No modo avançado, uma cidade vizinha por linha. A normalização acontece
-  // aqui, não no banco: fazer em SQL exigiria a extensão unaccent.
   const cidadesEnviadas = Array.isArray(corpo.cidades) ? corpo.cidades : [];
 
   if (
-    !/^[0-9a-f-]{36}$/i.test(lojaId) ||
-    cidade.length < 2 || cidade.length > 100 ||
+    !/^[0-9a-f-]{36}$/i.test(lojaId) || !enderecoEstruturadoValido(endereco) ||
     !Number.isFinite(taxaFixa) || taxaFixa < 0 || taxaFixa > 200 ||
     !Number.isFinite(valorPorKm) || valorPorKm < 0 || valorPorKm > 50 ||
     !Number.isFinite(taxaMaxima) || taxaMaxima <= 0 || taxaMaxima > 200 ||
     !Number.isFinite(distanciaMaximaKm) || distanciaMaximaKm <= 0 || distanciaMaximaKm > 100 ||
     cidadesEnviadas.length > 60
   ) {
-    return NextResponse.json({ erro: 'Revise os valores informados.' }, { status: 400 });
+    return NextResponse.json({ erro: 'Revise o endereço e os valores informados.' }, { status: 400 });
   }
   if (tipoTaxa === 'fixa' && taxaFixa > taxaMaxima) {
     return NextResponse.json({ erro: 'A taxa fixa não pode ultrapassar o teto de segurança.' }, { status: 400 });
   }
 
-  const cidadesValidadas: { cidade: string; cidade_normalizada: string; taxa: number }[] = [];
+  const cidades: { cidade: string; cidade_normalizada: string; taxa: number }[] = [];
   if (setor === 'avancado') {
     const vistas = new Set<string>();
     for (const item of cidadesEnviadas) {
-      const nome = typeof (item as { cidade?: unknown })?.cidade === 'string' ? (item as { cidade: string }).cidade.trim() : '';
-      const taxa = numero((item as { taxa?: unknown })?.taxa);
-      if (nome.length < 2 || nome.length > 100 || !Number.isFinite(taxa) || taxa < 0 || taxa > taxaMaxima) {
-        return NextResponse.json({ erro: `Revise a cidade "${nome || '(sem nome)'}".` }, { status: 400 });
-      }
+      const linha = item as { cidade?: unknown; taxa?: unknown };
+      const nome = typeof linha.cidade === 'string' ? linha.cidade.trim() : '';
+      const taxa = numero(linha.taxa);
       const normalizada = normalizarTexto(nome);
-      if (normalizada === normalizarTexto(cidade)) {
-        return NextResponse.json(
-          { erro: `"${nome}" é a cidade principal — a taxa dela é a taxa fixa acima, não precisa repetir.` },
-          { status: 400 },
-        );
+      if (nome.length < 2 || nome.length > 100 || !Number.isFinite(taxa) || taxa < 0 || taxa > taxaMaxima) {
+        return NextResponse.json({ erro: `Revise a cidade “${nome || 'sem nome'}”.` }, { status: 400 });
       }
-      if (vistas.has(normalizada)) {
-        return NextResponse.json({ erro: `"${nome}" está duplicada na lista.` }, { status: 400 });
+      if (normalizada === normalizarTexto(endereco.cidade) || vistas.has(normalizada)) {
+        return NextResponse.json({ erro: `A cidade “${nome}” está repetida.` }, { status: 400 });
       }
       vistas.add(normalizada);
-      cidadesValidadas.push({ cidade: nome, cidade_normalizada: normalizada, taxa });
+      cidades.push({ cidade: nome, cidade_normalizada: normalizada, taxa });
     }
   }
 
-  const usuarioId = await autorizarLoja(lojaId);
-  if (!usuarioId) return NextResponse.json({ erro: 'Loja não autorizada.' }, { status: 403 });
+  if (!(await autorizarLoja(lojaId))) {
+    return NextResponse.json({ erro: 'Loja não autorizada.' }, { status: 403 });
+  }
 
-  let enderecoOrigem: string | null = null;
-  let origemLatitude: number | null = null;
-  let origemLongitude: number | null = null;
-
-  if (tipoTaxa === 'por_km') {
-    if (enderecoInformado.length < 8 || enderecoInformado.length > 240) {
-      return NextResponse.json({ erro: 'Informe o endereço completo do estabelecimento.' }, { status: 400 });
+  let geocodificado;
+  try {
+    geocodificado = await geocodificarEndereco(enderecoEmLinha(endereco));
+    if (!geocodificado.cidade || normalizarTexto(geocodificado.cidade) !== normalizarTexto(endereco.cidade)) {
+      return NextResponse.json(
+        { erro: 'O endereço não foi localizado na cidade informada. Confira CEP, cidade e UF.' },
+        { status: 400 },
+      );
     }
-    try {
-      const origem = await geocodificarEndereco(`${enderecoInformado}, ${cidade}, Brasil`);
-      if (!origem.cidade || normalizarTexto(origem.cidade) !== normalizarTexto(cidade)) {
-        return NextResponse.json(
-          { erro: 'O endereço do estabelecimento não foi localizado na cidade informada.' },
-          { status: 400 },
-        );
-      }
-      enderecoOrigem = origem.formatado;
-      origemLatitude = origem.latitude;
-      origemLongitude = origem.longitude;
-    } catch (erro) {
-      const texto =
-        erro instanceof ErroGeoapify && erro.codigo !== 'SERVICO_INDISPONIVEL'
-          ? 'Não encontramos o endereço do estabelecimento. Inclua rua, número, bairro e CEP.'
-          : 'O serviço de localização está indisponível. Tente novamente.';
-      return NextResponse.json({ erro: texto }, { status: 503 });
-    }
+  } catch (erro) {
+    const mensagem =
+      erro instanceof ErroGeoapify && erro.codigo !== 'SERVICO_INDISPONIVEL'
+        ? 'Não encontramos esse endereço. Confira CEP, logradouro, número, bairro, cidade e UF.'
+        : 'O serviço de localização está indisponível. Tente novamente.';
+    return NextResponse.json({ erro: mensagem }, { status: 503 });
   }
 
   try {
-    const sbAdmin = criarClientPrivilegiado();
-    const { error } = await sbAdmin.rpc('salvar_config_delivery', {
+    const sb = criarClientPrivilegiado();
+    const { error } = await sb.rpc('salvar_config_delivery_v2', {
       p_loja_id: lojaId,
+      p_setor: setor,
       p_tipo_taxa: tipoTaxa,
-      p_cidade: cidade,
       p_taxa_fixa: taxaFixa,
       p_valor_por_km: valorPorKm,
       p_taxa_maxima: taxaMaxima,
       p_distancia_maxima_km: distanciaMaximaKm,
-      p_endereco_origem: enderecoOrigem,
-      p_origem_latitude: origemLatitude,
-      p_origem_longitude: origemLongitude,
-      p_setor: setor,
-      p_cidades: cidadesValidadas,
+      p_cep: endereco.cep,
+      p_logradouro: endereco.logradouro,
+      p_numero: endereco.numero,
+      p_bairro: endereco.bairro,
+      p_cidade: endereco.cidade,
+      p_uf: endereco.uf,
+      p_complemento: endereco.complemento || null,
+      p_latitude: geocodificado.latitude,
+      p_longitude: geocodificado.longitude,
+      p_endereco_formatado: geocodificado.formatado,
+      p_cidades: cidades,
     });
     if (error) throw error;
-    return NextResponse.json({ ok: true, enderecoOrigem });
+    return NextResponse.json({ ok: true, enderecoFormatado: geocodificado.formatado });
   } catch {
     return NextResponse.json({ erro: 'Não foi possível salvar a configuração.' }, { status: 503 });
   }

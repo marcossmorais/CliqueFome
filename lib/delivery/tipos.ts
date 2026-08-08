@@ -7,11 +7,56 @@ export type SetorDelivery = 'facilitado' | 'avancado';
 
 export type CidadeAtendida = { cidade: string; taxa: number };
 
+export type EnderecoEstruturado = {
+  cep: string;
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+  complemento?: string;
+  referencia?: string;
+};
+
+export const ENDERECO_VAZIO: EnderecoEstruturado = {
+  cep: '', logradouro: '', numero: '', bairro: '', cidade: '', uf: '', complemento: '', referencia: '',
+};
+
+export function formatarCep(valor: string) {
+  const digitos = valor.replace(/\D/g, '').slice(0, 8);
+  return digitos.length > 5 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos;
+}
+
+export function enderecoEmLinha(endereco: EnderecoEstruturado) {
+  return [
+    `${endereco.logradouro.trim()}, ${endereco.numero.trim()}`,
+    endereco.bairro.trim(),
+    endereco.complemento?.trim(),
+    `${endereco.cidade.trim()} - ${endereco.uf.trim().toUpperCase()}`,
+    `CEP ${formatarCep(endereco.cep)}`,
+    endereco.referencia?.trim() ? `Referência: ${endereco.referencia.trim()}` : '',
+  ].filter(Boolean).join(', ');
+}
+
+export function enderecoEstruturadoValido(endereco: EnderecoEstruturado) {
+  return (
+    endereco.cep.replace(/\D/g, '').length === 8 &&
+    endereco.logradouro.trim().length >= 3 && endereco.logradouro.length <= 120 &&
+    endereco.numero.trim().length >= 1 && endereco.numero.length <= 20 &&
+    endereco.bairro.trim().length >= 2 && endereco.bairro.length <= 80 &&
+    endereco.cidade.trim().length >= 2 && endereco.cidade.length <= 100 &&
+    /^[A-Za-z]{2}$/.test(endereco.uf.trim()) &&
+    (endereco.complemento?.length ?? 0) <= 100 &&
+    (endereco.referencia?.length ?? 0) <= 120
+  );
+}
+
 export type ConfigDeliveryPublica = {
   configurada: boolean;
   tipoTaxa: TipoTaxaDelivery;
   setor: SetorDelivery;
   cidade: string | null;
+  enderecoRetirada: string | null;
   /** Só vem preenchida no modo avançado. */
   cidades: CidadeAtendida[];
 };

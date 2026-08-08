@@ -2,11 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   calcularTaxaPorDistancia,
+  enderecoEmLinha,
+  enderecoEstruturadoValido,
+  formatarCep,
   normalizarSetor,
   normalizarTexto,
   normalizarTipoTaxa,
   validarLimitesDaCotacao,
 } from '../lib/delivery/tipos.ts';
+import { criarTokenCotacao, verificarTokenCotacao } from '../lib/delivery/cotacao.ts';
 
 test('taxa por km arredonda em centavos', () => {
   assert.equal(calcularTaxaPorDistancia(5000, 2), 10);
@@ -61,4 +65,32 @@ test('normalizarSetor e normalizarTipoTaxa nunca aceitam valor fora da lista', (
   assert.equal(normalizarSetor(undefined), 'facilitado');
   assert.equal(normalizarTipoTaxa('por_km'), 'por_km');
   assert.equal(normalizarTipoTaxa('outra'), 'fixa');
+});
+
+test('endereco estruturado exige os campos usados na cotacao', () => {
+  const endereco = {
+    cep: '58100-000', logradouro: 'Rua das Flores', numero: '123', bairro: 'Centro',
+    cidade: 'Campina Grande', uf: 'PB', complemento: 'Sala 2', referencia: 'Praca',
+  };
+  assert.equal(enderecoEstruturadoValido(endereco), true);
+  assert.equal(formatarCep('58100000'), '58100-000');
+  assert.match(enderecoEmLinha(endereco), /Rua das Flores, 123/);
+  assert.equal(enderecoEstruturadoValido({ ...endereco, cep: '123' }), false);
+  assert.equal(enderecoEstruturadoValido({ ...endereco, uf: 'Paraiba' }), false);
+});
+
+test('token de cotacao rejeita adulteracao e expiracao', () => {
+  process.env.DELIVERY_QUOTE_SECRET = 'segredo-de-teste-com-mais-de-trinta-e-dois-caracteres';
+  const conteudo = {
+    lojaId: '11111111-1111-1111-1111-111111111111',
+    enderecoHash: 'hash-do-endereco', taxaCentavos: 1290, distanciaMetros: 5200,
+    exp: Date.now() + 60_000,
+  };
+  const token = criarTokenCotacao(conteudo);
+  assert.deepEqual(verificarTokenCotacao(token), conteudo);
+
+  const [payload, assinatura] = token.split('.');
+  const alterado = `${payload.slice(0, -1)}${payload.endsWith('A') ? 'B' : 'A'}.${assinatura}`;
+  assert.equal(verificarTokenCotacao(alterado), null);
+  assert.equal(verificarTokenCotacao(criarTokenCotacao({ ...conteudo, exp: Date.now() - 1 })), null);
 });

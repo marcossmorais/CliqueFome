@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ENDERECO_VAZIO, formatarCep, type EnderecoEstruturado } from '@/lib/delivery/tipos';
 import styles from './delivery.module.css';
 
 type ConfigApi = {
@@ -12,8 +13,9 @@ type ConfigApi = {
   valor_por_km: number;
   taxa_maxima: number;
   distancia_maxima_km: number;
-  endereco_origem: string | null;
 } | null;
+
+type EnderecoApi = Omit<EnderecoEstruturado, 'referencia'> & { endereco_formatado: string };
 
 type CidadeApi = { cidade: string; taxa: number };
 
@@ -28,12 +30,13 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
 
   const [setor, setSetor] = useState<'facilitado' | 'avancado'>('facilitado');
   const [tipoTaxa, setTipoTaxa] = useState<'fixa' | 'por_km'>('fixa');
-  const [cidade, setCidade] = useState('');
   const [taxaFixa, setTaxaFixa] = useState('0');
   const [valorPorKm, setValorPorKm] = useState('2');
   const [taxaMaxima, setTaxaMaxima] = useState('40');
   const [distanciaMaximaKm, setDistanciaMaximaKm] = useState('30');
-  const [enderecoOrigem, setEnderecoOrigem] = useState('');
+  const [endereco, setEndereco] = useState<EnderecoEstruturado>({ ...ENDERECO_VAZIO });
+  const [enderecoFormatado, setEnderecoFormatado] = useState('');
+  const [editandoEndereco, setEditandoEndereco] = useState(true);
   const [cidades, setCidades] = useState<Cidade[]>([]);
 
   useEffect(() => {
@@ -43,18 +46,26 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
         const resposta = await fetch(`/api/admin/delivery/configuracao?lojaId=${lojaId}`, {
           cache: 'no-store',
         });
-        const corpo = (await resposta.json()) as { config: ConfigApi; cidades: CidadeApi[] };
+        const corpo = (await resposta.json()) as { config: ConfigApi; cidades: CidadeApi[]; endereco: EnderecoApi | null };
         if (cancelado) return;
         if (corpo.config) {
           const c = corpo.config;
           setSetor(c.setor);
           setTipoTaxa(c.tipo_taxa);
-          setCidade(c.cidade_atendida);
           setTaxaFixa(String(c.taxa_fixa));
           setValorPorKm(String(c.valor_por_km));
           setTaxaMaxima(String(c.taxa_maxima));
           setDistanciaMaximaKm(String(c.distancia_maxima_km));
-          setEnderecoOrigem(c.endereco_origem ?? '');
+        }
+        if (corpo.endereco) {
+          const e = corpo.endereco;
+          setEndereco({
+            cep: formatarCep(e.cep), logradouro: e.logradouro, numero: e.numero,
+            bairro: e.bairro, cidade: e.cidade, uf: e.uf,
+            complemento: e.complemento ?? '', referencia: '',
+          });
+          setEnderecoFormatado(e.endereco_formatado);
+          setEditandoEndereco(false);
         }
         setCidades((corpo.cidades ?? []).map((item) => ({ cidade: item.cidade, taxa: String(item.taxa) })));
       } catch {
@@ -90,13 +101,13 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
       body: JSON.stringify({
         lojaId,
         setor,
-        cidade,
+        cidade: endereco.cidade,
         tipoTaxa,
         taxaFixa: Number(taxaFixa),
         valorPorKm: Number(valorPorKm),
         taxaMaxima: Number(taxaMaxima),
         distanciaMaximaKm: Number(distanciaMaximaKm),
-        enderecoOrigem,
+        endereco,
         cidades:
           setor === 'avancado'
             ? cidades.map((item) => ({ cidade: item.cidade.trim(), taxa: Number(item.taxa) }))
@@ -111,6 +122,9 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
       return;
     }
 
+    const corpoSucesso = (await resposta.json()) as { enderecoFormatado?: string };
+    if (corpoSucesso.enderecoFormatado) setEnderecoFormatado(corpoSucesso.enderecoFormatado);
+    setEditandoEndereco(false);
     setMensagem({ tipo: 'sucesso', texto: 'Configuração de entrega salva.' });
     setSalvando(false);
   }
@@ -168,18 +182,67 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
       </section>
 
       <section className={styles.bloco}>
-        <h3>Cidade principal</h3>
-        <div className={styles.campo}>
-          <label htmlFor="delivery-cidade">Cidade atendida</label>
-          <input
-            id="delivery-cidade"
-            type="text"
-            value={cidade}
-            onChange={(evento) => setCidade(evento.target.value)}
-            placeholder="Ex.: Fortaleza"
-            maxLength={100}
-          />
+        <div className={styles.blocoTituloLinha}>
+          <div>
+            <h3>Endereço do estabelecimento</h3>
+            <p className={styles.blocoDesc}>Origem oficial das rotas e endereço exibido para retirada.</p>
+          </div>
+          {!editandoEndereco && (
+            <button type="button" className={styles.adicionar} onClick={() => setEditandoEndereco(true)}>
+              Alterar endereço do estabelecimento
+            </button>
+          )}
         </div>
+
+        {!editandoEndereco && enderecoFormatado ? (
+          <div className={styles.enderecoResumo}>
+            <strong>{endereco.logradouro}, {endereco.numero}</strong>
+            <span>{endereco.bairro} · {endereco.cidade}/{endereco.uf} · CEP {formatarCep(endereco.cep)}</span>
+            {endereco.complemento && <span>{endereco.complemento}</span>}
+          </div>
+        ) : (
+          <div className={styles.enderecoGrid}>
+            <div className={styles.campo}>
+              <label htmlFor="est-cep">CEP</label>
+              <input id="est-cep" inputMode="numeric" autoComplete="postal-code" value={endereco.cep}
+                onChange={(e) => setEndereco((a) => ({ ...a, cep: formatarCep(e.target.value) }))} placeholder="00000-000" />
+            </div>
+            <div className={`${styles.campo} ${styles.campoLargo}`}>
+              <label htmlFor="est-logradouro">Logradouro</label>
+              <input id="est-logradouro" autoComplete="address-line1" maxLength={120} value={endereco.logradouro}
+                onChange={(e) => setEndereco((a) => ({ ...a, logradouro: e.target.value }))} placeholder="Rua ou avenida" />
+            </div>
+            <div className={styles.campo}>
+              <label htmlFor="est-numero">Número</label>
+              <input id="est-numero" maxLength={20} value={endereco.numero}
+                onChange={(e) => setEndereco((a) => ({ ...a, numero: e.target.value }))} placeholder="123" />
+            </div>
+            <div className={styles.campo}>
+              <label htmlFor="est-bairro">Bairro</label>
+              <input id="est-bairro" maxLength={80} value={endereco.bairro}
+                onChange={(e) => setEndereco((a) => ({ ...a, bairro: e.target.value }))} />
+            </div>
+            <div className={styles.campo}>
+              <label htmlFor="est-cidade">Cidade</label>
+              <input id="est-cidade" autoComplete="address-level2" maxLength={100} value={endereco.cidade}
+                onChange={(e) => setEndereco((a) => ({ ...a, cidade: e.target.value }))} />
+            </div>
+            <div className={styles.campo}>
+              <label htmlFor="est-uf">UF</label>
+              <input id="est-uf" autoComplete="address-level1" maxLength={2} value={endereco.uf}
+                onChange={(e) => setEndereco((a) => ({ ...a, uf: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') }))} placeholder="SP" />
+            </div>
+            <div className={`${styles.campo} ${styles.campoLargo}`}>
+              <label htmlFor="est-complemento">Complemento (opcional)</label>
+              <input id="est-complemento" autoComplete="address-line2" maxLength={100} value={endereco.complemento}
+                onChange={(e) => setEndereco((a) => ({ ...a, complemento: e.target.value }))} placeholder="Loja, sala, bloco…" />
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className={styles.bloco}>
+        <h3>Regra da cidade principal</h3>
 
         <div className={styles.opcoesSetor}>
           <label className={styles.radio}>
@@ -218,18 +281,6 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
           </div>
         ) : (
           <>
-            <div className={styles.campo}>
-              <label htmlFor="delivery-endereco">Endereço do estabelecimento</label>
-              <input
-                id="delivery-endereco"
-                type="text"
-                value={enderecoOrigem}
-                onChange={(evento) => setEnderecoOrigem(evento.target.value)}
-                placeholder="Rua, número, bairro, CEP"
-                maxLength={240}
-              />
-              <small>Usado só para calcular a distância da rota. Salvo uma vez, não muda a cada pedido.</small>
-            </div>
             <div className={styles.campo}>
               <label htmlFor="delivery-valor-km">Valor por km (R$)</label>
               <input

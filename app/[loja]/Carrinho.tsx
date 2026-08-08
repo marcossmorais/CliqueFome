@@ -1,148 +1,58 @@
 'use client';
 
-import {
-  extraDaLinha,
-  formatBRL,
-  subtotalLinha,
-  type LinhaCarrinho,
-  type LojaPublica,
-} from '@/lib/cardapio/tipos';
-import type { ConfigDeliveryPublica } from '@/lib/delivery/tipos';
+import { extraDaLinha, formatBRL, subtotalLinha, type LinhaCarrinho } from '@/lib/cardapio/tipos';
 
 export type ModoEntrega = 'retirada' | 'entrega';
-
 export type CotacaoEstado =
   | { status: 'idle' }
   | { status: 'calculando' }
   | { status: 'erro'; erro: string }
-  | { status: 'ok'; taxa: number; distanciaKm: number | null; enderecoFormatado: string };
+  | { status: 'ok'; taxa: number; distanciaKm: number | null; enderecoFormatado: string; token: string; expiraEm: string };
 
-/** Resposta oficial do backend depois do commit no banco — é o que a tela
- * de sucesso mostra, nunca um recalculo feito no navegador. */
 export type PedidoRegistrado = {
   pedido: {
-    numero: number;
-    token: string;
-    status: string;
-    pagamento_status: string;
-    subtotal: number;
-    taxa_entrega: number;
-    total: number;
-    tracking_url: string;
+    numero: number; token: string; status: string; pagamento_status: string;
+    subtotal: number; taxa_entrega: number; total: number; tracking_url: string;
   };
   proximaAcao: { tipo: string; url: string };
 };
 
-/** Máscara só visual, (##) #####-####  — o servidor refaz a limpeza e
- * valida os dígitos do zero, nunca confia neste formato. */
-function formatarTelefone(valor: string) {
+export function formatarTelefone(valor: string) {
   const digitos = valor.replace(/\D/g, '').slice(0, 11);
   if (digitos.length <= 2) return digitos;
   if (digitos.length <= 7) return `(${digitos.slice(0, 2)}) ${digitos.slice(2)}`;
   return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
 }
 
-/**
- * Estrutura e nomes de classe iguais aos do cardapio.html original — o CSS
- * veio de lá sem alteração, então divergir aqui quebra o layout.
- */
 export function Carrinho({
-  loja,
-  linhas,
-  aberto,
-  nome,
-  telefone,
-  endereco,
-  modo,
-  erro,
-  enviando,
-  pedidoRegistrado,
-  deliveryConfig,
-  cidadeEscolhida,
-  cotacao,
-  onFechar,
-  onMudarQtd,
-  onRemover,
-  onNome,
-  onTelefone,
-  onEndereco,
-  onCidade,
-  onCalcularFrete,
-  onModo,
-  onFinalizar,
-  onNovoPedido,
+  linhas, aberto, pedidoRegistrado, onFechar, onMudarQtd, onRemover, onAbrirCheckout, onNovoPedido,
 }: {
-  loja: LojaPublica;
   linhas: LinhaCarrinho[];
   aberto: boolean;
-  nome: string;
-  telefone: string;
-  endereco: string;
-  modo: ModoEntrega;
-  erro: string | null;
-  enviando: boolean;
   pedidoRegistrado: PedidoRegistrado | null;
-  deliveryConfig: ConfigDeliveryPublica | null;
-  cidadeEscolhida: string;
-  cotacao: CotacaoEstado;
   onFechar: () => void;
   onMudarQtd: (lineId: string, delta: number) => void;
   onRemover: (lineId: string) => void;
-  onNome: (v: string) => void;
-  onTelefone: (v: string) => void;
-  onEndereco: (v: string) => void;
-  onCidade: (v: string) => void;
-  onCalcularFrete: () => void;
-  onModo: (m: ModoEntrega) => void;
-  onFinalizar: () => void;
+  onAbrirCheckout: () => void;
   onNovoPedido: () => void;
 }) {
-  const usaCotacaoDinamica = !!deliveryConfig?.configurada;
-  const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
-  const taxa = usaCotacaoDinamica ? (cotacao.status === 'ok' ? cotacao.taxa : 0) : Number(loja.taxa_entrega) || 0;
-  const total = subtotal + (modo === 'entrega' && linhas.length > 0 ? taxa : 0);
-  const minimo = Number(loja.pedido_minimo) || 0;
-  const abaixoDoMinimo = modo === 'entrega' && minimo > 0 && subtotal > 0 && subtotal < minimo;
+  const subtotal = linhas.reduce((s, linha) => s + subtotalLinha(linha), 0);
 
   if (pedidoRegistrado) {
-    const { pedido, proximaAcao } = pedidoRegistrado;
     return (
       <section id="carrinho" className={'cart-section' + (aberto ? ' open' : '')}>
         <div className="cart-section-header">
           <h2>Pedido registrado</h2>
-          <button type="button" className="cart-close" aria-label="Fechar carrinho" onClick={onFechar}>
-            ✕
-          </button>
+          <button type="button" className="cart-close" aria-label="Fechar carrinho" onClick={onFechar}>×</button>
         </div>
-
         <div className="cart-footer">
-          <p className="cart-item-price">
-            <strong>Pedido #{pedido.numero} registrado.</strong>
-          </p>
-          <p className="delivery-erro" role="status">
-            Pagamento pendente. Seu pedido ainda precisa ser confirmado pelo restaurante. Continue no
-            WhatsApp para combinar o pagamento e confirmar o atendimento.
-          </p>
-
-          <div className="cart-total-row">
-            <span>Total</span>
-            <span>{formatBRL(pedido.total)}</span>
-          </div>
-
-          <a
-            className="btn-primary btn-checkout"
-            href={proximaAcao.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <p><strong>Pedido #{pedidoRegistrado.pedido.numero} registrado.</strong></p>
+          <p className="delivery-erro">Pagamento pendente. Continue no WhatsApp para confirmar com a loja.</p>
+          <a className="btn-primary btn-checkout" href={pedidoRegistrado.proximaAcao.url} target="_blank" rel="noopener noreferrer">
             Continuar no WhatsApp
           </a>
-          <a className="btn-continue" href={pedido.tracking_url}>
-            Acompanhar meu pedido
-          </a>
-          <button type="button" className="btn-continue" onClick={onNovoPedido}>
-            Fazer novo pedido
-          </button>
+          <a className="btn-continue" href={pedidoRegistrado.pedido.tracking_url}>Acompanhar pedido</a>
+          <button type="button" className="btn-continue" onClick={onNovoPedido}>Fazer novo pedido</button>
         </div>
       </section>
     );
@@ -152,180 +62,36 @@ export function Carrinho({
     <section id="carrinho" className={'cart-section' + (aberto ? ' open' : '')}>
       <div className="cart-section-header">
         <h2>Seu carrinho</h2>
-        <button type="button" className="cart-close" aria-label="Fechar carrinho" onClick={onFechar}>
-          ✕
-        </button>
+        <button type="button" className="cart-close" aria-label="Fechar carrinho" onClick={onFechar}>×</button>
       </div>
-
       <div className="cart-items">
         {linhas.length === 0 ? (
-          <>
-            <p className="cart-empty">Seu carrinho está vazio.</p>
-            <button type="button" className="btn-primary cart-empty-cta" onClick={onFechar}>
-              Ver cardápio
-            </button>
-          </>
-        ) : (
-          linhas.map((linha) => {
-            // Mesma função do modal e do WhatsApp. Somar os complementos
-            // aqui na mão ignorava o modo de preço da lista.
-            const precoUnit = linha.precoUnit + extraDaLinha(linha);
-            return (
-              <div key={linha.lineId} className="cart-item">
-                <div className="cart-item-info">
-                  <span className="cart-item-name">{linha.nome}</span>
-                  {linha.complementos.length > 0 && (
-                    <span className="cart-item-custom">
-                      {linha.complementos
-                        .map((c) => (c.quantidade > 1 ? `${c.quantidade}x ${c.nome}` : c.nome))
-                        .join(', ')}
-                    </span>
-                  )}
-                  {linha.observacao && <span className="cart-item-obs">Obs: {linha.observacao}</span>}
-                  <span className="cart-item-price">{formatBRL(precoUnit)} un.</span>
-                </div>
-                <div className="cart-item-qty">
-                  <button
-                    type="button"
-                    className="qty-btn"
-                    aria-label="Diminuir quantidade"
-                    onClick={() => onMudarQtd(linha.lineId, -1)}
-                  >
-                    −
-                  </button>
-                  <span>{linha.qty}</span>
-                  <button
-                    type="button"
-                    className="qty-btn"
-                    aria-label="Aumentar quantidade"
-                    onClick={() => onMudarQtd(linha.lineId, 1)}
-                  >
-                    +
-                  </button>
-                </div>
-                <span className="cart-item-subtotal">{formatBRL(subtotalLinha(linha))}</span>
-                <button type="button" className="cart-item-remove" onClick={() => onRemover(linha.lineId)}>
-                  Remover
-                </button>
-              </div>
-            );
-          })
-        )}
+          <><p className="cart-empty">Seu carrinho está vazio.</p><button type="button" className="btn-primary cart-empty-cta" onClick={onFechar}>Ver cardápio</button></>
+        ) : linhas.map((linha) => (
+          <div key={linha.lineId} className="cart-item">
+            <div className="cart-item-info">
+              <span className="cart-item-name">{linha.nome}</span>
+              {linha.complementos.length > 0 && <span className="cart-item-custom">{linha.complementos.map((c) => c.quantidade > 1 ? `${c.quantidade}x ${c.nome}` : c.nome).join(', ')}</span>}
+              {linha.observacao && <span className="cart-item-obs">Obs: {linha.observacao}</span>}
+              <span className="cart-item-price">{formatBRL(linha.precoUnit + extraDaLinha(linha))} un.</span>
+            </div>
+            <div className="cart-item-qty">
+              <button type="button" className="qty-btn" aria-label="Diminuir quantidade" onClick={() => onMudarQtd(linha.lineId, -1)}>−</button>
+              <span>{linha.qty}</span>
+              <button type="button" className="qty-btn" aria-label="Aumentar quantidade" onClick={() => onMudarQtd(linha.lineId, 1)}>+</button>
+            </div>
+            <span className="cart-item-subtotal">{formatBRL(subtotalLinha(linha))}</span>
+            <button type="button" className="cart-item-remove" onClick={() => onRemover(linha.lineId)}>Remover</button>
+          </div>
+        ))}
       </div>
-
       <div className="cart-footer">
-        <div className="delivery-address">
-          <label htmlFor="nomeClienteInput">Seu nome</label>
-          <input
-            type="text"
-            id="nomeClienteInput"
-            placeholder="Como podemos te chamar?"
-            value={nome}
-            maxLength={80}
-            onChange={(e) => onNome(e.target.value)}
-          />
-        </div>
-
-        <div className="delivery-address">
-          <label htmlFor="telefoneClienteInput">Seu telefone (com DDD)</label>
-          <input
-            type="tel"
-            id="telefoneClienteInput"
-            placeholder="(11) 91234-5678"
-            value={telefone}
-            autoComplete="tel"
-            maxLength={16}
-            onChange={(e) => onTelefone(formatarTelefone(e.target.value))}
-          />
-        </div>
-
-        <div className="delivery-toggle">
-          <button
-            type="button"
-            className={'delivery-btn' + (modo === 'retirada' ? ' active' : '')}
-            onClick={() => onModo('retirada')}
-          >
-            Retirar no local
-          </button>
-          <button
-            type="button"
-            className={'delivery-btn' + (modo === 'entrega' ? ' active' : '')}
-            onClick={() => onModo('entrega')}
-          >
-            {!usaCotacaoDinamica && taxa > 0
-              ? `Entrega (+ ${formatBRL(taxa)})`
-              : usaCotacaoDinamica && cotacao.status === 'ok'
-                ? `Entrega (+ ${formatBRL(cotacao.taxa)})`
-                : 'Entrega'}
-          </button>
-        </div>
-
-        {modo === 'entrega' && usaCotacaoDinamica && deliveryConfig?.setor === 'avancado' && (
-          <div className="delivery-address">
-            <label htmlFor="cidadeInput">Cidade da entrega</label>
-            <select id="cidadeInput" value={cidadeEscolhida} onChange={(e) => onCidade(e.target.value)}>
-              <option value="" disabled>
-                Selecione a cidade
-              </option>
-              {deliveryConfig.cidade && <option value={deliveryConfig.cidade}>{deliveryConfig.cidade}</option>}
-              {deliveryConfig.cidades.map((c) => (
-                <option key={c.cidade} value={c.cidade}>
-                  {c.cidade}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {modo === 'entrega' && (
-          <div className="delivery-address">
-            <label htmlFor="enderecoInput">Endereço (rua, bairro e número)</label>
-            <input
-              type="text"
-              id="enderecoInput"
-              placeholder="Ex: Rua das Flores, Centro, 123"
-              value={endereco}
-              onChange={(e) => onEndereco(e.target.value)}
-            />
-          </div>
-        )}
-
-        {modo === 'entrega' && usaCotacaoDinamica && (
-          <div className="delivery-address">
-            <button type="button" className="btn-continue" onClick={onCalcularFrete} disabled={cotacao.status === 'calculando'}>
-              {cotacao.status === 'calculando' ? 'Calculando frete…' : 'Calcular frete'}
-            </button>
-            {cotacao.status === 'ok' && (
-              <p className="cart-item-price">
-                Frete: {formatBRL(cotacao.taxa)}
-                {cotacao.distanciaKm != null ? ` · ${cotacao.distanciaKm} km` : ''}
-              </p>
-            )}
-            {cotacao.status === 'erro' && <p className="delivery-erro">{cotacao.erro}</p>}
-          </div>
-        )}
-
-        {abaixoDoMinimo && (
-          <p className="delivery-erro">Pedido mínimo pra entrega é {formatBRL(minimo)}.</p>
-        )}
-        {erro && <p className="delivery-erro">{erro}</p>}
-
-        <div className="cart-total-row">
-          <span>Total</span>
-          <span>{formatBRL(total)}</span>
-        </div>
-
-        <button
-          type="button"
-          className="btn-primary btn-checkout"
-          disabled={linhas.length === 0 || enviando}
-          onClick={onFinalizar}
-        >
-          {enviando ? 'Registrando pedido…' : 'Finalizar pedido'}
+        <div className="cart-total-row"><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>
+        <button type="button" className="btn-primary btn-checkout" disabled={linhas.length === 0} onClick={onAbrirCheckout}>
+          Continuar pedido
         </button>
-        <button type="button" className="btn-continue" onClick={onFechar}>
-          Continuar comprando
-        </button>
+        <button type="button" className="btn-continue" onClick={onFechar}>Continuar comprando</button>
+        <small className="checkout-seguranca">O valor final e a taxa são validados no servidor.</small>
       </div>
     </section>
   );

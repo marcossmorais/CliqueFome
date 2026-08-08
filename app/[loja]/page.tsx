@@ -98,6 +98,7 @@ async function carregar(slug: string) {
     tipo_taxa: string;
     setor: string;
     cidade: string | null;
+    endereco_retirada: string | null;
     cidades: { cidade: string; taxa: number }[];
   } | null;
   const deliveryConfig: ConfigDeliveryPublica | null = bruto
@@ -106,6 +107,7 @@ async function carregar(slug: string) {
         tipoTaxa: normalizarTipoTaxa(bruto.tipo_taxa),
         setor: normalizarSetor(bruto.setor),
         cidade: bruto.cidade,
+        enderecoRetirada: bruto.endereco_retirada,
         cidades: bruto.cidades || [],
       }
     : null;

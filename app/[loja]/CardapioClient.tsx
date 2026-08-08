@@ -20,6 +20,8 @@ import {
   type ProdutoPublico,
 } from '@/lib/cardapio/tipos';
 import type { ConfigDeliveryPublica } from '@/lib/delivery/tipos';
+import { ENDERECO_VAZIO, enderecoEmLinha, enderecoEstruturadoValido, type EnderecoEstruturado } from '@/lib/delivery/tipos';
+import { CheckoutModal } from './CheckoutModal';
 
 const TEXTO_AVISO: Record<string, string> = {
   removido: 'saiu do cardápio',
@@ -67,9 +69,14 @@ export function CardapioClient({
   const [categoriaId, setCategoriaId] = useState('todos');
   const [produtoAberto, setProdutoAberto] = useState<ProdutoPublico | null>(null);
   const [carrinhoAberto, setCarrinhoAberto] = useState(false);
+  const [checkoutAberto, setCheckoutAberto] = useState(false);
   const [nome, setNome] = useLocalStorage<string>(CHAVE_NOME, '');
   const [telefone, setTelefone] = useLocalStorage<string>(CHAVE_TELEFONE, '');
   const [endereco, setEndereco] = useState('');
+  const [enderecoDetalhado, setEnderecoDetalhado] = useState<EnderecoEstruturado>({
+    ...ENDERECO_VAZIO,
+    cidade: deliveryConfig?.cidade || '',
+  });
   const [modo, setModo] = useState<ModoEntrega>('retirada');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -92,6 +99,11 @@ export function CardapioClient({
     if (cotacao.status !== 'idle') setCotacao(COTACAO_INICIAL);
   }
 
+  function mudarEnderecoDetalhado(valor: EnderecoEstruturado) {
+    setEnderecoDetalhado(valor);
+    mudarEndereco(enderecoEmLinha(valor));
+  }
+
   function mudarCidade(v: string) {
     setCidadeEscolhida(v);
     if (cotacao.status !== 'idle') setCotacao(COTACAO_INICIAL);
@@ -99,8 +111,8 @@ export function CardapioClient({
 
   async function calcularFrete() {
     setErro(null);
-    if (endereco.trim().length < 8) {
-      setErro('Informe rua, número, bairro e CEP para calcular o frete.');
+    if (!enderecoEstruturadoValido(enderecoDetalhado)) {
+      setErro('Preencha CEP, logradouro, número, bairro, cidade e UF para calcular o frete.');
       return;
     }
     if (deliveryConfig?.setor === 'avancado' && !cidadeEscolhida) {
@@ -114,7 +126,7 @@ export function CardapioClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           lojaSlug: loja.slug,
-          endereco: endereco.trim(),
+          endereco: enderecoDetalhado,
           cidade: deliveryConfig?.setor === 'avancado' ? cidadeEscolhida : undefined,
         }),
       });
@@ -128,6 +140,8 @@ export function CardapioClient({
         taxa: Number(corpo.taxa),
         distanciaKm: corpo.distanciaKm ?? null,
         enderecoFormatado: corpo.enderecoFormatado,
+        token: corpo.token,
+        expiraEm: corpo.expiraEm,
       });
     } catch {
       setCotacao({ status: 'erro', erro: 'Falha de conexão ao calcular o frete. Tente novamente.' });
@@ -268,6 +282,8 @@ export function CardapioClient({
           clienteTelefone: telefone,
           tipo: modo === 'entrega' ? 'delivery' : 'retirada',
           endereco: modo === 'entrega' ? enderecoFinal : undefined,
+          enderecoCotacao: modo === 'entrega' ? enderecoEmLinha(enderecoDetalhado) : undefined,
+          cotacaoToken: modo === 'entrega' && cotacao.status === 'ok' ? cotacao.token : undefined,
           totalEsperadoCentavos: Math.round(totalGeral * 100),
           itens: linhas.map((l) => ({
             produtoId: l.produtoId,
@@ -435,33 +451,45 @@ export function CardapioClient({
       )}
 
       <Carrinho
-        loja={loja}
         linhas={linhas}
         aberto={carrinhoAberto}
+        pedidoRegistrado={pedidoRegistrado}
+        onFechar={() => setCarrinhoAberto(false)}
+        onMudarQtd={mudarQtd}
+        onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}
+        onAbrirCheckout={() => setCheckoutAberto(true)}
+        onNovoPedido={() => setPedidoRegistrado(null)}
+      />
+
+      <CheckoutModal
+        aberto={checkoutAberto}
+        linhas={linhas}
         nome={nome}
         telefone={telefone}
-        endereco={endereco}
+        endereco={enderecoDetalhado}
         modo={modo}
         erro={erro}
         enviando={enviando}
         pedidoRegistrado={pedidoRegistrado}
         deliveryConfig={deliveryConfig}
+        taxaEstatica={taxaEstatica}
         cidadeEscolhida={cidadeEscolhida}
         cotacao={cotacao}
-        onFechar={() => setCarrinhoAberto(false)}
-        onMudarQtd={mudarQtd}
-        onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}
+        onFechar={() => setCheckoutAberto(false)}
         onNome={setNome}
         onTelefone={setTelefone}
-        onEndereco={mudarEndereco}
-        onCidade={mudarCidade}
-        onCalcularFrete={calcularFrete}
-        onModo={(m) => {
-          setModo(m);
-          setErro(null);
+        onEndereco={mudarEnderecoDetalhado}
+        onCidade={(v) => {
+          mudarCidade(v);
+          setEnderecoDetalhado((atual) => ({ ...atual, cidade: v }));
         }}
+        onCalcularFrete={calcularFrete}
+        onModo={(m) => { setModo(m); setErro(null); }}
         onFinalizar={finalizar}
-        onNovoPedido={() => setPedidoRegistrado(null)}
+        onNovoPedido={() => {
+          setPedidoRegistrado(null);
+          setCheckoutAberto(false);
+        }}
       />
     </div>
   );

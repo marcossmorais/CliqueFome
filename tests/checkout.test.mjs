@@ -146,3 +146,19 @@ test('itensParaRpc converte pro formato snake_case que criar_pedido() espera', (
     },
   ]);
 });
+
+test('validarEntradaCheckout preserva cotacao apenas no delivery', () => {
+  const delivery = validarEntradaCheckout(entradaBase({
+    tipo: 'delivery', endereco: 'Rua Um, 123, Centro',
+    enderecoCotacao: 'Rua Um, 123, Centro, Cidade - PB, CEP 58000-000',
+    cotacaoToken: 'payload.assinatura',
+  }));
+  assert.equal(delivery.enderecoCotacao, 'Rua Um, 123, Centro, Cidade - PB, CEP 58000-000');
+  assert.equal(delivery.cotacaoToken, 'payload.assinatura');
+
+  const retirada = validarEntradaCheckout(entradaBase({
+    enderecoCotacao: 'nao deve entrar', cotacaoToken: 'nao deve entrar',
+  }));
+  assert.equal(retirada.enderecoCotacao, undefined);
+  assert.equal(retirada.cotacaoToken, undefined);
+});
