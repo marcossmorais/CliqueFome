@@ -734,6 +734,32 @@
   .checkout-opcoes button>span{ font-size: 20px; }.checkout-opcoes button>div{ display:grid; gap:3px; flex:1; }.checkout-opcoes strong{ font-size:13px; }.checkout-opcoes small{ color:#718078; font-size:11px; line-height:1.35; }
   .checkout-opcoes button>b{ width:18px; height:18px; border:2px solid #b4beb9; border-radius:50%; }.checkout-opcoes button.selecionada>b{ border:5px solid var(--marca); }
 
+  .checkout-formas-pagamento{ display:grid; gap:8px; }
+  .checkout-formas-pagamento button{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    width:100%;
+    min-height:50px;
+    padding:11px 13px;
+    border:1px solid #d9dedc;
+    border-radius:7px;
+    color:#344055;
+    background:#f5f6f7;
+    font:inherit;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .15s, background .15s, box-shadow .15s;
+  }
+  .checkout-formas-pagamento button:hover{ border-color:#aeb8b3; background:#f0f3f1; }
+  .checkout-formas-pagamento button:focus-visible{ outline:3px solid color-mix(in srgb, var(--marca) 22%, transparent); outline-offset:2px; }
+  .checkout-formas-pagamento button.selecionada{ border-color:var(--marca); background:#f1f8f4; box-shadow:inset 0 0 0 1px var(--marca); }
+  .checkout-forma-icone{ display:grid; width:25px; height:25px; flex:0 0 25px; place-items:center; color:#3e4859; }
+  .checkout-forma-icone svg{ width:25px; height:25px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .checkout-formas-pagamento strong{ flex:1; font-size:14px; font-weight:600; }
+  .checkout-forma-marcador{ width:18px; height:18px; flex:0 0 18px; border:2px solid #aeb7b2; border-radius:50%; background:#fff; }
+  .checkout-formas-pagamento button.selecionada .checkout-forma-marcador{ border:5px solid var(--marca); }
+
   /* Grid do endereço com posição EXPLÍCITA por campo, não auto-flow com
      span solto: com 3 colunas e spans desencontrados, "Referência" sobrava
      numa linha com uma célula vazia do lado, e UF ficava um campo estreito

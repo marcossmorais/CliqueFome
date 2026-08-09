@@ -6,7 +6,6 @@ import { formatarCep, type ConfigDeliveryPublica, type EnderecoEstruturado } fro
 import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import {
-  FORMAS_PAGAMENTO_OFFLINE,
   formasPagamentoPara,
   instrucaoPagamento,
   nomeFormaPagamento,
@@ -27,6 +26,40 @@ export type PedidoRegistrado = {
   };
   proximaAcao: { tipo: string; url: string } | null;
 };
+
+const ROTULOS_FORMA_PAGAMENTO: Record<FormaPagamentoOffline, string> = {
+  dinheiro_entrega: 'Dinheiro',
+  cartao_credito_entrega: 'Cartão de crédito',
+  cartao_debito_entrega: 'Cartão de débito',
+  pix_manual: 'Pix direto para a loja',
+  pagamento_retirada: 'Pagar no estabelecimento',
+};
+
+function IconeFormaPagamento({ forma }: { forma: FormaPagamentoOffline }) {
+  if (forma === 'dinheiro_entrega') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="2.5" y="5" width="19" height="14" rx="2" />
+        <circle cx="12" cy="12" r="3" />
+        <path d="M6 8.5h.01M18 15.5h.01" />
+      </svg>
+    );
+  }
+  if (forma === 'pix_manual') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m8.2 5.2 2.1-2.1a2.4 2.4 0 0 1 3.4 0l2.1 2.1M18.8 8.2l2.1 2.1a2.4 2.4 0 0 1 0 3.4l-2.1 2.1M15.8 18.8l-2.1 2.1a2.4 2.4 0 0 1-3.4 0l-2.1-2.1M5.2 15.8l-2.1-2.1a2.4 2.4 0 0 1 0-3.4l2.1-2.1" />
+        <path d="m7.5 12 2.7 2.7a2.6 2.6 0 0 0 3.6 0l2.7-2.7-2.7-2.7a2.6 2.6 0 0 0-3.6 0L7.5 12Z" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2" />
+      <path d="M3 9h18M6 15h5" />
+    </svg>
+  );
+}
 
 export function formatarTelefone(valor: string) {
   const digitos = valor.replace(/\D/g, '').slice(0, 11);
@@ -268,19 +301,26 @@ export function CheckoutModal({
             </section>
 
             <section className="checkout-bloco">
-              <h3>Forma de pagamento</h3>
-              <label className="checkout-campo checkout-largo">
-                Como você deseja pagar?
-                <select
-                  value={formaPagamento}
-                  onChange={(e) => onFormaPagamento(e.target.value as FormaPagamentoOffline | '')}
-                >
-                  <option value="">Selecione uma opção</option>
-                  {formasPagamentoPara(modo === 'entrega' ? 'delivery' : 'retirada').map((forma) => (
-                    <option key={forma} value={forma}>{FORMAS_PAGAMENTO_OFFLINE[forma]}</option>
-                  ))}
-                </select>
-              </label>
+              <h3>{modo === 'entrega' ? 'Pagar na entrega' : 'Pagar na retirada'}</h3>
+              <div className="checkout-formas-pagamento" role="radiogroup" aria-label="Forma de pagamento">
+                {formasPagamentoPara(modo === 'entrega' ? 'delivery' : 'retirada').map((forma) => {
+                  const selecionada = formaPagamento === forma;
+                  return (
+                    <button
+                      key={forma}
+                      type="button"
+                      role="radio"
+                      aria-checked={selecionada}
+                      className={selecionada ? 'selecionada' : ''}
+                      onClick={() => onFormaPagamento(forma)}
+                    >
+                      <span className="checkout-forma-icone"><IconeFormaPagamento forma={forma} /></span>
+                      <strong>{ROTULOS_FORMA_PAGAMENTO[forma]}</strong>
+                      <span className="checkout-forma-marcador" aria-hidden="true" />
+                    </button>
+                  );
+                })}
+              </div>
               {formaPagamento && <p className="checkout-pagamento">{instrucaoPagamento(formaPagamento)}</p>}
             </section>
 
