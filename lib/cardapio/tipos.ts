@@ -101,6 +101,13 @@ export function formatBRL(v: number) {
   return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 }
 
+export function formatarTelefone(valor: string) {
+  const digitos = valor.replace(/\D/g, '').slice(0, 11);
+  if (digitos.length <= 2) return digitos;
+  if (digitos.length <= 7) return `(${digitos.slice(0, 2)}) ${digitos.slice(2)}`;
+  return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
+}
+
 /**
  * O produto/lista aparece neste tipo de pedido? Array vazio = sem
  * restrição, que é o padrão do banco. O painel já salvava `tipos_pedido`,

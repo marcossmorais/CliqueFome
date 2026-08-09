@@ -675,6 +675,26 @@
   .pedido-card:hover{ border-color:#C2CCC7; }
   .pedido-card.selecionado{ border-color:var(--verde); background:var(--verde-tint); }
 
+  /* Pedido que acabou de chegar: entra com um leve slide+fade e um
+     destaque laranja que esmaece sozinho de volta ao card normal — dá
+     tempo de notar sem gritar ("suavidade" pedida, não um piscar). */
+  .pedido-card.novo{
+    animation:
+      pedido-novo-entrada .3s ease-out,
+      pedido-novo-destaque 3s ease-in .3s forwards;
+  }
+  @keyframes pedido-novo-entrada{
+    0%{ opacity:0; transform:translateY(-8px); }
+    100%{ opacity:1; transform:translateY(0); }
+  }
+  @keyframes pedido-novo-destaque{
+    0%{ background:#FFF1DE; border-color:#F2C88C; }
+    100%{ background:var(--superficie); border-color:var(--borda); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pedido-card.novo{ animation:none; background:#FFF1DE; border-color:#F2C88C; }
+  }
+
   .pedido-card-linha1{ display:flex; align-items:center; gap:7px; min-width:0; }
   .pedido-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
   .pedido-dot-verde{ background:#2FA968; }

@@ -47,6 +47,12 @@ export function PedidosClient({
   const [pedidoAbertoId, setPedidoAbertoId] = useState<string | null>(null);
   const [modalManualAberto, setModalManualAberto] = useState(false);
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
+  const [novosIds, setNovosIds] = useState<Set<string>>(new Set());
+
+  // Ids já vistos, pra distinguir "pedido que acabou de chegar" de "pedido
+  // que só mudou de status" — só o primeiro caso ganha o destaque visual.
+  // Semeado com a lista inicial pra não marcar tudo como novo no 1º render.
+  const idsConhecidosRef = useRef<Set<string>>(new Set(pedidosIniciais.map((p) => p.id)));
 
   // null no primeiro render pra servidor e cliente concordarem; depois
   // tica sozinho, mantendo "ha X min" vivo entre um fetch e outro.
@@ -67,7 +73,21 @@ export function PedidosClient({
     carregandoRef.current = true;
     try {
       const sb = criarClientNavegador();
-      setPedidos(await buscarPedidos(sb, lojaId));
+      const lista = await buscarPedidos(sb, lojaId);
+      const conhecidos = idsConhecidosRef.current;
+      const chegaram = lista.filter((p) => !conhecidos.has(p.id)).map((p) => p.id);
+      lista.forEach((p) => conhecidos.add(p.id));
+      if (chegaram.length > 0) {
+        setNovosIds((atual) => new Set([...atual, ...chegaram]));
+        setTimeout(() => {
+          setNovosIds((atual) => {
+            const copia = new Set(atual);
+            chegaram.forEach((id) => copia.delete(id));
+            return copia;
+          });
+        }, 4000);
+      }
+      setPedidos(lista);
     } catch (err) {
       mostrarMsg('Erro ao atualizar pedidos: ' + (err as Error).message);
     } finally {
@@ -255,6 +275,7 @@ export function PedidosClient({
                           key={p.id}
                           pedido={p}
                           selecionado={p.id === pedidoAbertoId}
+                          novo={novosIds.has(p.id)}
                           agora={agora}
                           onAbrir={() => setPedidoAbertoId(p.id)}
                           onAvancarRapido={() => avancarRapido(p)}

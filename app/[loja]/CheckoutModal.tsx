@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { extraDaLinha, formatBRL, subtotalLinha, type LinhaCarrinho } from '@/lib/cardapio/tipos';
+import { extraDaLinha, formatarTelefone, formatBRL, subtotalLinha, type LinhaCarrinho } from '@/lib/cardapio/tipos';
 import { formatarCep, type ConfigDeliveryPublica, type EnderecoEstruturado } from '@/lib/delivery/tipos';
 import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
 import { useEscFechar } from '@/hooks/useEscFechar';
@@ -59,13 +59,6 @@ function IconeFormaPagamento({ forma }: { forma: FormaPagamentoOffline }) {
       <path d="M3 9h18M6 15h5" />
     </svg>
   );
-}
-
-export function formatarTelefone(valor: string) {
-  const digitos = valor.replace(/\D/g, '').slice(0, 11);
-  if (digitos.length <= 2) return digitos;
-  if (digitos.length <= 7) return `(${digitos.slice(0, 2)}) ${digitos.slice(2)}`;
-  return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
 }
 
 type Etapa = 'carrinho' | 'entrega';

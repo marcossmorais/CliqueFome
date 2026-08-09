@@ -9,12 +9,16 @@ import { formatBRL, NOMES_ORIGEM, NOMES_TIPO, rotuloAvancar, type PedidoResumo }
 export function CardPedido({
   pedido,
   selecionado,
+  novo,
   agora,
   onAbrir,
   onAvancarRapido,
 }: {
   pedido: PedidoResumo;
   selecionado: boolean;
+  /** Acabou de chegar (poll/Realtime trouxe um id que a tela não tinha
+   * visto ainda) — ganha destaque visual por alguns segundos. */
+  novo?: boolean;
   /** null enquanto não hidratou — ver useAgora. */
   agora: Date | null;
   onAbrir: () => void;
@@ -26,7 +30,10 @@ export function CardPedido({
   const qtdItens = pedido.pedido_itens?.length ?? 0;
 
   return (
-    <div className={'pedido-card' + (selecionado ? ' selecionado' : '')} onClick={onAbrir}>
+    <div
+      className={'pedido-card' + (selecionado ? ' selecionado' : '') + (novo ? ' novo' : '')}
+      onClick={onAbrir}
+    >
       <div className="pedido-card-linha1">
         <span className={'pedido-dot pedido-dot-' + nivel} title="Urgência" />
         <span className="pedido-numero">#{pedido.numero}</span>

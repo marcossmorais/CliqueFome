@@ -7,6 +7,7 @@ import { criarPedidoManual, type ItemPedidoManual } from '@/lib/pedidos/acoes';
 import {
   apareceNoTipo,
   extraDaLinha,
+  formatarTelefone,
   formatBRL,
   precoBase,
   precoMinimo,
@@ -16,6 +17,12 @@ import {
   type LinhaCarrinho,
   type ProdutoPublico,
 } from '@/lib/cardapio/tipos';
+import {
+  formaPagamentoPermitida,
+  formasPagamentoPara,
+  instrucaoPagamento,
+  type FormaPagamentoOffline,
+} from '@/lib/pedidos/pagamento';
 import { IconeBusca } from '@/components/admin/IconesCatalogo';
 import { ModalDetalhesProdutoPedido } from './ModalDetalhesProdutoPedido';
 import styles from './novoPedido.module.css';
@@ -29,6 +36,45 @@ const NOMES_TIPO: Record<TipoManual, string> = {
   mesa: 'Mesa',
   encomenda: 'Encomenda',
 };
+
+// Presencial (balcão/mesa) não exige telefone — cliente está ali na frente.
+// Retirada/delivery/encomenda são pedidos à distância, onde o contato
+// continua fazendo sentido pra loja conseguir avisar o cliente.
+const TIPOS_PRESENCIAIS: TipoManual[] = ['balcao', 'mesa'];
+
+const ROTULOS_FORMA_PAGAMENTO: Record<FormaPagamentoOffline, string> = {
+  dinheiro_entrega: 'Dinheiro',
+  cartao_credito_entrega: 'Cartão de crédito',
+  cartao_debito_entrega: 'Cartão de débito',
+  pix_manual: 'Pix direto para a loja',
+  pagamento_retirada: 'Pagar no estabelecimento',
+};
+
+function IconeFormaPagamento({ forma }: { forma: FormaPagamentoOffline }) {
+  if (forma === 'dinheiro_entrega') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="2.5" y="5" width="19" height="14" rx="2" />
+        <circle cx="12" cy="12" r="3" />
+        <path d="M6 8.5h.01M18 15.5h.01" />
+      </svg>
+    );
+  }
+  if (forma === 'pix_manual') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m8.2 5.2 2.1-2.1a2.4 2.4 0 0 1 3.4 0l2.1 2.1M18.8 8.2l2.1 2.1a2.4 2.4 0 0 1 0 3.4l-2.1 2.1M15.8 18.8l-2.1 2.1a2.4 2.4 0 0 1-3.4 0l-2.1-2.1M5.2 15.8l-2.1-2.1a2.4 2.4 0 0 1 0-3.4l2.1-2.1" />
+        <path d="m7.5 12 2.7 2.7a2.6 2.6 0 0 0 3.6 0l2.7-2.7-2.7-2.7a2.6 2.6 0 0 0-3.6 0L7.5 12Z" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2" />
+      <path d="M3 9h18M6 15h5" />
+    </svg>
+  );
+}
 
 function IconeCaixaVazia() {
   return (
@@ -65,6 +111,7 @@ export function NovoPedidoPainel({
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [tipo, setTipo] = useState<TipoManual>('balcao');
+  const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoOffline | ''>('');
   const [endereco, setEndereco] = useState('');
   const [dataHora, setDataHora] = useState('');
   const [observacao, setObservacao] = useState('');
@@ -134,12 +181,20 @@ export function NovoPedidoPainel({
 
   async function salvar() {
     setErroLocal(null);
-    if (!nome.trim() || !telefone.trim()) {
-      setErroLocal('Informe nome e telefone do cliente.');
+    if (!nome.trim()) {
+      setErroLocal('Informe o nome do cliente.');
+      return;
+    }
+    if (!TIPOS_PRESENCIAIS.includes(tipo) && !telefone.trim()) {
+      setErroLocal('Informe o telefone do cliente.');
       return;
     }
     if (linhas.length === 0) {
       setErroLocal('Adicione pelo menos um item.');
+      return;
+    }
+    if (!formaPagamento) {
+      setErroLocal('Escolha a forma de pagamento.');
       return;
     }
     if (tipo === 'delivery' && !endereco.trim()) {
@@ -168,6 +223,7 @@ export function NovoPedidoPainel({
         tipo,
         endereco: endereco || undefined,
         observacao: observacao || undefined,
+        formaPagamento,
         itens,
         dataHoraAgendada: tipo === 'encomenda' && dataHora ? new Date(dataHora).toISOString() : undefined,
         origem: 'telefone',
@@ -269,13 +325,32 @@ export function NovoPedidoPainel({
               <input id="npNome" type="text" placeholder="Como se chama o cliente?" value={nome} onChange={(e) => setNome(e.target.value)} />
             </div>
             <div className={styles.clienteCampo}>
-              <label htmlFor="npTelefone">Telefone</label>
-              <input id="npTelefone" type="tel" placeholder="(11) 91234-5678" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+              <label htmlFor="npTelefone">
+                Telefone{TIPOS_PRESENCIAIS.includes(tipo) ? ' (opcional)' : ''}
+              </label>
+              <input
+                id="npTelefone"
+                type="tel"
+                maxLength={16}
+                placeholder="(11) 91234-5678"
+                value={telefone}
+                onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+              />
             </div>
 
             <div className={styles.clienteCampo}>
               <label htmlFor="npTipo">Tipo do pedido</label>
-              <select id="npTipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoManual)}>
+              <select
+                id="npTipo"
+                value={tipo}
+                onChange={(e) => {
+                  const novoTipo = e.target.value as TipoManual;
+                  setTipo(novoTipo);
+                  setFormaPagamento((atual) =>
+                    formaPagamentoPermitida(novoTipo === 'delivery' ? 'delivery' : 'retirada', atual) ? atual : ''
+                  );
+                }}
+              >
                 <option value="balcao">Balcão</option>
                 <option value="mesa">Mesa</option>
                 <option value="retirada">Retirada</option>
@@ -296,6 +371,30 @@ export function NovoPedidoPainel({
                 <input id="npDataHora" type="datetime-local" value={dataHora} onChange={(e) => setDataHora(e.target.value)} />
               </div>
             )}
+
+            <div className={styles.clienteCampo}>
+              <label>Forma de pagamento</label>
+              <div className={styles.formasPagamento} role="radiogroup" aria-label="Forma de pagamento">
+                {formasPagamentoPara(tipo === 'delivery' ? 'delivery' : 'retirada').map((forma) => {
+                  const selecionada = formaPagamento === forma;
+                  return (
+                    <button
+                      key={forma}
+                      type="button"
+                      role="radio"
+                      aria-checked={selecionada}
+                      className={selecionada ? styles.formaSelecionada : undefined}
+                      onClick={() => setFormaPagamento(forma)}
+                    >
+                      <span className={styles.formaIcone}><IconeFormaPagamento forma={forma} /></span>
+                      <strong>{ROTULOS_FORMA_PAGAMENTO[forma]}</strong>
+                      <span className={styles.formaMarcador} aria-hidden="true" />
+                    </button>
+                  );
+                })}
+              </div>
+              {formaPagamento && <p className={styles.formaInstrucao}>{instrucaoPagamento(formaPagamento)}</p>}
+            </div>
 
             <button type="button" className={styles.obsToggle} onClick={() => setObsAberta((v) => !v)}>
               <span>Observação do pedido</span>
@@ -356,7 +455,7 @@ export function NovoPedidoPainel({
                 <span>{totalItens} {totalItens === 1 ? 'item' : 'itens'}</span>
                 <strong>{formatBRL(subtotal)}</strong>
               </div>
-              <button type="button" className={styles.criarPedido} disabled={salvando || linhas.length === 0} onClick={salvar}>
+              <button type="button" className={styles.criarPedido} disabled={salvando || linhas.length === 0 || !formaPagamento} onClick={salvar}>
                 {salvando ? 'Criando pedido…' : `Criar pedido · ${formatBRL(subtotal)}`}
               </button>
             </div>
