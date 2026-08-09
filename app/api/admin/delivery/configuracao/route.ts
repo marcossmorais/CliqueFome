@@ -135,16 +135,24 @@ export async function PUT(request: Request) {
     ].includes(erro.codigo)) {
       geocodificado = null;
     } else {
-      const mensagens: Partial<Record<ErroGeoapify['codigo'], string>> = {
+      // CHAVE_*/LIMITE_ATINGIDO/SERVICO_INDISPONIVEL são falha externa (503,
+      // tentar de novo resolve). ENDERECO_NAO_ENCONTRADO/IMPRECISO não são —
+      // é o dado que a pessoa digitou que não bate com nada real, então o
+      // status certo é 422: tentar de novo com o MESMO endereço não muda o
+      // resultado, precisa corrigir o número/logradouro.
+      const mensagensServico: Partial<Record<ErroGeoapify['codigo'], string>> = {
         CHAVE_AUSENTE: 'A chave da Geoapify não está configurada no ambiente de produção.',
         CHAVE_RECUSADA: 'A Geoapify recusou a chave configurada. Confira o valor e as restrições da chave.',
         LIMITE_ATINGIDO: 'O limite de consultas da Geoapify foi atingido. Tente novamente mais tarde.',
         SERVICO_INDISPONIVEL: 'O serviço de localização está indisponível. Tente novamente.',
       };
-      const mensagem = erro instanceof ErroGeoapify
-        ? mensagens[erro.codigo] ?? 'Não encontramos esse endereço. Confira CEP, logradouro, número, bairro, cidade e UF.'
-        : 'O serviço de localização está indisponível. Tente novamente.';
-      return NextResponse.json({ erro: mensagem }, { status: 503 });
+      if (erro instanceof ErroGeoapify && mensagensServico[erro.codigo]) {
+        return NextResponse.json({ erro: mensagensServico[erro.codigo] }, { status: 503 });
+      }
+      const mensagem = erro instanceof ErroGeoapify && erro.codigo === 'ENDERECO_IMPRECISO'
+        ? 'Esse endereço não ficou preciso o bastante pra calcular rota. Confirme o número e escolha uma sugestão da busca.'
+        : 'Não encontramos esse endereço. Confira CEP, logradouro, número, bairro, cidade e UF, ou escolha uma sugestão da busca.';
+      return NextResponse.json({ erro: mensagem }, { status: 422 });
     }
   }
 

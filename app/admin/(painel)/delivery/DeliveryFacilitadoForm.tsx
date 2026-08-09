@@ -306,8 +306,27 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
             </div>
             <div className={styles.campo}>
               <label htmlFor="est-numero">Número</label>
-              <input id="est-numero" maxLength={20} value={endereco.numero}
-                onChange={(e) => setEndereco((a) => ({ ...a, numero: e.target.value }))} placeholder="123" />
+              <input
+                id="est-numero"
+                maxLength={20}
+                value={endereco.numero}
+                onChange={(e) => {
+                  const valor = e.target.value;
+                  setEndereco((a) => ({ ...a, numero: valor }));
+                  // Busca de novo incluindo o número: uma sugestão que só
+                  // tinha o logradouro (rua inteira, sem número específico)
+                  // pode virar uma sugestão precisa agora — é essa segunda
+                  // chance que evita "número que a pessoa chutou" cair na
+                  // validação do salvar.
+                  if (valor.trim() && endereco.logradouro.trim()) {
+                    setSugestoesAbertas(true);
+                    buscaEndereco.buscar(`${endereco.logradouro} ${valor}, ${endereco.cidade || ''} ${endereco.uf || ''}`.trim());
+                  }
+                }}
+                onFocus={() => { if (endereco.logradouro.trim()) setSugestoesAbertas(true); }}
+                onBlur={() => setTimeout(() => setSugestoesAbertas(false), 150)}
+                placeholder="123"
+              />
             </div>
             <div className={styles.campo}>
               <label htmlFor="est-bairro">Bairro</label>
