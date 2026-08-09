@@ -5,7 +5,6 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
 import { CartaoProduto } from './CartaoProduto';
-import { SecaoCarrossel } from './SecaoCarrossel';
 import { CheckoutModal, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado } from './CheckoutModal';
 import {
   apareceNoTipo,
@@ -30,8 +29,6 @@ const TEXTO_AVISO: Record<string, string> = {
   'opcao-indisponivel': 'tinha uma opção que saiu do cardápio',
   reprecificado: 'mudou de preço',
 };
-
-type Secao = { id: string; titulo: string; emoji?: string; produtos: ProdutoPublico[] };
 
 // Carrinho por loja: sem o slug na chave, abrir o cardápio de outra loja
 // herdaria os itens da anterior.
@@ -62,6 +59,7 @@ export function CardapioClient({
     ehCarrinhoValido
   );
   const [busca, setBusca] = useState('');
+  const [categoriaId, setCategoriaId] = useState('todos');
   const [produtoAberto, setProdutoAberto] = useState<ProdutoPublico | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [nome, setNome] = useLocalStorage<string>(CHAVE_NOME, '');
@@ -159,45 +157,38 @@ export function CardapioClient({
   // Vocabulário do banco (pedidos.tipo), não o rótulo da tela.
   const tipoPedido = modo === 'entrega' ? 'delivery' : 'retirada';
 
-  // Já filtrado por tipo de pedido uma vez só — toda seção e a busca
-  // partem daqui, então "esconder item de encomenda no modo retirada" (ou
-  // vice-versa) nunca diverge entre uma seção e outra.
+  // A vitrine nasce de uma lista única. Isso evita o mesmo produto aparecer
+  // em Destaques, Mais pedidos e novamente na categoria, que era uma das
+  // principais fontes de confusão no desenho anterior.
   const produtosPorTipo = useMemo(
     () => produtos.filter((p) => apareceNoTipo(p.tipos_pedido, tipoPedido)),
     [produtos, tipoPedido]
   );
 
   const termoBusca = busca.trim().toLowerCase();
-  const filtrados = useMemo(() => {
-    if (!termoBusca) return [];
-    return produtosPorTipo.filter((p) => `${p.nome} ${p.descricao || ''}`.toLowerCase().includes(termoBusca));
-  }, [produtosPorTipo, termoBusca]);
+  const categoriasVisiveis = useMemo(
+    () => categorias.filter((c) => produtosPorTipo.some((p) => p.categoria_id === c.id)),
+    [categorias, produtosPorTipo]
+  );
+  const produtosExibidos = useMemo(() => {
+    const lista = produtosPorTipo.filter((p) => {
+      if (termoBusca) return `${p.nome} ${p.descricao || ''}`.toLowerCase().includes(termoBusca);
+      if (categoriaId === 'promocoes') return p.preco_promocional != null;
+      if (categoriaId !== 'todos') return p.categoria_id === categoriaId;
+      return true;
+    });
+    return [...lista].sort(
+      (a, b) => Number(b.destaque) - Number(a.destaque) || Number(b.etiqueta === 'mais_pedido') - Number(a.etiqueta === 'mais_pedido') || a.ordem - b.ordem
+    );
+  }, [produtosPorTipo, termoBusca, categoriaId]);
 
-  // Seções da vitrine: Destaques e Mais pedidos primeiro (curadoria do
-  // dono, os mesmos campos "destaque" e etiqueta "mais_pedido" que já
-  // existiam no catálogo), depois uma seção por categoria — só entra
-  // quem tem produto pra mostrar nesse tipo de pedido, senão a seção
-  // apareceria vazia.
-  const secoes = useMemo<Secao[]>(() => {
-    const destaques = produtosPorTipo.filter((p) => p.destaque);
-    const maisPedidos = produtosPorTipo.filter((p) => p.etiqueta === 'mais_pedido');
-    const porCategoria: Secao[] = categorias
-      .map((c) => ({
-        id: c.id,
-        titulo: c.nome,
-        emoji: c.emoji || undefined,
-        produtos: produtosPorTipo.filter((p) => p.categoria_id === c.id),
-      }))
-      .filter((s) => s.produtos.length > 0);
-    const semCategoria = produtosPorTipo.filter((p) => p.categoria_id === null);
-
-    const lista: Secao[] = [];
-    if (destaques.length > 0) lista.push({ id: 'destaques', titulo: 'Destaques', emoji: '⭐', produtos: destaques });
-    if (maisPedidos.length > 0) lista.push({ id: 'mais-pedidos', titulo: 'Mais pedidos', emoji: '🔥', produtos: maisPedidos });
-    lista.push(...porCategoria);
-    if (semCategoria.length > 0) lista.push({ id: 'outros', titulo: 'Outros', produtos: semCategoria });
-    return lista;
-  }, [produtosPorTipo, categorias]);
+  const tituloVitrine = termoBusca
+    ? `Resultados para “${busca.trim()}”`
+    : categoriaId === 'promocoes'
+      ? 'Promoções'
+      : categoriaId === 'todos'
+        ? 'Destaques do cardápio'
+        : categoriasVisiveis.find((c) => c.id === categoriaId)?.nome || 'Cardápio';
 
   const totalItens = linhas.reduce((s, l) => s + l.qty, 0);
   const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
@@ -241,18 +232,31 @@ export function CardapioClient({
     setProdutoAberto(null);
   }
 
-  function aoClicarProduto(p: ProdutoPublico) {
+  function abrirProduto(p: ProdutoPublico) {
     // Esgotado não abre nem entra no carrinho. A trava fica aqui, no
     // comportamento — não só no CSS, senão bastava um clique pra furar.
     if (!p.ativo) return;
-    // Lista restrita a outro tipo de pedido não conta pra decidir se abre o
-    // modal: senão o cliente vê um modal sem nenhuma opção.
+    setProdutoAberto(p);
+  }
+
+  function adicionarRapido(p: ProdutoPublico) {
+    if (!p.ativo) return;
     if (p.grupos.some((g) => apareceNoTipo(g.tipos_pedido, tipoPedido))) {
       setProdutoAberto(p);
       return;
     }
     adicionar(p, [], '', 1);
-    setModalAberto(true);
+  }
+
+  function quantidadeSimples(produtoId: string) {
+    return linhas
+      .filter((l) => l.produtoId === produtoId && l.complementos.length === 0 && !l.observacao)
+      .reduce((s, l) => s + l.qty, 0);
+  }
+
+  function diminuirProdutoSimples(produtoId: string) {
+    const linha = linhas.find((l) => l.produtoId === produtoId && l.complementos.length === 0 && !l.observacao);
+    if (linha) mudarQtd(linha.lineId, -1);
   }
 
   function mudarQtd(lineId: string, delta: number) {
@@ -346,77 +350,102 @@ export function CardapioClient({
     }
   }
 
+  const numeroWhats = (loja.whatsapp_numero || '').replace(/\D/g, '');
+
+  function selecionarCategoria(id: string) {
+    setBusca('');
+    setCategoriaId(id);
+  }
+
   return (
-    <div style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
+    <div className="cardapio-app" style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
+      <aside className="menu-sidebar" aria-label="Navegação da loja">
+        <div className="sidebar-marca">
+          <span
+            className="sidebar-logo"
+            style={loja.logo_url ? { ['--logo' as string]: `url("${loja.logo_url}")` } : undefined}
+            aria-hidden="true"
+          />
+          <strong>{loja.nome}</strong>
+        </div>
+
+        <nav className="sidebar-nav">
+          <button type="button" className="ativo" onClick={() => selecionarCategoria('todos')}><span>▦</span> Cardápio</button>
+          <button type="button" onClick={() => selecionarCategoria('promocoes')}><span>◇</span> Promoções</button>
+          <button type="button" disabled title="Em breve"><span>☆</span> Avaliações</button>
+          <a href="#info-loja"><span>ⓘ</span> Informações</a>
+        </nav>
+
+        <div id="info-loja" className="sidebar-info">
+          <strong className={loja.delivery_ativo ? 'aberto' : 'fechado'}>
+            <i /> {loja.delivery_ativo ? 'Aceitando pedidos' : 'Pedidos pausados'}
+          </strong>
+          {loja.tempo_entrega_min && loja.tempo_entrega_max && (
+            <p><span>Tempo de entrega</span>{loja.tempo_entrega_min}–{loja.tempo_entrega_max} min</p>
+          )}
+          <p><span>Taxa de entrega</span>{Number(loja.taxa_entrega) > 0 ? formatBRL(Number(loja.taxa_entrega)) : 'Grátis'}</p>
+        </div>
+
+        {numeroWhats && (
+          <div className="sidebar-ajuda">
+            <span>Precisa de ajuda?</span>
+            <a href={`https://wa.me/${numeroWhats}`} target="_blank" rel="noopener noreferrer">◉ Falar no WhatsApp</a>
+          </div>
+        )}
+      </aside>
+
       <section id="cardapio" className="menu-section">
         <HeroLoja loja={loja} />
 
-        {avisos.length > 0 && (
-          <div className="carrinho-avisos" role="status">
-            <strong>Seu carrinho mudou desde a última visita</strong>
-            <ul>
-              {avisos.map((a, i) => (
-                <li key={`${a.nome}-${a.motivo}-${i}`}>
-                  {a.nome} {TEXTO_AVISO[a.motivo]}.
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div id="cardapio-conteudo" className="menu-conteudo">
 
-        <div className="menu-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M21 21l-4.3-4.3" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Buscar no cardápio"
-            aria-label="Buscar no cardápio"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-
-        {termoBusca ? (
-          <div className="menu-list">
-            {filtrados.length === 0 ? (
-              <p className="menu-status">Nenhum item encontrado.</p>
-            ) : (
-              filtrados.map((p) => <CartaoProduto key={p.id} produto={p} onClicar={() => aoClicarProduto(p)} />)
-            )}
-          </div>
-        ) : (
-          <>
-            {secoes.length > 1 && (
-              <nav className="menu-filters" aria-label="Ir para categoria">
-                {secoes.map((s) => (
-                  <a key={s.id} href={`#secao-${s.id}`} className="filter-btn">
-                    {s.emoji ? s.emoji + ' ' : ''}
-                    {s.titulo}
-                  </a>
+          {avisos.length > 0 && (
+            <div className="carrinho-avisos" role="status">
+              <strong>Seu carrinho mudou desde a última visita</strong>
+              <ul>
+                {avisos.map((a, i) => (
+                  <li key={`${a.nome}-${a.motivo}-${i}`}>{a.nome} {TEXTO_AVISO[a.motivo]}.</li>
                 ))}
-              </nav>
-            )}
-
-            <div className="menu-secoes">
-              {secoes.length === 0 ? (
-                <p className="menu-status">Nenhum item encontrado.</p>
-              ) : (
-                secoes.map((s) => (
-                  <SecaoCarrossel
-                    key={s.id}
-                    id={s.id}
-                    titulo={s.titulo}
-                    emoji={s.emoji}
-                    produtos={s.produtos}
-                    onClicarProduto={aoClicarProduto}
-                  />
-                ))
-              )}
+              </ul>
             </div>
-          </>
-        )}
+          )}
+
+          <div className="menu-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+            <input type="search" placeholder="Buscar no cardápio..." aria-label="Buscar no cardápio" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          </div>
+
+          <nav className="menu-filters" aria-label="Categorias do cardápio">
+            <button type="button" className={'filter-btn' + (categoriaId === 'todos' && !termoBusca ? ' active' : '')} onClick={() => selecionarCategoria('todos')}>
+              <span className="filter-emoji">▦</span><span>Todos</span>
+            </button>
+            {categoriasVisiveis.map((c) => (
+              <button key={c.id} type="button" className={'filter-btn' + (categoriaId === c.id && !termoBusca ? ' active' : '')} onClick={() => selecionarCategoria(c.id)}>
+                <span className="filter-emoji">{c.emoji || '•'}</span><span>{c.nome}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="menu-vitrine-topo">
+            <h2>{tituloVitrine}{categoriaId === 'todos' && !termoBusca ? ' 🔥' : ''}</h2>
+            <span>{produtosExibidos.length} {produtosExibidos.length === 1 ? 'item' : 'itens'}</span>
+          </div>
+
+          <div className="menu-list" aria-live="polite">
+            {produtosExibidos.length === 0 ? (
+              <p className="menu-status">Nenhum item encontrado.</p>
+            ) : produtosExibidos.map((p) => (
+              <CartaoProduto
+                key={p.id}
+                produto={p}
+                quantidade={quantidadeSimples(p.id)}
+                onAbrir={() => abrirProduto(p)}
+                onAdicionar={() => adicionarRapido(p)}
+                onDiminuir={() => diminuirProdutoSimples(p.id)}
+              />
+            ))}
+          </div>
+        </div>
       </section>
 
       {totalItens > 0 && (
@@ -433,6 +462,7 @@ export function CardapioClient({
             Ver carrinho · {totalItens} {totalItens === 1 ? 'item' : 'itens'}
           </span>
           <span className="floating-cart-total">{formatBRL(totalGeral)}</span>
+          <span className="floating-cart-cta">Continuar pedido</span>
         </button>
       )}
 
@@ -443,7 +473,6 @@ export function CardapioClient({
           onFechar={() => setProdutoAberto(null)}
           onAdicionar={(escolhas, obs, qtd) => {
             adicionar(produtoAberto, escolhas, obs, qtd);
-            setModalAberto(true);
           }}
         />
       )}

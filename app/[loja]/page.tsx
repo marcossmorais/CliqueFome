@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import './cardapio.css';
+import './vitrine.css';
 import { CardapioClient } from './CardapioClient';
 import type { CategoriaPublica, GrupoPublico, LojaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
 import { normalizarSetor, normalizarTipoTaxa, type ConfigDeliveryPublica } from '@/lib/delivery/tipos';
