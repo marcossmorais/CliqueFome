@@ -373,7 +373,6 @@ export function CardapioClient({
           <button type="button" className="ativo" onClick={() => selecionarCategoria('todos')}><span>▦</span> Cardápio</button>
           <button type="button" onClick={() => selecionarCategoria('promocoes')}><span>◇</span> Promoções</button>
           <button type="button" disabled title="Em breve"><span>☆</span> Avaliações</button>
-          <a href="#info-loja"><span>ⓘ</span> Informações</a>
         </nav>
 
         <div id="info-loja" className="sidebar-info">
