@@ -1,0 +1,70 @@
+.pagina {
+  max-width: 640px;
+}
+
+.grupo {
+  margin-bottom: 24px;
+}
+
+.grupoTitulo {
+  margin: 0 0 8px 4px;
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lista {
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  background: var(--superficie);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  color: var(--texto);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.linha:not(:last-child) {
+  border-bottom: 1px solid var(--borda);
+}
+
+.linha:hover {
+  background: var(--fundo-2);
+}
+
+.icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--verde-tint);
+  color: var(--verde);
+}
+
+.icone svg {
+  width: 18px;
+  height: 18px;
+}
+
+.rotulo {
+  flex: 1;
+  min-width: 0;
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--texto-suave);
+}

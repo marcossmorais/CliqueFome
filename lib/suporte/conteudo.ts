@@ -3,7 +3,7 @@ export const CATEGORIAS_FAQ = [
   { id: 'inicio', nome: 'Primeiros passos' },
   { id: 'catalogo', nome: 'Catálogo' },
   { id: 'pedidos', nome: 'Pedidos' },
-  { id: 'empresa', nome: 'Minha empresa' },
+  { id: 'loja', nome: 'Minha loja' },
   { id: 'conta', nome: 'Conta e privacidade' },
 ] as const;
 
@@ -118,13 +118,13 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
   },
   {
     id: 'dados-loja',
-    categoria: 'empresa',
+    categoria: 'loja',
     pergunta: 'Onde altero nome, logo, WhatsApp e regras de entrega?',
     resposta:
-      'Abra “Minha empresa”. A área de aparência controla logo, capa e cor da marca; a área de dados controla nome, nicho, WhatsApp, taxa, pedido mínimo e estimativa de entrega.',
+      'Abra “Configurações”. Em “Minha loja” ficam nome, logo, capa, cor da marca, WhatsApp e cidade; em “Funcionamento” ficam pedido mínimo, tempo de preparo e se a loja aceita retirada e/ou delivery. A taxa de entrega em si fica em “Áreas de entrega”.',
     observacao:
       'Salve cada bloco e confira o cardápio público. Use um número de WhatsApp com DDD e revise se o tempo mínimo é menor ou igual ao máximo.',
-    palavrasChave: ['logo', 'capa', 'cor', 'whatsapp', 'taxa', 'pedido mínimo', 'tempo', 'empresa'],
+    palavrasChave: ['logo', 'capa', 'cor', 'whatsapp', 'taxa', 'pedido mínimo', 'tempo', 'empresa', 'loja', 'configurações'],
   },
   {
     id: 'privacidade-cliente',
@@ -182,13 +182,13 @@ export const TUTORIAIS: Tutorial[] = [
     nivel: 'Essencial',
     duracao: '5 min',
     passos: [
-      { titulo: 'Abra Minha empresa', descricao: 'Use o menu lateral para acessar as configurações da loja.', rota: '/admin/empresa' },
+      { titulo: 'Abra Configurações', descricao: 'Use o menu lateral para acessar Configurações → Minha loja.', rota: '/admin/config' },
       { titulo: 'Ajuste a aparência', descricao: 'Envie logo e capa, escolha a cor da marca e salve o bloco.' },
       { titulo: 'Revise os dados', descricao: 'Confira nome, nicho e WhatsApp com DDD.' },
-      { titulo: 'Defina as regras', descricao: 'Preencha taxa, pedido mínimo e intervalo estimado de entrega.' },
+      { titulo: 'Defina as regras', descricao: 'Em Funcionamento, preencha pedido mínimo, tempo de preparo e retirada/delivery.' },
       { titulo: 'Valide como cliente', descricao: 'Abra o cardápio público e confira texto, imagens e legibilidade no celular.' },
     ],
-    palavrasChave: ['empresa', 'logo', 'capa', 'cor', 'whatsapp', 'entrega'],
+    palavrasChave: ['empresa', 'loja', 'configurações', 'logo', 'capa', 'cor', 'whatsapp', 'entrega'],
   },
   {
     id: 'montar-catalogo',

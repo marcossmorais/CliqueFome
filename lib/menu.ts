@@ -59,9 +59,9 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     grupo: 'Sua loja',
     itens: [
       { id: 'links', nome: 'Links do cardápio', icone: 'links', pronta: true },
-      { id: 'empresa', nome: 'Minha empresa', icone: 'empresa', pronta: true },
       { id: 'avaliacoes', nome: 'Avaliações', icone: 'avaliacoes', pronta: true, desc: 'Configure avaliações de produtos e da marca conforme o plano da loja.' },
       { id: 'suporte', nome: 'Ajuda e suporte', icone: 'suporte', pronta: true, desc: 'Central de ajuda, tutoriais e canais de suporte.' },
+      { id: 'config', nome: 'Configurações', icone: 'config', pronta: true, desc: 'Perfil, dados da loja, funcionamento e plano.' },
     ],
   },
   {
@@ -73,7 +73,6 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
       { id: 'desempenho', nome: 'Desempenho', icone: 'desempenho', desc: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.' },
       { id: 'financeiro', nome: 'Financeiro', icone: 'financeiro', desc: 'Contas a pagar e a receber, fluxo de caixa e categorias financeiras.' },
       { id: 'fiscal', nome: 'Fiscal', icone: 'fiscal', desc: 'Emissão de notas dos pedidos direto pelo sistema.' },
-      { id: 'config', nome: 'Configurações', icone: 'config', desc: 'Impressão, agendamentos e integrações do sistema.' },
     ],
   },
 ];

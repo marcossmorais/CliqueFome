@@ -239,6 +239,14 @@
   .area{ display:none; max-width: 900px; }
   .area.ativo{ display:block; }
 
+  /* Sub-páginas de Configurações não têm breadcrumb — só esse link de
+     volta pro hub, acima do card de formulário. */
+  .config-voltar{
+    display:inline-flex; align-items:center; gap:6px;
+    margin-bottom: 16px; color: var(--texto-suave); font-size: 13.5px; font-weight: 600;
+  }
+  .config-voltar:hover{ color: var(--texto); }
+
   /* Placeholder das áreas que ainda não foram construídas */
   .em-breve{ text-align:center; padding: 52px 28px; }
   .em-breve .ico{

@@ -19,6 +19,7 @@ export type Loja = {
   pedido_minimo: number;
   delivery_ativo: boolean;
   recebendo_encomendas: boolean;
+  retirada_ativa: boolean;
 };
 
 export const COOKIE_LOJA = 'cf_loja';
