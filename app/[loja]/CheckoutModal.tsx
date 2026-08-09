@@ -101,6 +101,19 @@ export function CheckoutModal({
   const sheetRef = useRef<HTMLElement>(null);
   const enderecoAtualRef = useRef(endereco);
   const buscaCep = useBuscaCep();
+
+  // Reabrir sempre começa pelo carrinho — evita reabrir já em "Entrega" com
+  // o cliente sem ter revisado os itens. Padrão documentado do React pra
+  // "resetar estado quando uma prop muda": compara com uma cópia da prop
+  // guardada em estado (não em ref — ref não pode ser lido durante o
+  // render), e ajusta antes de terminar de renderizar. Nada disso entra
+  // num useEffect: setState direto no corpo de um efeito dispara uma
+  // renderização em cascata desnecessária.
+  const [abertoAnterior, setAbertoAnterior] = useState(aberto);
+  if (aberto !== abertoAnterior) {
+    setAbertoAnterior(aberto);
+    if (aberto) setEtapa('carrinho');
+  }
   const subtotal = linhas.reduce((s, linha) => s + subtotalLinha(linha), 0);
   const usaCotacaoDinamica = !!deliveryConfig?.configurada;
   const taxa = modo === 'entrega'
@@ -116,12 +129,6 @@ export function CheckoutModal({
     enderecoAtualRef.current = endereco;
   }, [endereco]);
 
-  // Reabrir sempre começa pelo carrinho — evita reabrir já em "Entrega" com
-  // o cliente sem ter revisado os itens.
-  useEffect(() => {
-    if (aberto) setEtapa('carrinho');
-  }, [aberto]);
-
   // Só quando o modal ABRE (não a cada tecla): trava o scroll de fundo e
   // manda o foco pro título. O bug original era ter `onFechar` (uma arrow
   // function nova a cada render do componente pai) na lista de
@@ -136,7 +143,6 @@ export function CheckoutModal({
     return () => {
       document.body.style.overflow = overflow;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- roda só na abertura, de propósito (ver comentário acima)
   }, [aberto]);
 
   // Tab preso dentro do modal e Esc pra fechar — como efeito à parte, lendo

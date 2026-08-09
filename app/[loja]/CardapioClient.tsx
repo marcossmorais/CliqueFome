@@ -4,13 +4,14 @@ import { useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
+import { CartaoProduto } from './CartaoProduto';
+import { SecaoCarrossel } from './SecaoCarrossel';
 import { CheckoutModal, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado } from './CheckoutModal';
 import {
   apareceNoTipo,
   ehCarrinhoValido,
   formatBRL,
   precoBase,
-  precoMinimo,
   reconciliarCarrinho,
   subtotalLinha,
   type CategoriaPublica,
@@ -30,12 +31,7 @@ const TEXTO_AVISO: Record<string, string> = {
   reprecificado: 'mudou de preço',
 };
 
-const ETIQUETAS: Record<string, string> = {
-  mais_pedido: 'Mais pedido',
-  novidade: 'Novidade',
-  recomendado: 'Recomendado',
-  edicao_limitada: 'Edição limitada',
-};
+type Secao = { id: string; titulo: string; emoji?: string; produtos: ProdutoPublico[] };
 
 // Carrinho por loja: sem o slug na chave, abrir o cardápio de outra loja
 // herdaria os itens da anterior.
@@ -66,7 +62,6 @@ export function CardapioClient({
     ehCarrinhoValido
   );
   const [busca, setBusca] = useState('');
-  const [categoriaId, setCategoriaId] = useState('todos');
   const [produtoAberto, setProdutoAberto] = useState<ProdutoPublico | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [nome, setNome] = useLocalStorage<string>(CHAVE_NOME, '');
@@ -164,15 +159,45 @@ export function CardapioClient({
   // Vocabulário do banco (pedidos.tipo), não o rótulo da tela.
   const tipoPedido = modo === 'entrega' ? 'delivery' : 'retirada';
 
+  // Já filtrado por tipo de pedido uma vez só — toda seção e a busca
+  // partem daqui, então "esconder item de encomenda no modo retirada" (ou
+  // vice-versa) nunca diverge entre uma seção e outra.
+  const produtosPorTipo = useMemo(
+    () => produtos.filter((p) => apareceNoTipo(p.tipos_pedido, tipoPedido)),
+    [produtos, tipoPedido]
+  );
+
+  const termoBusca = busca.trim().toLowerCase();
   const filtrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return produtos.filter((p) => {
-      if (categoriaId !== 'todos' && p.categoria_id !== categoriaId) return false;
-      if (!apareceNoTipo(p.tipos_pedido, tipoPedido)) return false;
-      if (termo && !`${p.nome} ${p.descricao || ''}`.toLowerCase().includes(termo)) return false;
-      return true;
-    });
-  }, [produtos, busca, categoriaId, tipoPedido]);
+    if (!termoBusca) return [];
+    return produtosPorTipo.filter((p) => `${p.nome} ${p.descricao || ''}`.toLowerCase().includes(termoBusca));
+  }, [produtosPorTipo, termoBusca]);
+
+  // Seções da vitrine: Destaques e Mais pedidos primeiro (curadoria do
+  // dono, os mesmos campos "destaque" e etiqueta "mais_pedido" que já
+  // existiam no catálogo), depois uma seção por categoria — só entra
+  // quem tem produto pra mostrar nesse tipo de pedido, senão a seção
+  // apareceria vazia.
+  const secoes = useMemo<Secao[]>(() => {
+    const destaques = produtosPorTipo.filter((p) => p.destaque);
+    const maisPedidos = produtosPorTipo.filter((p) => p.etiqueta === 'mais_pedido');
+    const porCategoria: Secao[] = categorias
+      .map((c) => ({
+        id: c.id,
+        titulo: c.nome,
+        emoji: c.emoji || undefined,
+        produtos: produtosPorTipo.filter((p) => p.categoria_id === c.id),
+      }))
+      .filter((s) => s.produtos.length > 0);
+    const semCategoria = produtosPorTipo.filter((p) => p.categoria_id === null);
+
+    const lista: Secao[] = [];
+    if (destaques.length > 0) lista.push({ id: 'destaques', titulo: 'Destaques', emoji: '⭐', produtos: destaques });
+    if (maisPedidos.length > 0) lista.push({ id: 'mais-pedidos', titulo: 'Mais pedidos', emoji: '🔥', produtos: maisPedidos });
+    lista.push(...porCategoria);
+    if (semCategoria.length > 0) lista.push({ id: 'outros', titulo: 'Outros', produtos: semCategoria });
+    return lista;
+  }, [produtosPorTipo, categorias]);
 
   const totalItens = linhas.reduce((s, l) => s + l.qty, 0);
   const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
@@ -353,77 +378,45 @@ export function CardapioClient({
           />
         </div>
 
-        <div className="menu-filters" role="group" aria-label="Filtrar cardápio por categoria">
-          <button
-            type="button"
-            className={'filter-btn' + (categoriaId === 'todos' ? ' active' : '')}
-            onClick={() => setCategoriaId('todos')}
-          >
-            Todos
-          </button>
-          {categorias.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className={'filter-btn' + (categoriaId === c.id ? ' active' : '')}
-              onClick={() => setCategoriaId(c.id)}
-            >
-              {c.emoji ? c.emoji + ' ' : ''}
-              {c.nome}
-            </button>
-          ))}
-        </div>
+        {termoBusca ? (
+          <div className="menu-list">
+            {filtrados.length === 0 ? (
+              <p className="menu-status">Nenhum item encontrado.</p>
+            ) : (
+              filtrados.map((p) => <CartaoProduto key={p.id} produto={p} onClicar={() => aoClicarProduto(p)} />)
+            )}
+          </div>
+        ) : (
+          <>
+            {secoes.length > 1 && (
+              <nav className="menu-filters" aria-label="Ir para categoria">
+                {secoes.map((s) => (
+                  <a key={s.id} href={`#secao-${s.id}`} className="filter-btn">
+                    {s.emoji ? s.emoji + ' ' : ''}
+                    {s.titulo}
+                  </a>
+                ))}
+              </nav>
+            )}
 
-        <div className="menu-list">
-          {filtrados.length === 0 ? (
-            <p className="menu-status">Nenhum item encontrado.</p>
-          ) : (
-            filtrados.map((p) => {
-              const esgotado = !p.ativo;
-              const minimo = precoMinimo(p);
-              const base = precoBase(p);
-              return (
-                <article
-                  key={p.id}
-                  className={'menu-card' + (esgotado ? ' esgotado' : '')}
-                  onClick={() => aoClicarProduto(p)}
-                >
-                  <div className="menu-card-photo">
-                    {p.imagem_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- foto do catálogo da loja
-                      <img src={p.imagem_url} alt={p.nome} loading="lazy" />
-                    ) : (
-                      <span className="menu-emoji">🖼️</span>
-                    )}
-                    {esgotado && (
-                      <div className="fita-esgotado">
-                        <span>Esgotado</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="menu-card-body">
-                    <h3>{p.nome}</h3>
-                    {p.etiqueta && ETIQUETAS[p.etiqueta] && (
-                      <span className="menu-etiqueta">{ETIQUETAS[p.etiqueta]}</span>
-                    )}
-                    {p.descricao && <p className="menu-desc">{p.descricao}</p>}
-                    <div className="menu-card-footer">
-                      <span className="menu-price">
-                        {minimo > base && <span className="desde">A partir de</span>}
-                        {formatBRL(minimo > base ? minimo : base)}
-                      </span>
-                      {!esgotado && (
-                        <span className="btn-add" aria-hidden="true">
-                          +
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              );
-            })
-          )}
-        </div>
+            <div className="menu-secoes">
+              {secoes.length === 0 ? (
+                <p className="menu-status">Nenhum item encontrado.</p>
+              ) : (
+                secoes.map((s) => (
+                  <SecaoCarrossel
+                    key={s.id}
+                    id={s.id}
+                    titulo={s.titulo}
+                    emoji={s.emoji}
+                    produtos={s.produtos}
+                    onClicarProduto={aoClicarProduto}
+                  />
+                ))
+              )}
+            </div>
+          </>
+        )}
       </section>
 
       {totalItens > 0 && (
