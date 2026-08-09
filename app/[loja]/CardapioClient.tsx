@@ -21,6 +21,7 @@ import {
 } from '@/lib/cardapio/tipos';
 import type { ConfigDeliveryPublica } from '@/lib/delivery/tipos';
 import { ENDERECO_VAZIO, enderecoEmLinha, enderecoEstruturadoValido, type EnderecoEstruturado } from '@/lib/delivery/tipos';
+import { formaPagamentoPermitida, type FormaPagamentoOffline } from '@/lib/pedidos/pagamento';
 
 const TEXTO_AVISO: Record<string, string> = {
   removido: 'saiu do cardápio',
@@ -76,6 +77,7 @@ export function CardapioClient({
     cidade: deliveryConfig?.cidade || '',
   });
   const [modo, setModo] = useState<ModoEntrega>('retirada');
+  const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoOffline | ''>('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [pedidoRegistrado, setPedidoRegistrado] = useState<PedidoRegistrado | null>(null);
@@ -265,6 +267,10 @@ export function CardapioClient({
       setErro('Calcule o frete antes de finalizar o pedido.');
       return;
     }
+    if (!formaPagamentoPermitida(tipoPedido, formaPagamento)) {
+      setErro('Escolha como deseja pagar.');
+      return;
+    }
 
     const enderecoFinal =
       modo === 'entrega' && cotacao.status === 'ok' ? cotacao.enderecoFormatado : endereco.trim();
@@ -279,6 +285,7 @@ export function CardapioClient({
           clienteNome: nome.trim(),
           clienteTelefone: telefone,
           tipo: modo === 'entrega' ? 'delivery' : 'retirada',
+          formaPagamento,
           endereco: modo === 'entrega' ? enderecoFinal : undefined,
           enderecoCotacao: modo === 'entrega' ? enderecoEmLinha(enderecoDetalhado) : undefined,
           cotacaoToken: modo === 'entrega' && cotacao.status === 'ok' ? cotacao.token : undefined,
@@ -455,6 +462,7 @@ export function CardapioClient({
         telefone={telefone}
         endereco={enderecoDetalhado}
         modo={modo}
+        formaPagamento={formaPagamento}
         erro={erro}
         enviando={enviando}
         pedidoRegistrado={pedidoRegistrado}
@@ -473,7 +481,12 @@ export function CardapioClient({
           setEnderecoDetalhado((atual) => ({ ...atual, cidade: v }));
         }}
         onCalcularFrete={calcularFrete}
-        onModo={(m) => { setModo(m); setErro(null); }}
+        onModo={(m) => {
+          setModo(m);
+          setFormaPagamento((atual) => formaPagamentoPermitida(m === 'entrega' ? 'delivery' : 'retirada', atual) ? atual : '');
+          setErro(null);
+        }}
+        onFormaPagamento={(forma) => { setFormaPagamento(forma); setErro(null); }}
         onFinalizar={finalizar}
         onNovoPedido={() => {
           setPedidoRegistrado(null);

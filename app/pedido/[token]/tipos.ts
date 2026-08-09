@@ -42,7 +42,7 @@ export const NOMES_STATUS: Record<string, string> = {
 };
 
 export const NOMES_PAGAMENTO: Record<string, string> = {
-  pendente: 'Pagamento pendente',
-  confirmado: 'Pagamento confirmado',
+  pendente: 'Pagamento a receber pela loja',
+  confirmado: 'Pagamento confirmado manualmente',
   estornado: 'Pagamento estornado',
 };

@@ -8,6 +8,7 @@ import { formatBRL, NOMES_ORIGEM, NOMES_TIPO } from '@/lib/pedidos/tipos';
 import { useAgora } from '@/hooks/useAgora';
 import { IconeBusca } from '@/components/admin/IconesCatalogo';
 import type { FiltrosHistorico, PedidoHistorico } from '@/lib/pedidos/historico';
+import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
 import styles from './historico.module.css';
 
 function formatarData(valor: string) {
@@ -186,7 +187,7 @@ export function HistoricoClient({
                   <span className={styles.pedidoInfo}>
                     <span>{NOMES_TIPO[pedido.tipo]}</span>
                     <span>{origemDoPedido(pedido)}</span>
-                    <span>{pedido.forma_pagamento || 'Pagamento não informado'}</span>
+                    <span>{nomeFormaPagamento(pedido.forma_pagamento)}</span>
                   </span>
                   <span className={styles.pedidoFinal}>
                     <span className={pedido.status === 'cancelado' ? styles.cancelado : styles.concluido}>

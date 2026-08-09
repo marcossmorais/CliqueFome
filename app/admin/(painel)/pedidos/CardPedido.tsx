@@ -44,7 +44,7 @@ export function CardPedido({
       </div>
 
       {pedido.pagamento_status === 'pendente' && pedido.forma_pagamento && (
-        <span className="pedido-pagamento-pendente">pagamento pendente</span>
+        <span className="pedido-pagamento-pendente">pagamento a receber</span>
       )}
 
       {ativo && rotulo && (

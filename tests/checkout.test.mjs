@@ -18,6 +18,7 @@ function entradaBase(sobrescreve = {}) {
     clienteNome: 'Maria Silva',
     clienteTelefone: '(11) 91234-5678',
     tipo: 'retirada',
+    formaPagamento: 'pagamento_retirada',
     itens: [{ produtoId: ITEM_ID, quantidade: 2 }],
     totalEsperadoCentavos: 5000,
     ...sobrescreve,
@@ -42,10 +43,10 @@ test('validarEntradaCheckout aceita um pedido de retirada válido', () => {
 
 test('validarEntradaCheckout exige endereço só quando tipo é delivery', () => {
   assert.throws(
-    () => validarEntradaCheckout(entradaBase({ tipo: 'delivery' })),
+    () => validarEntradaCheckout(entradaBase({ tipo: 'delivery', formaPagamento: 'dinheiro_entrega' })),
     ErroValidacaoCheckout
   );
-  const entrada = validarEntradaCheckout(entradaBase({ tipo: 'delivery', endereco: 'Rua Um, 123, Centro' }));
+  const entrada = validarEntradaCheckout(entradaBase({ tipo: 'delivery', formaPagamento: 'dinheiro_entrega', endereco: 'Rua Um, 123, Centro' }));
   assert.equal(entrada.endereco, 'Rua Um, 123, Centro');
 });
 
@@ -66,10 +67,14 @@ test('validarEntradaCheckout ignora silenciosamente propriedades que o navegador
   // loja_id, preco, total oficial, status — nada disso é lido, então nada
   // disso pode influenciar o pedido criado.
   const entrada = validarEntradaCheckout(
-    entradaBase({ loja_id: 'outra-loja', preco: 0.01, status: 'confirmado', total: 999999 })
+    entradaBase({
+      loja_id: 'outra-loja', preco: 0.01, status: 'confirmado',
+      pagamento_status: 'confirmado', total: 999999,
+    })
   );
   assert.equal(Object.keys(entrada).includes('loja_id'), false);
   assert.equal(Object.keys(entrada).includes('status'), false);
+  assert.equal(Object.keys(entrada).includes('pagamento_status'), false);
 });
 
 test('validarEntradaCheckout valida cada complemento do item', () => {
@@ -124,6 +129,35 @@ test('payloadCanonico muda quando o total esperado muda (protege contra reuso in
   assert.notEqual(payloadCanonico(entrada1), payloadCanonico(entrada2));
 });
 
+test('checkout exige uma forma offline compatível com entrega ou retirada', () => {
+  assert.throws(
+    () => validarEntradaCheckout(entradaBase({ formaPagamento: undefined })),
+    ErroValidacaoCheckout
+  );
+  assert.throws(
+    () => validarEntradaCheckout(entradaBase({ formaPagamento: 'cartao_online' })),
+    ErroValidacaoCheckout
+  );
+  assert.throws(
+    () => validarEntradaCheckout(entradaBase({
+      tipo: 'delivery', endereco: 'Rua Um, 123', formaPagamento: 'pagamento_retirada',
+    })),
+    ErroValidacaoCheckout
+  );
+  assert.equal(
+    validarEntradaCheckout(entradaBase({
+      tipo: 'delivery', endereco: 'Rua Um, 123', formaPagamento: 'pix_manual',
+    })).formaPagamento,
+    'pix_manual'
+  );
+});
+
+test('a forma de pagamento participa da idempotência do pedido', () => {
+  const retirada = validarEntradaCheckout(entradaBase({ formaPagamento: 'pagamento_retirada' }));
+  const pix = validarEntradaCheckout(entradaBase({ formaPagamento: 'pix_manual' }));
+  assert.notEqual(payloadCanonico(retirada), payloadCanonico(pix));
+});
+
 test('itensParaRpc converte pro formato snake_case que criar_pedido() espera', () => {
   const entrada = validarEntradaCheckout(
     entradaBase({
@@ -149,7 +183,7 @@ test('itensParaRpc converte pro formato snake_case que criar_pedido() espera', (
 
 test('validarEntradaCheckout preserva cotacao apenas no delivery', () => {
   const delivery = validarEntradaCheckout(entradaBase({
-    tipo: 'delivery', endereco: 'Rua Um, 123, Centro',
+    tipo: 'delivery', formaPagamento: 'dinheiro_entrega', endereco: 'Rua Um, 123, Centro',
     enderecoCotacao: 'Rua Um, 123, Centro, Cidade - PB, CEP 58000-000',
     cotacaoToken: 'payload.assinatura',
   }));

@@ -5,6 +5,13 @@ import { extraDaLinha, formatBRL, subtotalLinha, type LinhaCarrinho } from '@/li
 import { formatarCep, type ConfigDeliveryPublica, type EnderecoEstruturado } from '@/lib/delivery/tipos';
 import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
 import { useEscFechar } from '@/hooks/useEscFechar';
+import {
+  FORMAS_PAGAMENTO_OFFLINE,
+  formasPagamentoPara,
+  instrucaoPagamento,
+  nomeFormaPagamento,
+  type FormaPagamentoOffline,
+} from '@/lib/pedidos/pagamento';
 
 export type ModoEntrega = 'retirada' | 'entrega';
 export type CotacaoEstado =
@@ -15,10 +22,10 @@ export type CotacaoEstado =
 
 export type PedidoRegistrado = {
   pedido: {
-    numero: number; token: string; status: string; pagamento_status: string;
+    numero: number; token: string; status: string; pagamento_status: string; forma_pagamento: string;
     subtotal: number; taxa_entrega: number; total: number; tracking_url: string;
   };
-  proximaAcao: { tipo: string; url: string };
+  proximaAcao: { tipo: string; url: string } | null;
 };
 
 export function formatarTelefone(valor: string) {
@@ -40,12 +47,12 @@ type Etapa = 'carrinho' | 'entrega';
  * dois problemas de uma vez.
  */
 export function CheckoutModal({
-  aberto, linhas, nome, telefone, endereco, modo, erro, enviando, pedidoRegistrado,
+  aberto, linhas, nome, telefone, endereco, modo, formaPagamento, erro, enviando, pedidoRegistrado,
   deliveryConfig, taxaEstatica, cidadeEscolhida, cotacao, onFechar, onMudarQtd, onRemover,
-  onNome, onTelefone, onEndereco, onCidade, onCalcularFrete, onModo, onFinalizar, onNovoPedido,
+  onNome, onTelefone, onEndereco, onCidade, onCalcularFrete, onModo, onFormaPagamento, onFinalizar, onNovoPedido,
 }: {
   aberto: boolean; linhas: LinhaCarrinho[]; nome: string; telefone: string;
-  endereco: EnderecoEstruturado; modo: ModoEntrega; erro: string | null; enviando: boolean;
+  endereco: EnderecoEstruturado; modo: ModoEntrega; formaPagamento: FormaPagamentoOffline | ''; erro: string | null; enviando: boolean;
   pedidoRegistrado: PedidoRegistrado | null; deliveryConfig: ConfigDeliveryPublica | null;
   taxaEstatica: number;
   cidadeEscolhida: string; cotacao: CotacaoEstado; onFechar: () => void;
@@ -53,6 +60,7 @@ export function CheckoutModal({
   onNome: (v: string) => void; onTelefone: (v: string) => void;
   onEndereco: (v: EnderecoEstruturado) => void; onCidade: (v: string) => void;
   onCalcularFrete: () => void; onModo: (m: ModoEntrega) => void;
+  onFormaPagamento: (forma: FormaPagamentoOffline | '') => void;
   onFinalizar: () => void; onNovoPedido: () => void;
 }) {
   const [etapa, setEtapa] = useState<Etapa>('carrinho');
@@ -162,9 +170,14 @@ export function CheckoutModal({
             <div className="checkout-sucesso-icone">✓</div>
             <h3>Pedido #{pedidoRegistrado.pedido.numero} registrado</h3>
             <p>Ele já entrou como pendente na gestão da loja.</p>
-            <div className="checkout-pendente"><strong>Pagamento pendente</strong><span>Continue no WhatsApp para combinar o pagamento e confirmar o atendimento.</span></div>
+            <div className="checkout-pendente">
+              <strong>Pagamento a receber · {nomeFormaPagamento(pedidoRegistrado.pedido.forma_pagamento)}</strong>
+              <span>{instrucaoPagamento(pedidoRegistrado.pedido.forma_pagamento)}</span>
+            </div>
             <div className="checkout-total"><span>Total</span><strong>{formatBRL(pedidoRegistrado.pedido.total)}</strong></div>
-            <a className="btn-primary checkout-acao" href={pedidoRegistrado.proximaAcao.url} target="_blank" rel="noopener noreferrer">Continuar no WhatsApp</a>
+            {pedidoRegistrado.proximaAcao?.tipo === 'whatsapp' && (
+              <a className="btn-primary checkout-acao" href={pedidoRegistrado.proximaAcao.url} target="_blank" rel="noopener noreferrer">Abrir WhatsApp (opcional)</a>
+            )}
             <a className="btn-continue" href={pedidoRegistrado.pedido.tracking_url}>Acompanhar meu pedido</a>
             <button type="button" className="btn-continue" onClick={onNovoPedido}>Fechar e fazer novo pedido</button>
           </div>
@@ -254,10 +267,27 @@ export function CheckoutModal({
               </div>
             </section>
 
+            <section className="checkout-bloco">
+              <h3>Forma de pagamento</h3>
+              <label className="checkout-campo checkout-largo">
+                Como você deseja pagar?
+                <select
+                  value={formaPagamento}
+                  onChange={(e) => onFormaPagamento(e.target.value as FormaPagamentoOffline | '')}
+                >
+                  <option value="">Selecione uma opção</option>
+                  {formasPagamentoPara(modo === 'entrega' ? 'delivery' : 'retirada').map((forma) => (
+                    <option key={forma} value={forma}>{FORMAS_PAGAMENTO_OFFLINE[forma]}</option>
+                  ))}
+                </select>
+              </label>
+              {formaPagamento && <p className="checkout-pagamento">{instrucaoPagamento(formaPagamento)}</p>}
+            </section>
+
             {erro && <p className="checkout-erro" role="alert">{erro}</p>}
             <div className="checkout-resumo"><div><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>{modo === 'entrega' && <div><span>Taxa de entrega</span><span>{cotacao.status === 'ok' ? formatBRL(taxa) : 'A calcular'}</span></div>}<div className="checkout-total"><span>Total</span><strong>{formatBRL(total)}</strong></div></div>
-            <p className="checkout-pagamento"><strong>Pagamento pendente:</strong> após registrar, você continuará no WhatsApp da loja.</p>
-            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0} onClick={onFinalizar}>{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
+            <p className="checkout-pagamento"><strong>Pedido e pagamento são separados:</strong> seu pedido entra imediatamente na gestão da loja; o pagamento será confirmado manualmente pelo restaurante.</p>
+            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento} onClick={onFinalizar}>{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
           </div>
         )}
       </section>

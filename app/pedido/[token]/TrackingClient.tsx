@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { formatBRL } from '@/lib/pedidos/tipos';
 import { NOMES_PAGAMENTO, NOMES_STATUS, type PedidoTracking } from './tipos';
+import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
 
 const INTERVALO_MS = 15_000;
 
@@ -57,8 +58,7 @@ export function TrackingClient({ token, inicial }: { token: string; inicial: Ped
 
       {pedido.status === 'pendente' && (
         <p className="tracking-aviso" role="status">
-          Seu pedido ainda precisa ser confirmado pelo restaurante. Continue no WhatsApp para combinar o
-          pagamento e confirmar o atendimento.
+          Seu pedido já está registrado e aguarda a confirmação do restaurante. O WhatsApp é opcional para combinar detalhes.
         </p>
       )}
 
@@ -83,6 +83,10 @@ export function TrackingClient({ token, inicial }: { token: string; inicial: Ped
       </section>
 
       <section className="tracking-resumo">
+        <div className="tracking-linha">
+          <span>Forma de pagamento</span>
+          <span>{nomeFormaPagamento(pedido.forma_pagamento)}</span>
+        </div>
         {pedido.tipo === 'delivery' && pedido.endereco && (
           <div className="tracking-linha">
             <span>Entrega</span>

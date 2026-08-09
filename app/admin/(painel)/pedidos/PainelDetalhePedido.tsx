@@ -11,6 +11,7 @@ import {
   marcarPagamento,
 } from '@/lib/pedidos/acoes';
 import { textoTempo } from '@/lib/pedidos/prioridade';
+import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
 import {
   formatBRL,
   NOMES_ORIGEM,
@@ -231,9 +232,9 @@ export function PainelDetalhePedido({
           <div className="pedido-detalhe-bloco">
             <span className="usos-titulo">Pagamento</span>
             <div className="pedido-detalhe-linha">
-              <span>{pedido.forma_pagamento || 'Não informado'}</span>
+              <span>{nomeFormaPagamento(pedido.forma_pagamento)}</span>
               <button type="button" className="btn-ghost btn-small" onClick={alternarPagamento}>
-                {pedido.pagamento_status === 'confirmado' ? '✓ Pago — desmarcar' : 'Marcar como pago'}
+                {pedido.pagamento_status === 'confirmado' ? '✓ Pago manualmente — desmarcar' : 'Confirmar pagamento recebido'}
               </button>
             </div>
           </div>

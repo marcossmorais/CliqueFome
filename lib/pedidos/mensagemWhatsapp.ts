@@ -1,4 +1,5 @@
 import { formatBRL } from './tipos';
+import { nomeFormaPagamento, type FormaPagamentoOffline } from './pagamento';
 
 export type ItemMensagem = {
   nome: string;
@@ -24,8 +25,9 @@ export function montarMensagemPedido(params: {
   taxaEntrega: number;
   total: number;
   trackingUrl: string;
+  formaPagamento: FormaPagamentoOffline;
 }) {
-  const { numero, clienteNome, tipo, endereco, itens, taxaEntrega, total, trackingUrl } = params;
+  const { numero, clienteNome, tipo, endereco, itens, taxaEntrega, total, trackingUrl, formaPagamento } = params;
 
   return [
     `Olá! Meu pedido #${numero} já está registrado no sistema.`,
@@ -46,8 +48,9 @@ export function montarMensagemPedido(params: {
       ? [`Entrega no endereço: ${endereco}`, `Taxa de entrega: ${formatBRL(taxaEntrega)}`]
       : ['Retirada no local']),
     `Total: ${formatBRL(total)}`,
+    `Forma de pagamento: ${nomeFormaPagamento(formaPagamento)}`,
     '',
-    'Pagamento pendente — vamos combinar por aqui.',
+    'Pagamento a receber pela loja — confirmação manual.',
     `Acompanhar: ${trackingUrl}`,
   ].join('\n');
 }

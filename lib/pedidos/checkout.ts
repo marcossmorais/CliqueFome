@@ -2,6 +2,15 @@
 // canônica que vira o hash de idempotência. Tudo aqui é lógica pura (sem
 // Supabase, sem crypto de segredo) pra dar pra testar sem banco.
 
+import type { FormaPagamentoOffline } from './pagamento';
+
+const FORMAS_DELIVERY = new Set(['dinheiro_entrega', 'cartao_credito_entrega', 'cartao_debito_entrega', 'pix_manual']);
+const FORMAS_RETIRADA = new Set(['pagamento_retirada', 'pix_manual']);
+
+function formaPagamentoPermitida(tipo: 'delivery' | 'retirada', forma: unknown): forma is FormaPagamentoOffline {
+  return typeof forma === 'string' && (tipo === 'delivery' ? FORMAS_DELIVERY : FORMAS_RETIRADA).has(forma);
+}
+
 export type ItemCheckoutEntrada = {
   produtoId: string;
   quantidade: number;
@@ -14,6 +23,7 @@ export type PedidoCheckoutEntrada = {
   clienteNome: string;
   clienteTelefone: string;
   tipo: 'delivery' | 'retirada';
+  formaPagamento: FormaPagamentoOffline;
   endereco?: string;
   enderecoCotacao?: string;
   cotacaoToken?: string;
@@ -82,6 +92,11 @@ export function validarEntradaCheckout(corpo: unknown): PedidoCheckoutEntrada {
   const tipo = c.tipo === 'delivery' ? 'delivery' : c.tipo === 'retirada' ? 'retirada' : null;
   if (!tipo) throw new ErroValidacaoCheckout('Tipo de pedido inválido.');
 
+  const formaPagamento = c.formaPagamento;
+  if (!formaPagamentoPermitida(tipo, formaPagamento)) {
+    throw new ErroValidacaoCheckout('Escolha uma forma de pagamento válida para este pedido.');
+  }
+
   const endereco = tipo === 'delivery' ? texto(c.endereco, 5, 300, 'endereço') : undefined;
   const enderecoCotacao =
     tipo === 'delivery' && typeof c.enderecoCotacao === 'string'
@@ -126,7 +141,7 @@ export function validarEntradaCheckout(corpo: unknown): PedidoCheckoutEntrada {
   const captchaToken = typeof c.captchaToken === 'string' ? c.captchaToken.slice(0, 4000) : undefined;
 
   return {
-    idempotencyKey, clienteNome, clienteTelefone, tipo, endereco, enderecoCotacao,
+    idempotencyKey, clienteNome, clienteTelefone, tipo, formaPagamento, endereco, enderecoCotacao,
     cotacaoToken, observacao, itens, totalEsperadoCentavos, captchaToken,
   };
 }
@@ -153,6 +168,7 @@ export function payloadCanonico(entrada: PedidoCheckoutEntrada): string {
     clienteNome: entrada.clienteNome,
     clienteTelefone: entrada.clienteTelefone,
     tipo: entrada.tipo,
+    formaPagamento: entrada.formaPagamento,
     endereco: entrada.endereco ?? null,
     observacao: entrada.observacao ?? null,
     itens: itensOrdenados,

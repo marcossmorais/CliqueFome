@@ -134,7 +134,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const payloadHash = hashPayload(`${payloadCanonico(entrada)}|taxa:${taxaEntregaValidada ?? 'legada'}`);
 
-  const rpc = taxaEntregaValidada == null ? 'criar_pedido_publico_v1' : 'criar_pedido_publico_v2';
   const parametros = {
     p_loja_slug: slug,
     p_cliente_nome: entrada.clienteNome,
@@ -142,15 +141,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     p_tipo: entrada.tipo,
     p_endereco: entrada.endereco ?? null,
     p_observacao: entrada.observacao ?? null,
+    p_forma_pagamento: entrada.formaPagamento,
     p_itens: itensParaRpc(entrada.itens),
     p_idempotency_key: entrada.idempotencyKey,
     p_payload_hash: payloadHash,
     p_total_esperado_centavos: entrada.totalEsperadoCentavos,
     p_chave_ip: chaveIp,
     p_chave_telefone: chaveTelefone,
-    ...(taxaEntregaValidada == null ? {} : { p_taxa_entrega_validada: taxaEntregaValidada }),
+    p_taxa_entrega_validada: taxaEntregaValidada,
   };
-  const { data, error } = await sb.rpc(rpc, parametros);
+  const { data, error } = await sb.rpc('criar_pedido_publico_offline_v1', parametros);
 
   if (error) {
     // Nunca repassar error.message inteiro sem checar: pode conter detalhe
@@ -160,6 +160,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // que é segura porque criar_pedido() só levanta RAISE EXCEPTION com
     // texto pensado pra o cliente ler (mesma convenção do pedido manual).
     const msg = error.message || '';
+    if (error.code === 'PGRST202' || msg.includes('criar_pedido_publico_offline_v1')) {
+      return respostaErro('O checkout está sendo atualizado. Tente novamente em alguns minutos.', 503);
+    }
     if (msg.includes('CART_CHANGED')) {
       return respostaErro(
         'O cardápio mudou desde que você montou o carrinho. Atualize a página e confira os itens antes de finalizar.',
@@ -192,6 +195,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     taxa_entrega: number;
     total: number;
     replay: boolean;
+    forma_pagamento: string;
+    pagamento_status: string;
   };
 
   const origem = request.nextUrl.origin;
@@ -226,10 +231,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     taxaEntrega: Number(resultado.taxa_entrega),
     total: Number(resultado.total),
     trackingUrl,
+    formaPagamento: entrada.formaPagamento,
   });
 
   const numeroWhats = (loja?.whatsapp_numero || '').replace(/\D/g, '');
-  const urlWhatsapp = `https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}`;
+  const urlWhatsapp = numeroWhats ? `https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}` : null;
 
   return NextResponse.json(
     {
@@ -237,13 +243,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         numero: resultado.numero,
         token: resultado.token,
         status: 'pendente',
-        pagamento_status: 'pendente',
+        pagamento_status: resultado.pagamento_status,
+        forma_pagamento: resultado.forma_pagamento,
         subtotal: Number(resultado.subtotal),
         taxa_entrega: Number(resultado.taxa_entrega),
         total: Number(resultado.total),
         tracking_url: trackingUrl,
       },
-      proxima_acao: { tipo: 'whatsapp', url: urlWhatsapp },
+      proxima_acao: urlWhatsapp ? { tipo: 'whatsapp', url: urlWhatsapp } : null,
     },
     { status: resultado.replay ? 200 : 201, headers: { 'Cache-Control': 'no-store' } }
   );
