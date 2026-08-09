@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
-import { Carrinho, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado } from './Carrinho';
+import { CheckoutModal, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado } from './CheckoutModal';
 import {
   apareceNoTipo,
   ehCarrinhoValido,
@@ -21,7 +21,6 @@ import {
 } from '@/lib/cardapio/tipos';
 import type { ConfigDeliveryPublica } from '@/lib/delivery/tipos';
 import { ENDERECO_VAZIO, enderecoEmLinha, enderecoEstruturadoValido, type EnderecoEstruturado } from '@/lib/delivery/tipos';
-import { CheckoutModal } from './CheckoutModal';
 
 const TEXTO_AVISO: Record<string, string> = {
   removido: 'saiu do cardápio',
@@ -68,8 +67,7 @@ export function CardapioClient({
   const [busca, setBusca] = useState('');
   const [categoriaId, setCategoriaId] = useState('todos');
   const [produtoAberto, setProdutoAberto] = useState<ProdutoPublico | null>(null);
-  const [carrinhoAberto, setCarrinhoAberto] = useState(false);
-  const [checkoutAberto, setCheckoutAberto] = useState(false);
+  const [modalAberto, setModalAberto] = useState(false);
   const [nome, setNome] = useLocalStorage<string>(CHAVE_NOME, '');
   const [telefone, setTelefone] = useLocalStorage<string>(CHAVE_TELEFONE, '');
   const [endereco, setEndereco] = useState('');
@@ -227,7 +225,7 @@ export function CardapioClient({
       return;
     }
     adicionar(p, [], '', 1);
-    setCarrinhoAberto(true);
+    setModalAberto(true);
   }
 
   function mudarQtd(lineId: string, delta: number) {
@@ -422,7 +420,7 @@ export function CardapioClient({
       </section>
 
       {totalItens > 0 && (
-        <button type="button" className="floating-cart" aria-label="Ver carrinho" onClick={() => setCarrinhoAberto(true)}>
+        <button type="button" className="floating-cart" aria-label="Ver carrinho" onClick={() => setModalAberto(true)}>
           <span className="floating-cart-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="9" cy="21" r="1" />
@@ -445,24 +443,13 @@ export function CardapioClient({
           onFechar={() => setProdutoAberto(null)}
           onAdicionar={(escolhas, obs, qtd) => {
             adicionar(produtoAberto, escolhas, obs, qtd);
-            setCarrinhoAberto(true);
+            setModalAberto(true);
           }}
         />
       )}
 
-      <Carrinho
-        linhas={linhas}
-        aberto={carrinhoAberto}
-        pedidoRegistrado={pedidoRegistrado}
-        onFechar={() => setCarrinhoAberto(false)}
-        onMudarQtd={mudarQtd}
-        onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}
-        onAbrirCheckout={() => setCheckoutAberto(true)}
-        onNovoPedido={() => setPedidoRegistrado(null)}
-      />
-
       <CheckoutModal
-        aberto={checkoutAberto}
+        aberto={modalAberto}
         linhas={linhas}
         nome={nome}
         telefone={telefone}
@@ -475,7 +462,9 @@ export function CardapioClient({
         taxaEstatica={taxaEstatica}
         cidadeEscolhida={cidadeEscolhida}
         cotacao={cotacao}
-        onFechar={() => setCheckoutAberto(false)}
+        onFechar={() => setModalAberto(false)}
+        onMudarQtd={mudarQtd}
+        onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}
         onNome={setNome}
         onTelefone={setTelefone}
         onEndereco={mudarEnderecoDetalhado}
@@ -488,7 +477,7 @@ export function CardapioClient({
         onFinalizar={finalizar}
         onNovoPedido={() => {
           setPedidoRegistrado(null);
-          setCheckoutAberto(false);
+          setModalAberto(false);
         }}
       />
     </div>
