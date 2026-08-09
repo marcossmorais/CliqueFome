@@ -20,6 +20,7 @@ export type ItemMenu = {
 };
 
 export const ICONES: Record<string, string> = {
+  inicio: 'M3 11.5L12 4l9 7.5M5 10v10h14V10M9 20v-6h6v6',
   pedidos: 'M4 3h16v18H4zM8 8h8M8 12h8M8 16h5',
   mesas: 'M3 6h18v12H3zM7 6V4M17 6V4M3 11h18',
   kds: 'M3 4h18v13H3zM8 21h8M12 17v4M8 9l2 2 4-4',
@@ -40,7 +41,13 @@ export const ICONES: Record<string, string> = {
 
 export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
   {
-    grupo: 'Essenciais',
+    grupo: 'Visão geral',
+    itens: [
+      { id: 'inicio', nome: 'Início', icone: 'inicio', pronta: true, desc: 'Central do dia com operação, vendas e pedidos.' },
+    ],
+  },
+  {
+    grupo: 'Operação',
     itens: [
       { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', pronta: true },
       { id: 'kds', nome: 'Cozinha', icone: 'kds', pronta: true },

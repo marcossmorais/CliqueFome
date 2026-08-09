@@ -1,0 +1,79 @@
+.dashboard{ width:100%; max-width:1280px; }
+.boasVindas{ display:flex; align-items:flex-end; justify-content:space-between; gap:22px; margin:-2px 0 18px; }
+.dataHoje{ display:block; margin-bottom:7px; color:#758079; font-size:10.5px; font-weight:800; letter-spacing:.55px; text-transform:uppercase; }
+.boasVindas h2{ margin:0; color:#18231e; font-size:clamp(22px,3vw,32px); letter-spacing:-.5px; }
+.boasVindas p{ margin-top:6px; color:#6d7872; font-size:14px; }
+.verCardapio{ flex:0 0 auto; padding:10px 14px; border:1px solid var(--borda); border-radius:10px; color:#365044; font-size:12px; font-weight:700; }
+.verCardapio:hover{ background:#f3f7f5; }
+.kpis{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:13px; margin:18px 0; }
+.kpi{ display:flex; min-height:132px; padding:19px; flex-direction:column; border:1px solid var(--borda); border-radius:15px; background:#fff; box-shadow:0 5px 18px rgba(28,49,38,.045); }
+.kpi>span:first-child{ color:#727d77; font-size:11px; font-weight:700; }
+.kpi>strong{ margin:12px 0 10px; color:#17231d; font-size:clamp(21px,2.5vw,29px); letter-spacing:-.6px; }
+.kpi small,.positiva,.negativa,.neutra{ margin-top:auto; font-size:9.8px; font-weight:650; }
+.kpi small,.neutra{ color:#89918d; }
+.positiva{ color:#238353; }
+.negativa{ color:#b04848; }
+.gradePrincipal{ display:grid; grid-template-columns:minmax(0,1.65fr) minmax(300px,.75fr); gap:14px; }
+.bloco{ min-width:0; padding:20px; border:1px solid var(--borda); border-radius:15px; background:#fff; box-shadow:0 5px 18px rgba(28,49,38,.04); }
+.blocoTopo{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+.blocoTopo span,.pagamentoTexto>span{ display:block; margin-bottom:4px; color:#84908a; font-size:9.5px; font-weight:800; letter-spacing:.48px; text-transform:uppercase; }
+.bloco h3{ margin:0; color:#1d2923; font-size:15px; }
+.totalSemana{ display:grid; justify-items:end; gap:4px; text-align:right; }
+.totalSemana>strong{ color:#15231c; font-size:20px; }
+.graficoVendas{ margin-top:18px; }
+.graficoVendas svg{ display:block; width:100%; height:220px; overflow:visible; }
+.eixo{ stroke:#e5eae7; stroke-width:1; }
+.linhaGrafico{ fill:none; stroke:var(--verde); stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+.pontoGrafico{ fill:#fff; stroke:var(--verde); stroke-width:3; }
+.rotulosGrafico{ display:grid; grid-template-columns:repeat(7,1fr); margin-top:-10px; color:#7e8883; font-size:9.5px; text-align:center; text-transform:capitalize; }
+.barrasHorario{ display:grid; gap:10px; margin-top:23px; }
+.barraLinha{ display:grid; grid-template-columns:34px minmax(0,1fr) 22px; align-items:center; gap:9px; color:#69756e; font-size:10px; }
+.barraLinha i{ display:block; height:8px; overflow:hidden; border-radius:99px; background:#edf1ef; }
+.barraLinha i b{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--verde),var(--verde-claro)); }
+.barraLinha>strong{ color:#26342d; text-align:right; }
+.insight{ margin:8px 0 0; padding:10px 12px; border-radius:9px; background:#edf7f1; color:#496055; font-size:10.5px; line-height:1.45; }
+.gradeResumo{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:14px; align-items:stretch; }
+.numeroDestaque{ color:var(--verde); font-size:25px; }
+.statusPedidos{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin:20px 0; }
+.statusPedidos span{ display:grid; grid-template-columns:8px 1fr auto; align-items:center; gap:7px; color:#69736e; font-size:10.5px; }
+.statusPedidos span b{ color:#28352e; }
+.statusPedidos i{ width:7px; height:7px; border-radius:50%; }
+.andamento{ background:#e39c2f; }.aguardando{ background:#6581b5; }.concluido{ background:#2d9b60; }.cancelado{ background:#c45252; }
+.linkAcao{ display:inline-flex; margin-top:auto; color:var(--verde); font-size:11px; font-weight:800; }
+.ranking{ display:grid; gap:4px; margin:15px 0 16px; list-style:none; }
+.ranking li{ display:grid; grid-template-columns:24px minmax(0,1fr) auto; min-height:34px; align-items:center; gap:7px; border-bottom:1px solid #eef1ef; font-size:11px; }
+.ranking li>span{ display:grid; width:20px; height:20px; place-items:center; border-radius:6px; background:#edf7f1; color:var(--verde); font-size:9px; font-weight:800; }
+.ranking li>strong{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ranking li>b{ color:#53615a; }
+.pagamentoAlerta,.pagamentoOk{ display:grid; grid-template-columns:40px minmax(0,1fr); align-content:start; gap:12px; }
+.pagamentoAlerta{ border-color:#f0d5ad; background:#fffbf5; }
+.pagamentoOk{ border-color:#cfe7d8; background:#f7fcf9; }
+.pagamentoIcone{ display:grid; width:38px; height:38px; place-items:center; border-radius:11px; background:#fff0d8; color:#aa6913; font-size:18px; font-weight:900; }
+.pagamentoOk .pagamentoIcone{ background:#e3f5ea; color:#23784a; }
+.pagamentoTexto h3{ line-height:1.35; }
+.pagamentoTexto>strong{ display:block; margin-top:7px; color:#7f531b; font-size:18px; }
+.pagamentoAlerta .linkAcao,.pagamentoOk .linkAcao{ grid-column:2; }
+.vazio{ display:grid; min-height:125px; place-items:center; padding:18px; color:#8a938e; font-size:11px; line-height:1.5; text-align:center; }
+.erroCarga{ margin-top:18px; padding:25px; border:1px solid #f1cece; border-radius:14px; background:#fff8f8; }
+.erroCarga strong{ color:#903939; }.erroCarga p{ margin-top:5px; color:#7b6666; font-size:12px; }
+.fonte{ margin:13px 2px 0; color:#929a96; font-size:9.5px; text-align:right; }
+
+@media (max-width:1080px){
+  .kpis{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .gradePrincipal{ grid-template-columns:1fr; }
+  .gradeResumo{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .gradeResumo article:last-child{ grid-column:1/-1; }
+}
+@media (max-width:620px){
+  .boasVindas{ align-items:flex-start; flex-direction:column; gap:12px; }
+  .boasVindas h2{ font-size:23px; }
+  .kpis{ gap:9px; }
+  .kpi{ min-height:116px; padding:14px; }
+  .kpi>strong{ font-size:20px; }
+  .bloco{ padding:16px; }
+  .blocoTopo{ flex-direction:column; gap:10px; }
+  .totalSemana{ justify-items:start; text-align:left; }
+  .graficoVendas svg{ height:185px; }
+  .gradeResumo{ grid-template-columns:1fr; }
+  .gradeResumo article:last-child{ grid-column:auto; }
+}

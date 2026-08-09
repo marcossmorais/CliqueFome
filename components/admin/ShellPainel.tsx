@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { MENU, ICONES } from '@/lib/menu';
 import { LogoCliqueFome } from '@/components/LogoCliqueFome';
 import { criarClientNavegador } from '@/lib/supabase/client';
+import { StatusOperacional } from '@/components/admin/StatusOperacional';
 
 function Icone({ chave }: { chave: string }) {
   return (
@@ -105,6 +106,7 @@ export function ShellPainel({
               ☰
             </button>
             <h1>{titulo}</h1>
+            <StatusOperacional />
           </div>
           {children}
         </main>

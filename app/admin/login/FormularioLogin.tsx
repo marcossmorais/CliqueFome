@@ -36,7 +36,7 @@ export function FormularioLogin() {
     const destino =
       proximo && proximo.startsWith('/') && !proximo.startsWith('//')
         ? proximo
-        : '/admin/catalogo';
+        : '/admin/inicio';
 
     router.replace(destino);
     // Força o servidor a reler a sessão do cookie antes de renderizar.

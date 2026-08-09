@@ -22,7 +22,7 @@ export default async function CriarLojaPage() {
   // Se a loja apareceu (super admin acabou de criar, ou o cookie foi
   // corrigido), esta página não tem mais razão de existir.
   const { loja } = await obterLojaAtual();
-  if (loja) redirect('/admin/catalogo');
+  if (loja) redirect('/admin/inicio');
 
   return (
     <main className="onboarding">

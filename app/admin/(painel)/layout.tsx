@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { obterLojaAtual, obterUsuario } from '@/lib/loja';
+import { OperacaoProvider } from '@/components/admin/StatusOperacional';
 import '../admin.css';
 
 /**
@@ -22,5 +23,16 @@ export default async function PainelLayout({ children }: { children: React.React
   const { loja } = await obterLojaAtual();
   if (!loja) redirect('/admin/criar-loja');
 
-  return <>{children}</>;
+  return (
+    <OperacaoProvider
+      lojaId={loja.id}
+      estadoInicial={{
+        lojaAberta: loja.recebendo_encomendas,
+        delivery: loja.delivery_ativo,
+        retirada: loja.retirada_ativa,
+      }}
+    >
+      {children}
+    </OperacaoProvider>
+  );
 }
