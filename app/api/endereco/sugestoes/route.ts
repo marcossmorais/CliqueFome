@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { autocompletarEndereco, ErroGeoapify } from '@/lib/delivery/geoapify';
+import { autocompletarEndereco, ErroGeoapify, type CodigoErroGeoapify } from '@/lib/delivery/geoapify';
 import { criarClientServidor } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -44,8 +44,14 @@ export async function GET(request: NextRequest) {
     const sugestoes = await autocompletarEndereco(texto);
     return NextResponse.json({ sugestoes }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (erro) {
-    const mensagem = erro instanceof ErroGeoapify && erro.codigo === 'CHAVE_AUSENTE'
-      ? 'A busca de endereço ainda não está configurada.'
+    const mensagens: Partial<Record<CodigoErroGeoapify, string>> = {
+      CHAVE_AUSENTE: 'A busca de endereço ainda não está configurada no ambiente.',
+      CHAVE_RECUSADA: 'A busca de endereço foi recusada pelo provedor (chave inválida ou restrita).',
+      LIMITE_ATINGIDO: 'Limite de consultas de endereço atingido. Tente novamente mais tarde.',
+      SERVICO_INDISPONIVEL: 'O serviço de busca de endereço está indisponível no momento.',
+    };
+    const mensagem = erro instanceof ErroGeoapify
+      ? mensagens[erro.codigo] ?? 'A busca de endereço está indisponível no momento.'
       : 'A busca de endereço está indisponível no momento.';
     return respostaErro(mensagem, 503);
   }
