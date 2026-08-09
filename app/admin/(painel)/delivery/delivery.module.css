@@ -98,6 +98,40 @@
 }
 .campo small { color: var(--texto-suave); font-size: 11.5px; line-height: 1.4; }
 
+.campoComBusca { position: relative; }
+.buscaDica { color: var(--texto-suave); font-size: 11px; }
+.sugestoesLista {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(15, 40, 28, .14);
+}
+.sugestoesLista li + li { margin-top: 2px; }
+.sugestoesLista button {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--texto);
+  background: transparent;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.sugestoesLista button:hover { background: #f3faf6; color: var(--verde-escuro); }
+.sugestaoVazia { padding: 10px; color: var(--texto-suave); font-size: 12.5px; }
+
 .linha2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
 .opcoesSetor { display: grid; gap: 10px; margin-bottom: 14px; }

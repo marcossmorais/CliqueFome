@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ENDERECO_VAZIO, enderecoEstruturadoValido, formatarCep, type EnderecoEstruturado } from '@/lib/delivery/tipos';
 import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
+import { useBuscaEndereco } from '@/lib/endereco/useBuscaEndereco';
 import styles from './delivery.module.css';
 
 type ConfigApi = {
@@ -40,6 +41,24 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
   const [editandoEndereco, setEditandoEndereco] = useState(true);
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const buscaCep = useBuscaCep();
+  const buscaEndereco = useBuscaEndereco();
+  const [sugestoesAbertas, setSugestoesAbertas] = useState(false);
+
+  function selecionarSugestao(sugestao: {
+    logradouro: string; numero: string; bairro: string; cidade: string; uf: string; cep: string;
+  }) {
+    setEndereco((atual) => ({
+      ...atual,
+      logradouro: sugestao.logradouro,
+      numero: sugestao.numero || atual.numero,
+      bairro: sugestao.bairro || atual.bairro,
+      cidade: sugestao.cidade || atual.cidade,
+      uf: sugestao.uf || atual.uf,
+      cep: sugestao.cep ? formatarCep(sugestao.cep) : atual.cep,
+    }));
+    setSugestoesAbertas(false);
+    buscaEndereco.limpar();
+  }
 
   function alterarCep(valor: string) {
     const cep = formatarCep(valor);
@@ -236,10 +255,54 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
                 </small>
               )}
             </div>
-            <div className={`${styles.campo} ${styles.campoLargo}`}>
+            <div className={`${styles.campo} ${styles.campoLargo} ${styles.campoComBusca}`}>
               <label htmlFor="est-logradouro">Logradouro</label>
-              <input id="est-logradouro" autoComplete="address-line1" maxLength={120} value={endereco.logradouro}
-                onChange={(e) => setEndereco((a) => ({ ...a, logradouro: e.target.value }))} placeholder="Rua ou avenida" />
+              <input
+                id="est-logradouro"
+                autoComplete="off"
+                maxLength={120}
+                value={endereco.logradouro}
+                onChange={(e) => {
+                  const valor = e.target.value;
+                  setEndereco((a) => ({ ...a, logradouro: valor }));
+                  setSugestoesAbertas(true);
+                  buscaEndereco.buscar(`${valor}, ${endereco.cidade || ''} ${endereco.uf || ''}`.trim());
+                }}
+                onFocus={() => setSugestoesAbertas(true)}
+                onBlur={() => setTimeout(() => setSugestoesAbertas(false), 150)}
+                placeholder="Comece a digitar a rua…"
+                role="combobox"
+                aria-expanded={sugestoesAbertas}
+                aria-autocomplete="list"
+                aria-controls="est-logradouro-sugestoes"
+              />
+              <small className={styles.buscaDica}>
+                Digite e escolha o endereço na lista — evita erro de &quot;endereço não encontrado&quot; ao salvar.
+              </small>
+              {sugestoesAbertas && buscaEndereco.estado.status === 'buscando' && (
+                <div className={styles.sugestoesLista}><div className={styles.sugestaoVazia}>Buscando…</div></div>
+              )}
+              {sugestoesAbertas && buscaEndereco.estado.status === 'resultados' && (
+                <ul id="est-logradouro-sugestoes" className={styles.sugestoesLista} role="listbox">
+                  {buscaEndereco.estado.sugestoes.map((sugestao, indice) => (
+                    <li key={indice} role="option" aria-selected={false}>
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); selecionarSugestao(sugestao); }}>
+                        {sugestao.formatado}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {sugestoesAbertas && buscaEndereco.estado.status === 'vazio' && (
+                <div className={styles.sugestoesLista}>
+                  <div className={styles.sugestaoVazia}>Nenhum endereço encontrado — continue digitando ou preencha manualmente.</div>
+                </div>
+              )}
+              {sugestoesAbertas && buscaEndereco.estado.status === 'erro' && (
+                <div className={styles.sugestoesLista}>
+                  <div className={styles.sugestaoVazia}>{buscaEndereco.estado.mensagem}</div>
+                </div>
+              )}
             </div>
             <div className={styles.campo}>
               <label htmlFor="est-numero">Número</label>

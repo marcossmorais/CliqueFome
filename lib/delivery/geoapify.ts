@@ -1,4 +1,5 @@
 const GEOCODING_URL = 'https://api.geoapify.com/v1/geocode/search';
+const AUTOCOMPLETE_URL = 'https://api.geoapify.com/v1/geocode/autocomplete';
 const ROUTING_URL = 'https://api.geoapify.com/v1/routing';
 
 export type CodigoErroGeoapify =
@@ -90,6 +91,70 @@ export async function geocodificarEndereco(endereco: string): Promise<EnderecoGe
     cidade: resultado.city || resultado.county || null,
     confianca,
   };
+}
+
+export type SugestaoEndereco = {
+  formatado: string;
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+  cep: string;
+  latitude: number;
+  longitude: number;
+};
+
+/**
+ * Autocomplete de verdade (não geocoding de texto livre): devolve uma
+ * LISTA de endereços reais pra pessoa escolher, em vez de tentar adivinhar
+ * um único resultado a partir do que foi digitado. É o que evita o erro
+ * "endereço não encontrado" no salvar — só chega ao formulário estruturado
+ * um endereço que a Geoapify já confirmou que existe.
+ */
+export async function autocompletarEndereco(texto: string): Promise<SugestaoEndereco[]> {
+  const url = new URL(AUTOCOMPLETE_URL);
+  url.searchParams.set('text', texto);
+  url.searchParams.set('filter', 'countrycode:br');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('limit', '5');
+  url.searchParams.set('lang', 'pt');
+  url.searchParams.set('apiKey', chaveGeoapify());
+
+  const resposta = await fetchComTimeout(url.toString());
+  validarResposta(resposta);
+  const corpo = (await resposta.json()) as {
+    results?: Array<{
+      lat?: number;
+      lon?: number;
+      formatted?: string;
+      street?: string;
+      housenumber?: string;
+      suburb?: string;
+      district?: string;
+      city?: string;
+      county?: string;
+      state_code?: string;
+      postcode?: string;
+      result_type?: string;
+    }>;
+  };
+
+  return (corpo.results || [])
+    // "amenity"/"building" isolados sem rua não servem pra entrega — o
+    // filtro mantém só resultado com endereço de verdade (rua, no mínimo).
+    .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lon) && r.street)
+    .map((r) => ({
+      formatado: r.formatted || '',
+      logradouro: r.street || '',
+      numero: r.housenumber || '',
+      bairro: r.suburb || r.district || '',
+      cidade: r.city || r.county || '',
+      uf: (r.state_code || '').toUpperCase(),
+      cep: r.postcode || '',
+      latitude: Number(r.lat),
+      longitude: Number(r.lon),
+    }));
 }
 
 export async function calcularDistanciaDeRota(
