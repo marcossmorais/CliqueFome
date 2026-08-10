@@ -12,6 +12,32 @@ npm start        # servir build de produção (use este pra medir velocidade)
 npx eslint . --ext .ts,.tsx
 ```
 
+## Fluxo: Issue → branch → PR
+
+Toda tarefa (Correção, Melhoria ou Nova função) segue esse fluxo — vale
+pra qualquer agente, de qualquer modelo, que trabalhar neste repositório.
+Deploy pra produção é feito gerenciando os PRs, não commit direto em
+`main`.
+
+1. **Abrir a Issue primeiro**, com label pelo tipo:
+   ```bash
+   gh issue create --title "Corrige X" --label "correcao" --body "..."
+   gh issue create --title "Adiciona Y" --label "melhoria" --body "..."
+   gh issue create --title "Nova tela Z" --label "nova-funcao" --body "..."
+   ```
+2. **Trabalhar numa branch**, não em `main`:
+   `git checkout -b corrige-x` (nome curto, descreve a mudança).
+3. **Abrir PR mencionando a Issue** na descrição (fecha automático no
+   merge):
+   ```bash
+   gh pr create --title "Corrige X" --body "Closes #<número>"
+   ```
+4. Merge do PR é o que leva pra produção — é aí que a Vercel builda
+   `main`. Não fazer `git push origin main` direto.
+
+Precisa de `gh auth login` rodado uma vez (interativo, não é algo que o
+agente faz sozinho) antes de qualquer `gh issue`/`gh pr`.
+
 ## Estrutura
 
 - `app/page.tsx` — landing institucional (estática, sem Supabase)
