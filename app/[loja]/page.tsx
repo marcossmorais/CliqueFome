@@ -64,7 +64,7 @@ async function carregar(slug: string) {
   const { data: loja, error: erroLoja } = await sb
     .from('lojas')
     .select(
-      'id, slug, nome, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_entrega_min, tempo_entrega_max, taxa_entrega, pedido_minimo, delivery_ativo, recebendo_encomendas, retirada_ativa'
+      'id, slug, nome, nicho, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_entrega_min, tempo_entrega_max, taxa_entrega, pedido_minimo, delivery_ativo, recebendo_encomendas, retirada_ativa'
     )
     .eq('slug', slug)
     .maybeSingle();
@@ -80,7 +80,7 @@ async function carregar(slug: string) {
     sb
       .from('produtos')
       .select(
-        'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, ordem, dias_semana, tipos_pedido, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, tipos_pedido, ordem, ativo, complementos(id, nome, preco, qtd_max, imagem_url, ativo, ordem)))'
+        'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, sugestao_carrinho, ordem, dias_semana, tipos_pedido, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, tipos_pedido, ordem, ativo, complementos(id, nome, preco, qtd_max, imagem_url, ativo, sugestao_carrinho, ordem)))'
       )
       .eq('loja_id', loja.id)
       // Traz também os inativos: viram card "Esgotado" em vez de sumir, pra

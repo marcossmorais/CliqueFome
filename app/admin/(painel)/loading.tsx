@@ -1,5 +1,3 @@
-import '../admin.css';
-
 /**
  * Esqueleto mostrado enquanto a página do painel busca os dados.
  *

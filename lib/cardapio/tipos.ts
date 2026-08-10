@@ -15,6 +15,7 @@ export type LojaPublica = {
   delivery_ativo: boolean;
   recebendo_encomendas: boolean;
   retirada_ativa: boolean;
+  nicho: string | null;
 };
 
 export type CategoriaPublica = { id: string; nome: string; emoji: string | null; icone: string | null; ordem: number };
@@ -28,6 +29,7 @@ export type ComplementoPublico = {
   qtd_max: number | null;
   imagem_url: string | null;
   ativo: boolean;
+  sugestao_carrinho: boolean;
   ordem: number;
 };
 
@@ -57,6 +59,7 @@ export type ProdutoPublico = {
   esconder_observacao: boolean;
   esconder_quantidade: boolean;
   ativo: boolean;
+  sugestao_carrinho: 'bebida' | 'acompanhamento' | null;
   /** Em quais tipos de pedido o produto aparece. Vazio = todos. */
   tipos_pedido: string[];
   ordem: number;

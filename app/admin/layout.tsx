@@ -1,4 +1,5 @@
 import './dark.css';
+import './admin.css';
 
 const SCRIPT_TEMA = `
 try {

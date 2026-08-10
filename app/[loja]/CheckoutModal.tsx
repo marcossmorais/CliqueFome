@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { extraDaLinha, formatarTelefone, formatBRL, subtotalLinha, type LinhaCarrinho } from '@/lib/cardapio/tipos';
+import Image from 'next/image';
+import { extraDaLinha, formatarTelefone, formatBRL, precoBase, subtotalLinha, type LinhaCarrinho, type ProdutoPublico } from '@/lib/cardapio/tipos';
 import { formatarCep, type ConfigDeliveryPublica, type EnderecoEstruturado } from '@/lib/delivery/tipos';
 import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
 import { useEscFechar } from '@/hooks/useEscFechar';
@@ -25,6 +26,16 @@ export type PedidoRegistrado = {
     subtotal: number; taxa_entrega: number; total: number; tracking_url: string;
   };
   proximaAcao: { tipo: string; url: string } | null;
+};
+
+export type SugestaoComplementoCarrinho = {
+  lineId: string;
+  produtoNome: string;
+  grupoId: string;
+  complementoId: string;
+  nome: string;
+  preco: number;
+  imagemUrl: string | null;
 };
 
 const ROTULOS_FORMA_PAGAMENTO: Record<FormaPagamentoOffline, string> = {
@@ -85,6 +96,7 @@ type EstadoModal = 'fechado' | 'entrando' | 'aberto' | 'saindo';
 export function CheckoutModal({
   aberto, linhas, nome, telefone, endereco, modo, formaPagamento, erro, enviando, pedidoRegistrado,
   deliveryConfig, taxaEstatica, cidadeEscolhida, cotacao, onFechar, onMudarQtd, onRemover,
+  sugestoes, sugestoesComplementos, onAdicionarSugestao, onAdicionarComplemento,
   lojaAberta, deliveryAtivo, retiradaAtiva,
   onNome, onTelefone, onEndereco, onCidade, onCalcularFrete, onModo, onFormaPagamento, onFinalizar, onNovoPedido,
 }: {
@@ -94,6 +106,10 @@ export function CheckoutModal({
   lojaAberta: boolean; deliveryAtivo: boolean; retiradaAtiva: boolean;
   taxaEstatica: number;
   cidadeEscolhida: string; cotacao: CotacaoEstado; onFechar: () => void;
+  sugestoes: { titulo: string; produtos: ProdutoPublico[] }[];
+  sugestoesComplementos: SugestaoComplementoCarrinho[];
+  onAdicionarSugestao: (produto: ProdutoPublico) => void;
+  onAdicionarComplemento: (sugestao: SugestaoComplementoCarrinho) => void;
   onMudarQtd: (lineId: string, delta: number) => void; onRemover: (lineId: string) => void;
   onNome: (v: string) => void; onTelefone: (v: string) => void;
   onEndereco: (v: EnderecoEstruturado) => void; onCidade: (v: string) => void;
@@ -283,6 +299,40 @@ export function CheckoutModal({
                   </div>
                 ))}
               </div>
+            )}
+
+            {linhas.length > 0 && sugestoes.map((grupo) => grupo.produtos.length > 0 && (
+              <section key={grupo.titulo} aria-label={grupo.titulo} style={{ marginTop: 16 }}>
+                <h3 style={{ marginBottom: 8, fontSize: 15 }}>{grupo.titulo}</h3>
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                  {grupo.produtos.map((produto) => (
+                    <article key={produto.id} style={{ display: 'grid', gridTemplateColumns: '52px minmax(100px,1fr)', minWidth: 210, gap: 8, padding: 8, border: '1px solid #e2e8e4', borderRadius: 10, background: '#fff' }}>
+                      {produto.imagem_url ? <Image src={produto.imagem_url} alt="" width={52} height={52} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8 }} /> : <span aria-hidden="true" />}
+                      <div style={{ minWidth: 0 }}>
+                        <strong style={{ display: 'block', fontSize: 12 }}>{produto.nome}</strong>
+                        <span style={{ display: 'block', fontSize: 12 }}>{formatBRL(precoBase(produto))}</span>
+                        <button type="button" className="btn-continue" style={{ marginTop: 4, padding: '5px 9px', fontSize: 11 }} onClick={() => onAdicionarSugestao(produto)}>+ Adicionar</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+
+            {linhas.length > 0 && sugestoesComplementos.length > 0 && (
+              <section aria-label="Complementos" style={{ marginTop: 16 }}>
+                <h3 style={{ marginBottom: 8, fontSize: 15 }}>Complementos</h3>
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                  {sugestoesComplementos.map((sugestao) => (
+                    <article key={`${sugestao.lineId}-${sugestao.complementoId}`} style={{ minWidth: 190, padding: 9, border: '1px solid #e2e8e4', borderRadius: 10, background: '#fff' }}>
+                      <small style={{ display: 'block', opacity: .7 }}>{sugestao.produtoNome}</small>
+                      <strong style={{ display: 'block', fontSize: 12 }}>{sugestao.nome}</strong>
+                      <span style={{ display: 'block', fontSize: 12 }}>{formatBRL(sugestao.preco)}</span>
+                      <button type="button" className="btn-continue" style={{ marginTop: 4, padding: '5px 9px', fontSize: 11 }} onClick={() => onAdicionarComplemento(sugestao)}>+ Adicionar</button>
+                    </article>
+                  ))}
+                </div>
+              </section>
             )}
 
             <div className="checkout-resumo"><div className="checkout-total"><span>Subtotal</span><strong>{formatBRL(subtotal)}</strong></div></div>

@@ -6,7 +6,7 @@ import { usePedidoAcompanhado } from '@/hooks/usePedidoAcompanhado';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
 import { CartaoProduto } from './CartaoProduto';
-import { CheckoutModal, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado } from './CheckoutModal';
+import { CheckoutModal, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado, type SugestaoComplementoCarrinho } from './CheckoutModal';
 import {
   apareceNoTipo,
   produtoApareceNoTipo,
@@ -64,6 +64,7 @@ export function CardapioClient({
   const [busca, setBusca] = useState('');
   const [categoriaId, setCategoriaId] = useState('todos');
   const [produtoAberto, setProdutoAberto] = useState<ProdutoPublico | null>(null);
+  const [retornarAoCarrinho, setRetornarAoCarrinho] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const [nome, setNome] = useLocalStorage<string>(CHAVE_NOME, '');
   const [telefone, setTelefone] = useLocalStorage<string>(CHAVE_TELEFONE, '');
@@ -169,6 +170,53 @@ export function CardapioClient({
     [produtos, tipoPedido]
   );
 
+  const sugestoesCarrinho = useMemo(() => {
+    if (linhas.length === 0) return [];
+    const categoriasPorId = new Map(categorias.map((categoria) => [categoria.id, categoria.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()]));
+    const idsNoCarrinho = new Set(linhas.map((linha) => linha.produtoId));
+    const ehBebida = (produto: ProdutoPublico) => produto.sugestao_carrinho === 'bebida' || (categoriasPorId.get(produto.categoria_id || '') || '').includes('bebida');
+    const produtosNoCarrinho = produtosPorTipo.filter((produto) => idsNoCarrinho.has(produto.id));
+    const temComida = produtosNoCarrinho.some((produto) => !ehBebida(produto));
+    if (!temComida) return [];
+    const temBebida = produtosNoCarrinho.some(ehBebida);
+    const temAcompanhamento = produtosNoCarrinho.some((produto) => produto.sugestao_carrinho === 'acompanhamento');
+    const grupos: { titulo: string; produtos: ProdutoPublico[] }[] = [];
+    if (!temBebida) {
+      grupos.push({ titulo: 'Algo para beber', produtos: produtosPorTipo.filter((produto) => produto.ativo && !idsNoCarrinho.has(produto.id) && produto.sugestao_carrinho === 'bebida').slice(0, 4) });
+    }
+    if (!temAcompanhamento) {
+      grupos.push({ titulo: 'Um acompanhamento', produtos: produtosPorTipo.filter((produto) => produto.ativo && !idsNoCarrinho.has(produto.id) && produto.sugestao_carrinho === 'acompanhamento').slice(0, 4) });
+    }
+    return grupos.filter((grupo) => grupo.produtos.length > 0);
+  }, [categorias, linhas, produtosPorTipo]);
+
+  const sugestoesComplementos = useMemo<SugestaoComplementoCarrinho[]>(() => {
+    const produtosPorId = new Map(produtosPorTipo.map((produto) => [produto.id, produto]));
+    return linhas.flatMap((linha) => {
+      const produto = produtosPorId.get(linha.produtoId);
+      if (!produto) return [];
+      return produto.grupos.flatMap((grupo) => {
+        const atuais = linha.complementos.filter((escolha) => escolha.grupoId === grupo.id);
+        const quantidadeAtual = atuais.reduce((total, escolha) => total + (escolha.quantidade || 1), 0);
+        if (quantidadeAtual >= grupo.qtd_max) return [];
+        return grupo.complementos.filter((opcao) => {
+          if (!opcao.ativo || !opcao.sugestao_carrinho) return false;
+          const existente = atuais.find((escolha) => escolha.complementoId === opcao.id);
+          if (!existente) return true;
+          return grupo.tipo_selecao === 'varias_repetir' && (opcao.qtd_max == null || existente.quantidade < opcao.qtd_max);
+        }).map((opcao) => ({
+          lineId: linha.lineId,
+          produtoNome: linha.nome,
+          grupoId: grupo.id,
+          complementoId: opcao.id,
+          nome: opcao.nome,
+          preco: Number(opcao.preco),
+          imagemUrl: opcao.imagem_url,
+        }));
+      });
+    }).slice(0, 8);
+  }, [linhas, produtosPorTipo]);
+
   const termoBusca = busca.trim().toLowerCase();
   const categoriasVisiveis = useMemo(
     () => categorias.filter((c) => produtosPorTipo.some((p) => p.categoria_id === c.id)),
@@ -234,6 +282,10 @@ export function CardapioClient({
       ];
     });
     setProdutoAberto(null);
+    if (retornarAoCarrinho) {
+      setRetornarAoCarrinho(false);
+      setModalAberto(true);
+    }
   }
 
   function abrirProduto(p: ProdutoPublico) {
@@ -250,6 +302,49 @@ export function CardapioClient({
       return;
     }
     adicionar(p, [], '', 1);
+  }
+
+  function adicionarSugestao(p: ProdutoPublico) {
+    if (p.grupos.some((grupo) => apareceNoTipo(grupo.tipos_pedido, tipoPedido))) {
+      setRetornarAoCarrinho(true);
+      setModalAberto(false);
+      setProdutoAberto(p);
+      return;
+    }
+    adicionar(p, [], '', 1);
+  }
+
+  function adicionarComplementoSugerido(sugestao: SugestaoComplementoCarrinho) {
+    atualizar((atual) => {
+      const linha = atual.find((item) => item.lineId === sugestao.lineId);
+      const produto = linha ? produtosPorTipo.find((item) => item.id === linha.produtoId) : null;
+      const grupo = produto?.grupos.find((item) => item.id === sugestao.grupoId);
+      const opcao = grupo?.complementos.find((item) => item.id === sugestao.complementoId && item.ativo && item.sugestao_carrinho);
+      if (!linha || !grupo || !opcao) return atual;
+      const escolhasDoGrupo = linha.complementos.filter((item) => item.grupoId === grupo.id);
+      const totalAtual = escolhasDoGrupo.reduce((total, item) => total + (item.quantidade || 1), 0);
+      if (totalAtual >= grupo.qtd_max) return atual;
+      const existente = linha.complementos.find((item) => item.complementoId === opcao.id);
+      let complementos: EscolhaComplemento[];
+      if (existente) {
+        if (grupo.tipo_selecao !== 'varias_repetir' || (opcao.qtd_max != null && existente.quantidade >= opcao.qtd_max)) return atual;
+        complementos = linha.complementos.map((item) => item.complementoId === opcao.id ? { ...item, quantidade: item.quantidade + 1 } : item);
+      } else {
+        complementos = [...linha.complementos, {
+          complementoId: opcao.id,
+          grupoId: grupo.id,
+          grupoNome: grupo.nome,
+          nome: opcao.nome,
+          preco: Number(opcao.preco),
+          quantidade: 1,
+          modoPreco: grupo.modo_preco,
+        }];
+      }
+      const novoId = idDaLinha(linha.produtoId, complementos, linha.observacao);
+      const duplicada = atual.find((item) => item.lineId === novoId && item.lineId !== linha.lineId);
+      if (duplicada) return atual.filter((item) => item.lineId !== linha.lineId).map((item) => item.lineId === novoId ? { ...item, qty: item.qty + linha.qty } : item);
+      return atual.map((item) => item.lineId === linha.lineId ? { ...item, lineId: novoId, complementos } : item);
+    });
   }
 
   function quantidadeSimples(produtoId: string) {
@@ -538,6 +633,10 @@ export function CardapioClient({
         taxaEstatica={taxaEstatica}
         cidadeEscolhida={cidadeEscolhida}
         cotacao={cotacao}
+        sugestoes={sugestoesCarrinho}
+        sugestoesComplementos={sugestoesComplementos}
+        onAdicionarSugestao={adicionarSugestao}
+        onAdicionarComplemento={adicionarComplementoSugerido}
         onFechar={() => setModalAberto(false)}
         onMudarQtd={mudarQtd}
         onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}

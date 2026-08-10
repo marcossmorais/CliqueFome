@@ -6,14 +6,13 @@ import { IconeBusca } from '@/components/admin/IconesCatalogo';
 import { ColunaCategorias } from './ColunaCategorias';
 import { GridProdutos } from './GridProdutos';
 import { ListaComplementos } from './ListaComplementos';
-import { GridOpcoes } from './GridOpcoes';
 import { ModalProduto } from './ModalProduto';
 import { ModalCategoria } from './ModalCategoria';
 import { ModalLista } from './ModalLista';
 import type { Categoria, GrupoComplemento, Produto } from '@/lib/catalogo/tipos';
 import { BEBIDAS_PRESET } from '@/lib/catalogo/presets';
 
-type Subtab = 'produtos' | 'complementos' | 'opcoes';
+type Subtab = 'produtos' | 'complementos' | 'opcoes' | 'sugestoes';
 
 /**
  * Orquestrador do Catálogo — porta do bloco monolítico do admin.html
@@ -147,7 +146,9 @@ export function CatalogoClient({
       categoria = data as Categoria;
     }
     const existentes = new Set(produtos.map((p) => `${p.nome.trim().toLowerCase()}|${(p.descricao || '').trim().toLowerCase()}`));
-    const novos = BEBIDAS_PRESET.filter((b) => !existentes.has(`${b.nome.toLowerCase()}|${b.volume.toLowerCase()}`));
+    const origensExistentes = new Set(produtos.map((p) => p.preset_origem).filter(Boolean));
+    const origemDoPreset = (imagemUrl: string) => `biblioteca:${imagemUrl.split('/').pop()?.replace(/\.webp$/, '')}`;
+    const novos = BEBIDAS_PRESET.filter((b) => !origensExistentes.has(origemDoPreset(b.imagemUrl)) && !existentes.has(`${b.nome.toLowerCase()}|${b.volume.toLowerCase()}`));
     if (novos.length === 0) { mostrarMsg('As bebidas da biblioteca já estão no cardápio.', 'ok'); return; }
     const ordemInicial = produtos.length;
     const { error } = await sb.from('produtos').insert(novos.map((b, i) => ({
@@ -157,6 +158,8 @@ export function CatalogoClient({
       descricao: b.volume,
       preco: b.precoSugerido,
       imagem_url: b.imagemUrl,
+      sugestao_carrinho: 'bebida',
+      preset_origem: origemDoPreset(b.imagemUrl),
       unidade_medida: b.volume,
       ativo: true,
       ordem: ordemInicial + i,
@@ -190,6 +193,26 @@ export function CatalogoClient({
     setProdutoAtualizandoId(null);
   }
 
+  async function atualizarSugestao(produto: Produto, sugestao: '' | 'bebida' | 'acompanhamento') {
+    const sb = criarClientNavegador();
+    const valor = sugestao || null;
+    const { error } = await sb.from('produtos').update({ sugestao_carrinho: valor }).eq('id', produto.id).eq('loja_id', lojaId);
+    if (error) { mostrarMsg('Não foi possível atualizar a sugestão.'); return; }
+    setProdutos((atual) => atual.map((item) => item.id === produto.id ? { ...item, sugestao_carrinho: valor } : item));
+    mostrarMsg('Sugestão atualizada.', 'ok');
+  }
+
+  async function atualizarSugestaoComplemento(grupoId: string, complementoId: string, marcado: boolean) {
+    const sb = criarClientNavegador();
+    const { error } = await sb.from('complementos').update({ sugestao_carrinho: marcado }).eq('id', complementoId);
+    if (error) { mostrarMsg('Não foi possível atualizar o complemento sugerido.'); return; }
+    setGrupos((atual) => atual.map((grupo) => grupo.id !== grupoId ? grupo : {
+      ...grupo,
+      complementos: grupo.complementos.map((opcao) => opcao.id === complementoId ? { ...opcao, sugestao_carrinho: marcado } : opcao),
+    }));
+    mostrarMsg('Sugestão atualizada.', 'ok');
+  }
+
   // ---------- botão "+ Novo" muda conforme a subaba ----------
   const botaoNovo =
     subtab === 'produtos'
@@ -221,9 +244,17 @@ export function CatalogoClient({
           <button
             type="button"
             className={'cat-subtab' + (subtab === 'opcoes' ? ' ativo' : '')}
+            hidden
             onClick={() => setSubtab('opcoes')}
           >
             Opções
+          </button>
+          <button
+            type="button"
+            className={'cat-subtab' + (subtab === 'sugestoes' ? ' ativo' : '')}
+            onClick={() => setSubtab('sugestoes')}
+          >
+            Sugestões
           </button>
         </div>
         <div className="cat-acoes">
@@ -289,9 +320,36 @@ export function CatalogoClient({
         </div>
       )}
 
-      {subtab === 'opcoes' && (
+      {subtab === 'sugestoes' && (
         <div className="subtab ativo">
-          <GridOpcoes grupos={grupos} busca={busca} onEditarLista={(g) => setModalLista({ aberto: true, lista: g })} />
+          <div className="card" style={{ maxWidth: 920 }}>
+            <h2>Sugestões do carrinho</h2>
+            <p className="sub">Selecione o que pode aparecer no carrinho. Os modelos nunca sobrescrevem esta configuração.</p>
+            <h3>Produtos do cardápio</h3>
+            <div style={{ display: 'grid', gap: 8, marginBottom: 24 }}>
+              {produtos.filter((p) => !busca || `${p.nome} ${p.descricao || ''}`.toLowerCase().includes(busca)).map((produto) => (
+                <div key={produto.id} className="sugestao-produto-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto auto', gap: 12, alignItems: 'center', padding: 10, border: '1px solid #e3e8e5', borderRadius: 10 }}>
+                  <span><strong>{produto.nome}</strong><small style={{ display: 'block', opacity: .7 }}>{categorias.find((c) => c.id === produto.categoria_id)?.nome || 'Sem categoria'}</small></span>
+                  <label><input type="checkbox" checked={produto.sugestao_carrinho === 'bebida'} onChange={(e) => void atualizarSugestao(produto, e.target.checked ? 'bebida' : '')} /> Para beber</label>
+                  <label><input type="checkbox" checked={produto.sugestao_carrinho === 'acompanhamento'} onChange={(e) => void atualizarSugestao(produto, e.target.checked ? 'acompanhamento' : '')} /> Acompanhamento</label>
+                </div>
+              ))}
+            </div>
+            <h3>Complementos</h3>
+            <p className="sub">Só aparecem quando pertencem ao produto do carrinho e ainda existe quantidade disponível na lista.</p>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {grupos.map((grupo) => (
+                <section key={grupo.id} style={{ padding: 12, border: '1px solid #e3e8e5', borderRadius: 10 }}>
+                  <strong>{grupo.nome}</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+                    {grupo.complementos.map((opcao) => (
+                      <label key={opcao.id}><input type="checkbox" checked={opcao.sugestao_carrinho || false} onChange={(e) => void atualizarSugestaoComplemento(grupo.id, opcao.id, e.target.checked)} /> {opcao.nome}</label>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

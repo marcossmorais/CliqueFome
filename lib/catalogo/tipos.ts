@@ -17,6 +17,7 @@ export type Complemento = {
   qtd_max: number | null;
   imagem_url: string | null;
   ativo: boolean;
+  sugestao_carrinho: boolean;
   ordem: number;
 };
 
@@ -54,6 +55,8 @@ export type Produto = {
   dias_semana: number[];
   tipos_pedido: string[];
   ativo: boolean;
+  sugestao_carrinho: 'bebida' | 'acompanhamento' | null;
+  preset_origem: string | null;
   ordem: number;
   produto_grupos: { grupo_id: string }[];
 };
