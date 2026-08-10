@@ -106,6 +106,7 @@ export function FuncionamentoForm({ loja }: { loja: Loja }) {
         </div>
 
         <button type="submit" className="btn-primary btn-small" disabled={salvando}>
+          {salvando && <span className="btn-spinner" aria-hidden="true" />}
           {salvando ? 'Salvando...' : 'Salvar funcionamento'}
         </button>
       </form>

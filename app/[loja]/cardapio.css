@@ -917,3 +917,89 @@
   @media(max-width:640px){
     .checkout-modal{ align-items:end; padding:0; }.checkout-sheet{ max-height:94vh; border-radius:20px 20px 0 0; }.checkout-header{ padding:16px 18px 12px; }.checkout-conteudo,.checkout-sucesso{ padding:16px 17px calc(20px + env(safe-area-inset-bottom)); }.checkout-dados-grid{ grid-template-columns:1fr; }
   }
+
+  /* ============================================================
+     MOTION — skill design-motion-principles, peso Jakub (polimento
+     de produção, 200-500ms, cada visitante vê uma vez por pedido).
+     ============================================================ */
+
+  /* ---------- Esqueleto de carregamento (app/[loja]/loading.tsx) ---------- */
+  .esq{
+    display: block;
+    background: linear-gradient(90deg, #eef1ef 25%, #f6f8f7 50%, #eef1ef 75%);
+    background-size: 200% 100%;
+    animation: esq-brilho 1.2s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  @keyframes esq-brilho{
+    0%{ background-position: 200% 0; }
+    100%{ background-position: -200% 0; }
+  }
+  .esq-topo{ display:flex; align-items:center; gap:12px; padding:14px 16px; }
+  .esq-avatar{ width:44px; height:44px; border-radius:50%; flex-shrink:0; }
+  .esq-topo-txt{ flex:1; display:flex; flex-direction:column; gap:8px; }
+  .esq-linha{ height:14px; border-radius:6px; }
+  .esq-capa{ height:180px; margin:0 16px; border-radius:16px; }
+  .esq-conteudo{ padding:18px 16px; display:flex; flex-direction:column; gap:14px; }
+  .esq-busca{ height:44px; border-radius:12px; }
+  .esq-filtros{ display:flex; gap:8px; }
+  .esq-chip{ width:84px; height:32px; border-radius:999px; flex-shrink:0; }
+  .esq-grade{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  .esq-card{ height:190px; border-radius:14px; }
+  @media (min-width:640px){ .esq-grade{ grid-template-columns:repeat(3,1fr); } }
+
+  /* ---------- Entrada/saída do checkout ---------- */
+  .checkout-backdrop{
+    opacity: 0;
+    transition: opacity .25s cubic-bezier(0.16,1,0.3,1);
+  }
+  .checkout-sheet{
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+    transition:
+      opacity .32s cubic-bezier(0.16,1,0.3,1),
+      transform .32s cubic-bezier(0.16,1,0.3,1),
+      filter .32s cubic-bezier(0.16,1,0.3,1);
+  }
+  .checkout-modal.aberto .checkout-backdrop{ opacity: 1; }
+  .checkout-modal.aberto .checkout-sheet{ opacity: 1; transform: translateY(0); filter: blur(0); }
+  .checkout-modal.saindo .checkout-sheet{
+    /* Saída mais sutil que a entrada — menos deslocamento, mais rápida. */
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(3px);
+    transition-duration: .18s;
+    transition-timing-function: cubic-bezier(0.4,0,1,1);
+  }
+  .checkout-modal.saindo .checkout-backdrop{ opacity: 0; transition-duration: .18s; }
+
+  /* ---------- Fade-in de imagem carregada ---------- */
+  .foto-produto{
+    opacity: 0;
+    transition: opacity .25s cubic-bezier(0.16,1,0.3,1);
+  }
+  .foto-produto.carregada{ opacity: 1; }
+
+  /* ---------- Spinner de progresso em botão ---------- */
+  .btn-spinner{
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    vertical-align: -2px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-girar .6s linear infinite;
+  }
+  @keyframes btn-girar{ to{ transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce){
+    .esq{ animation: none; }
+    .checkout-backdrop,
+    .checkout-sheet{ transition: none !important; }
+    .checkout-modal .checkout-sheet{ opacity: 1; transform: none; filter: none; }
+    .foto-produto{ transition: none; opacity: 1; }
+    .btn-spinner{ animation-duration: 1.4s; }
+  }

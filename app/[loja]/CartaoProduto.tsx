@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatBRL, precoBase, precoMinimo, type ProdutoPublico } from '@/lib/cardapio/tipos';
 
 const ETIQUETAS: Record<string, string> = {
@@ -25,6 +26,7 @@ export function CartaoProduto({
   const base = precoBase(produto);
   const preco = minimo > base ? minimo : base;
   const permiteContadorDireto = produto.grupos.length === 0;
+  const [imgCarregada, setImgCarregada] = useState(false);
 
   return (
     <article className={'menu-card' + (esgotado ? ' esgotado' : '')}>
@@ -38,7 +40,13 @@ export function CartaoProduto({
         <span className="menu-card-photo">
           {produto.imagem_url ? (
             // eslint-disable-next-line @next/next/no-img-element -- imagem cadastrada pela loja
-            <img src={produto.imagem_url} alt="" loading="lazy" />
+            <img
+              src={produto.imagem_url}
+              alt=""
+              loading="lazy"
+              className={'foto-produto' + (imgCarregada ? ' carregada' : '')}
+              onLoad={() => setImgCarregada(true)}
+            />
           ) : (
             <span className="menu-emoji" aria-hidden="true">🍽️</span>
           )}

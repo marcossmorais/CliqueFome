@@ -164,6 +164,7 @@ export function PerfilForm({
               value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)}
             />
             <button type="submit" className="btn-primary btn-small" disabled={salvandoSenha}>
+              {salvandoSenha && <span className="btn-spinner" aria-hidden="true" />}
               {salvandoSenha ? 'Salvando...' : 'Salvar nova senha'}
             </button>
           </form>
@@ -199,6 +200,7 @@ export function PerfilForm({
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button type="submit" className="btn-primary btn-small" disabled={salvandoPerfil}>
+            {salvandoPerfil && <span className="btn-spinner" aria-hidden="true" />}
             {salvandoPerfil ? 'Salvando...' : 'Salvar perfil'}
           </button>
           <button type="button" className="btn-ghost btn-small" onClick={() => setEditando(false)}>

@@ -214,3 +214,44 @@
   text-decoration: none;
   font-weight: 700;
 }
+
+/* ---------- Esqueleto de carregamento (loading.tsx) ---------- */
+.esq-topo-tracking {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.esq-t {
+  display: block;
+  border-radius: 8px;
+  animation: esq-t-brilho 1.2s ease-in-out infinite;
+}
+/* Dentro do cabeçalho (fundo escuro em gradiente): brilho claro. Fora
+   dele (corpo claro da página): brilho cinza — mesmo par de tons que o
+   resto do app usa pra esqueleto, só invertido pro contexto escuro. */
+.esq-topo-tracking .esq-t {
+  background: linear-gradient(90deg, rgba(255,255,255,.14) 25%, rgba(255,255,255,.28) 50%, rgba(255,255,255,.14) 75%);
+  background-size: 200% 100%;
+}
+.esq-t-secao .esq-t,
+.esq-t-resumo{
+  background: linear-gradient(90deg, #eef1ef 25%, #f6f8f7 50%, #eef1ef 75%);
+  background-size: 200% 100%;
+  animation: esq-t-brilho 1.2s ease-in-out infinite;
+}
+@keyframes esq-t-brilho{
+  0%{ background-position: 200% 0; }
+  100%{ background-position: -200% 0; }
+}
+.esq-t-linha{ border-radius: 6px; }
+.esq-t-stepper{ display: flex; gap: 8px; margin-top: 14px; }
+.esq-t-circulo{ width: 26px; height: 26px; border-radius: 50%; }
+.esq-t-secao{ display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.esq-t-item{ height: 58px; border-radius: 12px; }
+.esq-t-resumo{ display: block; height: 130px; border-radius: 12px; }
+
+@media (prefers-reduced-motion: reduce){
+  .esq-t{ animation: none; }
+  .esq-t-secao .esq-t,
+  .esq-t-resumo{ animation: none; }
+}
