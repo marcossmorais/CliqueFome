@@ -26,6 +26,7 @@ export function ModalCategoria({
 
   const [nome, setNome] = useState(categoria?.nome ?? '');
   const [emoji, setEmoji] = useState(categoria?.emoji ?? '');
+  const [icone, setIcone] = useState(categoria?.icone ?? '');
   const [ativo, setAtivo] = useState(categoria ? categoria.ativo : true);
   const [salvando, setSalvando] = useState(false);
 
@@ -41,6 +42,7 @@ export function ModalCategoria({
       loja_id: lojaId,
       nome: nomeAparado,
       emoji: emoji.trim() || null,
+      icone: icone.trim() || null,
       ativo,
     };
     // Categoria nova entra no fim; editando, a posição atual é preservada
@@ -97,6 +99,24 @@ export function ModalCategoria({
             <div>
               <label htmlFor="catNome">Nome *</label>
               <input type="text" id="catNome" value={nome} onChange={(e) => setNome(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-linha">
+            <div>
+              <label htmlFor="catIcone">Ícone</label>
+              <select id="catIcone" value={icone} onChange={(e) => setIcone(e.target.value)}>
+                <option value="">Automático pelo nome</option>
+                <option value="hamburgueres">Hambúrgueres / lanches</option>
+                <option value="bebidas">Bebidas</option>
+                <option value="pizzas">Pizzas</option>
+                <option value="porcoes">Porções / petiscos</option>
+                <option value="sobremesas">Sobremesas</option>
+                <option value="combos">Combos</option>
+                <option value="acai">Açaí</option>
+                <option value="cafes">Cafés</option>
+                <option value="saudaveis">Saudáveis</option>
+                <option value="generico">Genérico</option>
+              </select>
             </div>
           </div>
           <p className="dica" style={{ marginTop: 0 }}>

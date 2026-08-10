@@ -76,7 +76,7 @@ async function carregar(slug: string) {
     { data: produtos, error: erroProdutos },
     { data: deliveryBruto },
   ] = await Promise.all([
-    sb.from('categorias').select('id, nome, emoji, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
+    sb.from('categorias').select('id, nome, emoji, icone, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
     sb
       .from('produtos')
       .select(

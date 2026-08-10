@@ -475,6 +475,7 @@ export function NovoPedidoPainel({
                 <strong>{formatBRL(subtotal)}</strong>
               </div>
               <button type="button" className={styles.criarPedido} disabled={salvando || linhas.length === 0 || !formaPagamento} onClick={salvar}>
+                {salvando && <span className="btn-spinner" aria-hidden="true" />}
                 {salvando ? 'Criando pedido…' : `Criar pedido · ${formatBRL(subtotal)}`}
               </button>
             </div>

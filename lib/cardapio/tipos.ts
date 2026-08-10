@@ -17,7 +17,7 @@ export type LojaPublica = {
   retirada_ativa: boolean;
 };
 
-export type CategoriaPublica = { id: string; nome: string; emoji: string | null; ordem: number };
+export type CategoriaPublica = { id: string; nome: string; emoji: string | null; icone: string | null; ordem: number };
 
 export type ComplementoPublico = {
   id: string;

@@ -793,9 +793,30 @@
   /* Quem prefere menos movimento vê um bloco estático, sem o brilho. */
   @media (prefers-reduced-motion: reduce){
     .esqueleto{ animation: none; }
+    .btn-spinner{ animation-duration: 1.4s; }
   }
   .esqueleto-logo{ height:30px; width:150px; margin: 0 8px 20px; }
   .esqueleto-chip{ height:62px; margin-bottom:14px; border-radius:12px; }
   .esqueleto-linha{ height:34px; margin-bottom:6px; }
   .esqueleto-titulo{ height:28px; width:220px; }
   .esqueleto-bloco{ height:180px; margin-bottom:16px; border-radius:14px; }
+  .esqueleto-cartao{ height:96px; border-radius:12px; margin-bottom:10px; }
+
+  /* ---------- SPINNER DE PROGRESSO (botão em ação assíncrona) ----------
+     Peso Emil aqui — admin é ferramenta de uso repetido no dia, então o
+     spinner só reforça um feedback textual que já existe ("Salvando..."),
+     rápido e sem drama. Mesma classe/keyframe do cardápio público
+     (app/[loja]/cardapio.css), duplicada porque são bundles CSS
+     separados — um por contexto, igual ao resto deste arquivo. */
+  .btn-spinner{
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    margin-right: 7px;
+    vertical-align: -2px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-girar .6s linear infinite;
+  }
+  @keyframes btn-girar{ to{ transform: rotate(360deg); } }

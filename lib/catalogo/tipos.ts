@@ -3,6 +3,7 @@ export type Categoria = {
   loja_id: string;
   nome: string;
   emoji: string | null;
+  icone: string | null;
   ativo: boolean;
   ordem: number;
 };

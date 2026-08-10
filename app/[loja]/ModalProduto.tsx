@@ -62,6 +62,7 @@ export function ModalProduto({
   const [obs, setObs] = useState('');
   const [qtd, setQtd] = useState(1);
   const [tentouAdicionar, setTentouAdicionar] = useState(false);
+  const [imgCarregada, setImgCarregada] = useState(false);
 
   // Lista restrita a outro tipo de pedido não aparece nem conta como
   // obrigatória — senão o produto ficaria impossível de adicionar.
@@ -148,7 +149,12 @@ export function ModalProduto({
           <div className="produto-modal-photo">
             {produto.imagem_url ? (
               // eslint-disable-next-line @next/next/no-img-element -- foto do catálogo da loja, vinda do Storage
-              <img src={produto.imagem_url} alt={produto.nome} />
+              <img
+                src={produto.imagem_url}
+                alt={produto.nome}
+                className={'foto-produto' + (imgCarregada ? ' carregada' : '')}
+                onLoad={() => setImgCarregada(true)}
+              />
             ) : (
               <span className="menu-emoji">🖼️</span>
             )}

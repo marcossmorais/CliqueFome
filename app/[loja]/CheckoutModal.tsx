@@ -64,6 +64,16 @@ function IconeFormaPagamento({ forma }: { forma: FormaPagamentoOffline }) {
 type Etapa = 'carrinho' | 'entrega';
 
 /**
+ * 'fechado' não renderiza nada; os outros três controlam a classe CSS que
+ * anima entrada/saída (cardapio.css, bloco "Entrada/saída do checkout").
+ * Existir 'saindo' é o que permite a saída animar antes de desmontar —
+ * sem isso, `if (!aberto) return null` some o modal na hora, sem dar
+ * tempo da transição CSS rodar (mesmo padrão "state-driven transition"
+ * do motion-cookbook.md §11 do skill design-motion-principles).
+ */
+type EstadoModal = 'fechado' | 'entrando' | 'aberto' | 'saindo';
+
+/**
  * Um modal só, com o carrinho como primeira etapa — antes disso o carrinho
  * (lista de itens) e o checkout (entrega/dados) eram duas sobreposições
  * independentes, cada uma com seu próprio backdrop. Empilhadas, a de trás
@@ -104,11 +114,33 @@ export function CheckoutModal({
   // render), e ajusta antes de terminar de renderizar. Nada disso entra
   // num useEffect: setState direto no corpo de um efeito dispara uma
   // renderização em cascata desnecessária.
-  const [abertoAnterior, setAbertoAnterior] = useState(aberto);
-  if (aberto !== abertoAnterior) {
-    setAbertoAnterior(aberto);
-    if (aberto) setEtapa('carrinho');
+  const [estado, setEstado] = useState<EstadoModal>(aberto ? 'entrando' : 'fechado');
+  if (aberto && (estado === 'fechado' || estado === 'saindo')) {
+    setEstado('entrando');
+    setEtapa('carrinho');
   }
+  if (!aberto && (estado === 'entrando' || estado === 'aberto')) {
+    setEstado('saindo');
+  }
+
+  // 'entrando' → 'aberto' um frame depois de montar, pra o navegador pintar
+  // o estado inicial (opacity 0) antes da classe que dispara a transição —
+  // sem o frame de intervalo, CSS não anima (troca de estado "no mesmo
+  // instante" não conta como transição). 'saindo' → 'fechado' (desmonta de
+  // verdade) só depois da duração da transição — instantâneo se
+  // prefers-reduced-motion estiver ativo, porque aí a saída não é visível
+  // mesmo, e não faz sentido segurar o desmonte.
+  useEffect(() => {
+    if (estado === 'entrando') {
+      const raf = requestAnimationFrame(() => setEstado('aberto'));
+      return () => cancelAnimationFrame(raf);
+    }
+    if (estado === 'saindo') {
+      const semAnimacao = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const t = setTimeout(() => setEstado('fechado'), semAnimacao ? 0 : 220);
+      return () => clearTimeout(t);
+    }
+  }, [estado]);
   const subtotal = linhas.reduce((s, linha) => s + subtotalLinha(linha), 0);
   const usaCotacaoDinamica = !!deliveryConfig?.configurada;
   const taxa = modo === 'entrega'
@@ -131,20 +163,21 @@ export function CheckoutModal({
   // campo, e `tituloRef.current?.focus()` arrancava o foco de volta pro
   // <h2>, fechando o teclado do celular no meio da digitação.
   useEffect(() => {
-    if (!aberto) return;
+    if (estado === 'fechado') return;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     tituloRef.current?.focus();
     return () => {
       document.body.style.overflow = overflow;
     };
-  }, [aberto]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao abrir/fechar, não a cada troca 'entrando'->'aberto'
+  }, [estado === 'fechado']);
 
   // Tab preso dentro do modal e Esc pra fechar — como efeito à parte, lendo
   // `enviando`/`onFechar` sempre atuais via closure de módulo (não entra na
   // lista de deps do efeito de foco acima).
   useEffect(() => {
-    if (!aberto) return;
+    if (estado === 'fechado') return;
     const tecla = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
       const focaveis = sheetRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled)');
@@ -156,9 +189,9 @@ export function CheckoutModal({
     };
     document.addEventListener('keydown', tecla);
     return () => document.removeEventListener('keydown', tecla);
-  }, [aberto]);
+  }, [estado]);
 
-  if (!aberto) return null;
+  if (estado === 'fechado') return null;
   const atualizar = (campo: keyof EnderecoEstruturado, valor: string) => onEndereco({ ...endereco, [campo]: valor });
   const alterarCep = (valor: string) => {
     const cep = formatarCep(valor);
@@ -184,7 +217,12 @@ export function CheckoutModal({
       : 'Finalizar pedido';
 
   return (
-    <div className="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-titulo">
+    <div
+      className={'checkout-modal' + (estado === 'aberto' ? ' aberto' : '') + (estado === 'saindo' ? ' saindo' : '')}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="checkout-titulo"
+    >
       <button type="button" className="checkout-backdrop" aria-label="Fechar" onClick={enviando ? undefined : onFechar} />
       <section className="checkout-sheet" ref={sheetRef}>
         <header className="checkout-header">
@@ -340,7 +378,7 @@ export function CheckoutModal({
             {erro && <p className="checkout-erro" role="alert">{erro}</p>}
             <div className="checkout-resumo"><div><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>{modo === 'entrega' && <div><span>Taxa de entrega</span><span>{cotacao.status === 'ok' ? formatBRL(taxa) : 'A calcular'}</span></div>}<div className="checkout-total"><span>Total</span><strong>{formatBRL(total)}</strong></div></div>
             <p className="checkout-pagamento"><strong>Pedido e pagamento são separados:</strong> seu pedido entra imediatamente na gestão da loja; o pagamento será confirmado manualmente pelo restaurante.</p>
-            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento || !lojaAberta || (modo === 'entrega' ? !deliveryAtivo : !retiradaAtiva)} onClick={onFinalizar}>{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
+            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento || !lojaAberta || (modo === 'entrega' ? !deliveryAtivo : !retiradaAtiva)} onClick={onFinalizar}>{enviando && <span className="btn-spinner" aria-hidden="true" />}{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
           </div>
         )}
       </section>
