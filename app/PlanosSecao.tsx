@@ -107,7 +107,7 @@ export function PlanosSecao() {
                   </li>
                 ))}
               </ul>
-              <Link href="/admin/cardapio" className={'btn ' + plano.cta}>
+              <Link href="/painel" className={'btn ' + plano.cta}>
                 Começar agora
               </Link>
             </div>

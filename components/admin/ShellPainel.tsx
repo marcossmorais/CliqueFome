@@ -38,14 +38,17 @@ export function ShellPainel({
   const pathname = usePathname();
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
-  const perfilAtivo = ['/admin/config', '/admin/links', '/admin/avaliacoes'].some(
+  // Toda rota do painel é prefixada pela loja atual — a loja é segmento da
+  // URL, não mais um cookie.
+  const base = `/painel/${lojaSlug}`;
+  const perfilAtivo = [`${base}/config`, `${base}/links`, `${base}/avaliacoes`].some(
     (rota) => pathname === rota || pathname.startsWith(`${rota}/`)
   );
 
   async function sair() {
     const sb = criarClientNavegador();
     await sb.auth.signOut();
-    router.replace('/admin/login');
+    router.replace('/entrar');
     router.refresh();
   }
 
@@ -70,7 +73,7 @@ export function ShellPainel({
               <div key={grupo.grupo}>
                 <div className="nav-grupo-titulo">{grupo.grupo}</div>
                 {grupo.itens.map((item) => {
-                  const href = `/admin/${item.id}`;
+                  const href = `${base}/${item.id}`;
                   return (
                     <Link
                       key={item.id}
@@ -100,16 +103,11 @@ export function ShellPainel({
                 <span className="perfil-seta" aria-hidden="true">⌃</span>
               </summary>
               <div className="perfil-opcoes">
-                <Link href="/admin/config" onClick={() => setAberto(false)}><Icone chave="config" /> Configurações</Link>
-                <Link href="/admin/links" onClick={() => setAberto(false)}><Icone chave="links" /> Links</Link>
-                <Link href="/admin/avaliacoes" onClick={() => setAberto(false)}><Icone chave="avaliacoes" /> Avaliações</Link>
+                <Link href={`${base}/config`} onClick={() => setAberto(false)}><Icone chave="config" /> Configurações</Link>
+                <Link href={`${base}/links`} onClick={() => setAberto(false)}><Icone chave="links" /> Links</Link>
+                <Link href={`${base}/avaliacoes`} onClick={() => setAberto(false)}><Icone chave="avaliacoes" /> Avaliações</Link>
               </div>
             </details>
-            {souAdmin && (
-              <Link href="/admin/lojas" className="btn-ghost btn-small" style={{ textAlign: 'center' }}>
-                Trocar de loja
-              </Link>
-            )}
             <button type="button" className="btn-ghost btn-small" onClick={sair}>
               Sair
             </button>

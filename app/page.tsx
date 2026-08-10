@@ -78,7 +78,7 @@ export default function Home() {
           <a href="#funcionalidades">Funcionalidades</a>
           <a href="#planos">Planos</a>
         </div>
-        <Link href="/admin/cardapio" className="btn btn-primary btn-small">
+        <Link href="/painel" className="btn btn-primary btn-small">
           Acessar conta
         </Link>
       </nav>
@@ -93,7 +93,7 @@ export default function Home() {
           lanchonetes, hamburguerias, pizzarias e açaiterias.
         </p>
         <div className="ctas">
-          <Link href="/admin/cardapio" className="btn btn-primary">
+          <Link href="/painel" className="btn btn-primary">
             Acessar conta
           </Link>
           <a href="#planos" className="btn btn-ghost">
