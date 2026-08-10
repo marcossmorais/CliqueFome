@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { obterLojaAtual, obterUsuario } from '@/lib/loja';
 import { OperacaoProvider } from '@/components/admin/StatusOperacional';
-import '../admin.css';
 
 /**
  * Layout da área autenticada. O login fica FORA deste grupo de rotas — se

@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { obterLojaAtual, obterUsuario } from '@/lib/loja';
 import { SairDaConta } from './SairDaConta';
 import { TemaAdmin } from '@/components/admin/TemaAdmin';
-import '../admin.css';
 
 /**
  * Destino de quem está logado mas não tem loja.

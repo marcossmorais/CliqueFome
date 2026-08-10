@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { FormularioLogin } from './FormularioLogin';
-import '../admin.css';
 
 /**
  * O formulário lê ?proximo= da URL com useSearchParams, que obriga o Next

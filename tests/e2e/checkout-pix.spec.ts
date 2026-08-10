@@ -11,19 +11,28 @@ const LOJA_SLUG = process.env.E2E_LOJA_SLUG || 'lojateste';
 test('checkout com "Fazer Pix no WhatsApp" redireciona e registra o pedido pra acompanhamento', async ({ page, context }) => {
   await page.goto(`/${LOJA_SLUG}`, { waitUntil: 'networkidle' });
 
-  await page.locator('.menu-card').first().click();
+  await page.locator('.menu-card .btn-add').first().click();
   const btnAdicionarModal = page.locator('.produto-modal-add');
-  if (await btnAdicionarModal.count()) {
-    const opcao = page.locator('.produto-modal li, .produto-modal label').first();
-    if (await opcao.count()) await opcao.click();
+  await expect(page.locator('.produto-modal-add, .floating-cart').first()).toBeVisible();
+  if (await btnAdicionarModal.isVisible().catch(() => false)) {
+    const grupos = page.locator('.produto-modal .grupo-bloco');
+    for (let i = 0; i < await grupos.count(); i++) {
+      const grupo = grupos.nth(i);
+      const opcao = grupo.locator('input:not(:disabled)').first();
+      const adicionarUm = grupo.getByRole('button', { name: /^Adicionar um / }).first();
+      if (await opcao.isVisible().catch(() => false)) await opcao.check();
+      else if (await adicionarUm.isVisible().catch(() => false)) await adicionarUm.click();
+    }
     await btnAdicionarModal.click();
   }
 
   const flutuante = page.locator('.floating-cart');
-  if (await flutuante.count()) await flutuante.click();
+  await expect(flutuante).toBeVisible();
+  await flutuante.click();
 
-  const continuar = page.locator('.checkout-modal .checkout-acao:has-text("Continuar pedido")');
-  if (await continuar.count()) await continuar.click();
+  const continuar = page.getByRole('button', { name: 'Continuar pedido' });
+  await expect(continuar).toBeVisible();
+  await continuar.click();
 
   await page.fill('.checkout-dados-grid input[autocomplete="name"]', 'Cliente Teste E2E');
   await page.fill('.checkout-dados-grid input[autocomplete="tel"]', '11999998888');

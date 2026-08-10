@@ -40,6 +40,7 @@ export function ModalProduto({
   const [categoriaId, setCategoriaId] = useState(produto ? produto.categoria_id ?? '' : categoriaPreSelecionada ?? '');
   const [etiqueta, setEtiqueta] = useState(produto?.etiqueta ?? '');
   const [destaque, setDestaque] = useState(produto?.destaque ?? false);
+  const [sugestaoCarrinho, setSugestaoCarrinho] = useState(produto?.sugestao_carrinho ?? '');
   const [preco, setPreco] = useState(produto ? String(produto.preco) : '');
   const [precoCusto, setPrecoCusto] = useState(produto?.preco_custo != null ? String(produto.preco_custo) : '');
   const [promocional, setPromocional] = useState(produto?.preco_promocional != null);
@@ -129,6 +130,7 @@ export function ModalProduto({
         categoria_id: categoriaId || null,
         etiqueta: etiqueta || null,
         destaque,
+        sugestao_carrinho: sugestaoCarrinho || null,
         codigo_pdv: codigoPdv.trim() || null,
         unidade_medida: unidade.trim() || null,
         esconder_observacao: esconderObs,
@@ -302,6 +304,13 @@ export function ModalProduto({
               </div>
               <label htmlFor="prodUnidade">Unidade de medida</label>
               <input type="text" id="prodUnidade" placeholder="ex: un, kg, 500ml" value={unidade} onChange={(e) => setUnidade(e.target.value)} />
+              <label htmlFor="prodSugestao">Sugestão no carrinho</label>
+              <select id="prodSugestao" value={sugestaoCarrinho} onChange={(e) => setSugestaoCarrinho(e.target.value as '' | 'bebida' | 'acompanhamento')}>
+                <option value="">Não sugerir</option>
+                <option value="bebida">Algo para beber</option>
+                <option value="acompanhamento">Um acompanhamento</option>
+              </select>
+              <p className="dica">A sugestão aparece somente quando fizer sentido para o carrinho e pode ser alterada a qualquer momento.</p>
               <p className="dica">A posição do item no cardápio é definida arrastando ele pela alça na lista.</p>
               <div className="campo-inline">
                 <label className="switch">
