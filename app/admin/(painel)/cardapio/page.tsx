@@ -25,6 +25,7 @@ export default async function CardapioPage() {
     <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Cardápio">
       <CatalogoClient
         lojaId={loja.id}
+        nicho={loja.nicho}
         categoriasIniciais={(categorias as Categoria[]) || []}
         produtosIniciais={(produtos as Produto[]) || []}
         gruposIniciais={gruposOrdenados}

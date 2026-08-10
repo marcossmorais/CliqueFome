@@ -8,6 +8,7 @@ import { useEscFechar } from '@/hooks/useEscFechar';
 import { ChipsToggle } from '@/components/admin/ChipsToggle';
 import { Alca } from '@/components/admin/IconesCatalogo';
 import { TIPOS_PEDIDO, type Categoria, type GrupoComplemento, type Produto } from '@/lib/catalogo/tipos';
+import { gruposParaNicho, GRUPOS_PRESET } from '@/lib/catalogo/presets';
 
 type TipoSelecao = 'uma' | 'varias' | 'varias_repetir';
 type ModoPreco = 'soma' | 'media' | 'maior' | 'menor';
@@ -61,6 +62,7 @@ function opcoesIniciais(lista: GrupoComplemento | null): OpcaoEdit[] {
 
 export function ModalLista({
   lojaId,
+  nicho,
   lista,
   categorias,
   produtos,
@@ -70,6 +72,7 @@ export function ModalLista({
   onErro,
 }: {
   lojaId: string;
+  nicho: string | null;
   lista: GrupoComplemento | null;
   categorias: Categoria[];
   produtos: Produto[];
@@ -90,6 +93,33 @@ export function ModalLista({
   const [avancadoAberto, setAvancadoAberto] = useState(false);
   const [opcoes, setOpcoes] = useState<OpcaoEdit[]>(() => opcoesIniciais(lista));
   const [salvando, setSalvando] = useState(false);
+
+  const presetsSugeridos = gruposParaNicho(nicho);
+  const presetsDisponiveis = [
+    ...presetsSugeridos,
+    ...GRUPOS_PRESET.filter((grupo) => !presetsSugeridos.includes(grupo)),
+  ];
+
+  function aplicarPreset(id: string) {
+    const preset = GRUPOS_PRESET.find((grupo) => grupo.id === id);
+    if (!preset) return;
+    setNome(preset.nome);
+    setTipoSelecao(preset.tipoSelecao);
+    setQtdMin(String(preset.qtdMin));
+    setQtdMax(String(preset.qtdMax));
+    setOpcoes(
+      preset.itens.map((opcao) => ({
+        uid: novoUid(),
+        nome: opcao.nome,
+        preco: String(opcao.precoSugerido),
+        qtdMax: '',
+        imagemUrl: opcao.imagemUrl,
+        previewUrl: null,
+        arquivo: null,
+        ativo: true,
+      }))
+    );
+  }
 
   // O modo de seleção muda o que faz sentido mostrar: "escolher 1 até N" só
   // vale pra múltipla escolha, e o limite por opção só existe quando pode
@@ -255,6 +285,23 @@ export function ModalLista({
         </div>
 
         <div className="modal-corpo">
+          {!lista && (
+            <div className="preset-box" style={{ marginBottom: 18, padding: 14, border: '1px solid #e2e8e4', borderRadius: 12, background: '#f7faf8' }}>
+              <label htmlFor="listaPreset">Usar um modelo pronto</label>
+              <select id="listaPreset" defaultValue="" onChange={(e) => aplicarPreset(e.target.value)}>
+                <option value="">Selecione um conjunto de complementos</option>
+                {presetsDisponiveis.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.nome} · {preset.itens.length} opções
+                    {presetsSugeridos.includes(preset) ? ' · recomendado' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="dica">
+                As fotos são compartilhadas e não ocupam um novo upload. Você pode editar nomes, valores e opções antes de salvar.
+              </p>
+            </div>
+          )}
           <div className="lista-split">
             <div>
               <label htmlFor="listaNome">Nome do complemento *</label>

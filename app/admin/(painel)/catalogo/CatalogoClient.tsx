@@ -11,6 +11,7 @@ import { ModalProduto } from './ModalProduto';
 import { ModalCategoria } from './ModalCategoria';
 import { ModalLista } from './ModalLista';
 import type { Categoria, GrupoComplemento, Produto } from '@/lib/catalogo/tipos';
+import { BEBIDAS_PRESET } from '@/lib/catalogo/presets';
 
 type Subtab = 'produtos' | 'complementos' | 'opcoes';
 
@@ -22,11 +23,13 @@ type Subtab = 'produtos' | 'complementos' | 'opcoes';
  */
 export function CatalogoClient({
   lojaId,
+  nicho,
   categoriasIniciais,
   produtosIniciais,
   gruposIniciais,
 }: {
   lojaId: string;
+  nicho: string | null;
   categoriasIniciais: Categoria[];
   produtosIniciais: Produto[];
   gruposIniciais: GrupoComplemento[];
@@ -132,6 +135,39 @@ export function CatalogoClient({
     setCategorias((atual) => atual.map((x) => (x.id === c.id ? { ...x, ativo: !x.ativo } : x)));
   }
 
+  async function adicionarBebidasProntas() {
+    if (!confirm('Adicionar as bebidas nacionais mais comuns ao cardápio? Você poderá editar preços, fotos e disponibilidade depois.')) return;
+    const sb = criarClientNavegador();
+    let categoria = categorias.find((c) => c.nome.trim().toLowerCase() === 'bebidas');
+    if (!categoria) {
+      const { data, error } = await sb.from('categorias').insert({
+        loja_id: lojaId, nome: 'Bebidas', emoji: null, icone: 'bebidas', ativo: true, ordem: categorias.length,
+      }).select().single();
+      if (error) { mostrarMsg('Erro ao criar categoria de bebidas: ' + error.message); return; }
+      categoria = data as Categoria;
+    }
+    const existentes = new Set(produtos.map((p) => `${p.nome.trim().toLowerCase()}|${(p.descricao || '').trim().toLowerCase()}`));
+    const novos = BEBIDAS_PRESET.filter((b) => !existentes.has(`${b.nome.toLowerCase()}|${b.volume.toLowerCase()}`));
+    if (novos.length === 0) { mostrarMsg('As bebidas da biblioteca já estão no cardápio.', 'ok'); return; }
+    const ordemInicial = produtos.length;
+    const { error } = await sb.from('produtos').insert(novos.map((b, i) => ({
+      loja_id: lojaId,
+      categoria_id: categoria!.id,
+      nome: b.nome,
+      descricao: b.volume,
+      preco: b.precoSugerido,
+      imagem_url: b.imagemUrl,
+      unidade_medida: b.volume,
+      ativo: true,
+      ordem: ordemInicial + i,
+      tipos_pedido: [],
+      dias_semana: [],
+    })));
+    if (error) { mostrarMsg('Erro ao adicionar bebidas: ' + error.message); return; }
+    mostrarMsg(`${novos.length} bebidas adicionadas. Confira os preços antes de publicar.`, 'ok');
+    await Promise.all([recarregarCategorias(), recarregarProdutos()]);
+  }
+
   async function toggleDisponibilidadeProduto(produto: Produto) {
     if (produtoAtualizandoId) return;
     const novoEstado = !produto.ativo;
@@ -203,6 +239,11 @@ export function CatalogoClient({
           {botaoNovo && (
             <button type="button" className="btn-primary btn-small" onClick={botaoNovo.onClick}>
               {botaoNovo.label}
+            </button>
+          )}
+          {subtab === 'produtos' && (
+            <button type="button" className="btn-ghost btn-small" onClick={() => void adicionarBebidasProntas()}>
+              + Bebidas prontas
             </button>
           )}
         </div>
@@ -302,6 +343,7 @@ export function CatalogoClient({
       {modalLista.aberto && (
         <ModalLista
           lojaId={lojaId}
+          nicho={nicho}
           lista={modalLista.lista}
           categorias={categorias}
           produtos={produtos}
