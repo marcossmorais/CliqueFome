@@ -12,7 +12,7 @@ import { ModalLista } from './ModalLista';
 import type { Categoria, GrupoComplemento, Produto } from '@/lib/catalogo/tipos';
 import { BEBIDAS_PRESET } from '@/lib/catalogo/presets';
 
-type Subtab = 'produtos' | 'complementos' | 'opcoes' | 'sugestoes';
+type Subtab = 'produtos' | 'complementos' | 'sugestoes';
 
 /**
  * Orquestrador do Catálogo — porta do bloco monolítico do admin.html
@@ -240,14 +240,6 @@ export function CatalogoClient({
             onClick={() => setSubtab('complementos')}
           >
             Complementos
-          </button>
-          <button
-            type="button"
-            className={'cat-subtab' + (subtab === 'opcoes' ? ' ativo' : '')}
-            hidden
-            onClick={() => setSubtab('opcoes')}
-          >
-            Opções
           </button>
           <button
             type="button"
