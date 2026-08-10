@@ -112,10 +112,16 @@ export function PainelDetalhePedido({
   }
 
   async function cancelar() {
-    if (!confirm(`Cancelar o pedido #${pedido.numero}?`)) return;
+    const motivo = prompt(`Por que o pedido #${pedido.numero} será cancelado?`);
+    if (motivo === null) return;
+    if (motivo.trim().length < 3 || motivo.trim().length > 300) {
+      onErro('Informe um motivo entre 3 e 300 caracteres.');
+      return;
+    }
+    if (!confirm(`Confirmar o cancelamento do pedido #${pedido.numero}?`)) return;
     try {
       const sb = criarClientNavegador();
-      await cancelarPedido(sb, pedido.id, pedido.status);
+      await cancelarPedido(sb, pedido.id, pedido.status, motivo.trim());
       await onAtualizado();
       onFechar();
     } catch (err) {
@@ -263,7 +269,7 @@ export function PainelDetalhePedido({
             </button>
           )}
           {ativo && (
-            <button type="button" className="btn-ghost btn-small" onClick={cancelar}>
+            <button type="button" className="btn-ghost btn-small pedido-cancelar" onClick={cancelar}>
               Cancelar pedido
             </button>
           )}

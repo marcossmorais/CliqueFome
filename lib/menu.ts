@@ -25,6 +25,8 @@ export const ICONES: Record<string, string> = {
   mesas: 'M3 6h18v12H3zM7 6V4M17 6V4M3 11h18',
   kds: 'M3 4h18v13H3zM8 21h8M12 17v4M8 9l2 2 4-4',
   caixa: 'M3 7h18v12H3zM3 11h18M7 15h3M7 7V5h10v2',
+  pdv: 'M3 7h18v12H3zM3 11h18M7 15h3M16 15h1M7 7V5h10v2',
+  estoque: 'M4 7l8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10',
   catalogo: 'M5 4h14v16H5zM9 8h6M9 12h6M9 16h3',
   links: 'M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1',
   delivery: 'M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11zM12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
@@ -51,37 +53,41 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     itens: [
       { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', pronta: true },
       { id: 'kds', nome: 'Cozinha', icone: 'kds', pronta: true },
-      { id: 'historico', nome: 'Histórico de pedidos', icone: 'historico', pronta: true, desc: 'Pedidos entregues, retirados ou cancelados, com filtros e busca.' },
-      { id: 'catalogo', nome: 'Catálogo', icone: 'catalogo', pronta: true },
+      { id: 'catalogo', nome: 'Cardápio', icone: 'catalogo', pronta: true },
       {
         id: 'delivery',
-        nome: 'Áreas de entrega',
+        nome: 'Delivery',
         icone: 'delivery',
         pronta: true,
-        desc: 'Delivery facilitado: taxa única, por distância ou por cidade vizinha.',
+        desc: 'Configuração das entregas e gestão dos entregadores.',
       },
+      { id: 'pdv', nome: 'PDV', icone: 'pdv', pronta: true, desc: 'Caixa, estoque e nota fiscal em um só lugar.' },
     ],
   },
   {
-    grupo: 'Sua loja',
+    grupo: 'Suporte',
     itens: [
-      { id: 'links', nome: 'Links do cardápio', icone: 'links', pronta: true },
-      { id: 'avaliacoes', nome: 'Avaliações', icone: 'avaliacoes', pronta: true, desc: 'Configure avaliações de produtos e da marca conforme o plano da loja.' },
       { id: 'suporte', nome: 'Ajuda e suporte', icone: 'suporte', pronta: true, desc: 'Central de ajuda, tutoriais e canais de suporte.' },
-      { id: 'config', nome: 'Configurações', icone: 'config', pronta: true, desc: 'Perfil, dados da loja, funcionamento e plano.' },
     ],
   },
   {
     grupo: 'Em breve',
     itens: [
       { id: 'mesas', nome: 'Mesas e comandas', icone: 'mesas', desc: 'Abrir mesa, lançar itens durante o consumo e fechar a conta com taxa de serviço.' },
-      { id: 'caixa', nome: 'Caixa', icone: 'caixa', desc: 'Abertura e fechamento com conferência, sangria, suprimento e resumo do movimento do dia.' },
-      { id: 'entregadores', nome: 'Entregadores', icone: 'entregadores', desc: 'Cadastro dos seus motoboys pra vincular ao pedido na hora da entrega.' },
       { id: 'desempenho', nome: 'Desempenho', icone: 'desempenho', desc: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.' },
       { id: 'financeiro', nome: 'Financeiro', icone: 'financeiro', desc: 'Contas a pagar e a receber, fluxo de caixa e categorias financeiras.' },
-      { id: 'fiscal', nome: 'Fiscal', icone: 'fiscal', desc: 'Emissão de notas dos pedidos direto pelo sistema.' },
     ],
   },
 ];
 
-export const TODAS_AREAS: ItemMenu[] = MENU.flatMap((g) => g.itens);
+const AREAS_INTERNAS: ItemMenu[] = [
+  { id: 'links', nome: 'Links do cardápio', icone: 'links', pronta: true },
+  { id: 'avaliacoes', nome: 'Avaliações', icone: 'avaliacoes', pronta: true },
+  { id: 'config', nome: 'Configurações', icone: 'config', pronta: true },
+  { id: 'historico', nome: 'Histórico de pedidos', icone: 'historico', pronta: true },
+  { id: 'caixa', nome: 'Caixa', icone: 'caixa', desc: 'Abertura, fechamento, sangria e suprimento.' },
+  { id: 'estoque', nome: 'Estoque', icone: 'estoque', desc: 'Controle de entradas, saídas e insumos.' },
+  { id: 'fiscal', nome: 'Nota fiscal', icone: 'fiscal', desc: 'Emissão de notas dos pedidos.' },
+];
+
+export const TODAS_AREAS: ItemMenu[] = [...MENU.flatMap((g) => g.itens), ...AREAS_INTERNAS];

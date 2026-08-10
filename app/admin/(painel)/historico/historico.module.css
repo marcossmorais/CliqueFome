@@ -92,6 +92,12 @@
 .resumo span, .resumo strong { display: block; }
 .resumo span { margin-bottom: 5px; color: var(--texto-suave); font-size: 11.5px; }
 .resumo strong { color: var(--verde-escuro); font-family: var(--fonte-titulo), sans-serif; font-size: 21px; font-variant-numeric: tabular-nums; }
+.acoesMassa { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; padding:12px 14px; border:1px solid var(--borda); border-radius:12px; background:var(--superficie); }
+.acoesMassa > label { display:flex; align-items:center; gap:8px; color:var(--texto); font-size:12.5px; font-weight:700; }
+.acoesMassa > span { flex:1; color:var(--texto-suave); font-size:11.5px; }
+.acoesMassa > div { display:flex; flex-wrap:wrap; gap:7px; }
+.remover { padding:8px 12px; border:1px solid #d88; border-radius:8px; color:#a52f2f; background:transparent; font-size:12px; font-weight:700; }
+.remover:disabled { cursor:not-allowed; opacity:.45; }
 
 .lista { min-width: 0; overflow: hidden; border: 1px solid var(--borda); border-radius: 14px; background: var(--superficie); }
 .listaTopo { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 18px; border-bottom: 1px solid var(--borda); }
@@ -100,24 +106,31 @@
 .pedidos { display: flex; flex-direction: column; }
 
 .pedido {
+  position:relative;
+  border-bottom: 1px solid var(--borda);
+  background:var(--superficie);
+}
+.pedido:last-child { border-bottom: 0; }
+.pedido:hover { background: #f7faf8; }
+.pedido.selecionado { background: var(--verde-tint); box-shadow: inset 3px 0 var(--verde); }
+.seletor { position:absolute; z-index:2; left:17px; top:50%; transform:translateY(-50%); display:grid; place-items:center; width:22px; height:32px; cursor:pointer; }
+.seletor input, .acoesMassa input { width:16px; height:16px; accent-color:var(--verde); }
+.pedidoAbrir {
   display: grid;
   grid-template-columns: minmax(180px, 1.2fr) minmax(230px, 1.4fr) minmax(155px, .8fr);
   align-items: center;
   gap: 14px;
   width: 100%;
   min-height: 84px;
-  padding: 14px 18px;
+  padding: 14px 18px 14px 50px;
   border: 0;
   border-bottom: 1px solid var(--borda);
   border-radius: 0;
   color: var(--texto);
-  background: var(--superficie);
+  background: transparent;
   text-align: left;
 }
-.pedido:last-child { border-bottom: 0; }
-.pedido:hover { background: #f7faf8; }
-.pedido:focus-visible { position: relative; z-index: 1; outline: 3px solid rgba(30, 122, 78, .22); outline-offset: -3px; }
-.pedido.selecionado { background: var(--verde-tint); box-shadow: inset 3px 0 var(--verde); }
+.pedidoAbrir:focus-visible { position: relative; z-index: 1; outline: 3px solid rgba(30, 122, 78, .22); outline-offset: -3px; }
 
 .pedidoPrincipal, .pedidoInfo, .pedidoFinal { display: flex; min-width: 0; }
 .pedidoPrincipal { align-items: center; gap: 11px; }
@@ -150,7 +163,7 @@
 
 @media (max-width: 900px) {
   .campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pedido { grid-template-columns: minmax(160px, 1fr) minmax(150px, 1fr); }
+  .pedidoAbrir { grid-template-columns: minmax(160px, 1fr) minmax(150px, 1fr); }
   .pedidoFinal { grid-column: 2; grid-row: 1; }
   .pedidoInfo { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
   .pedidoInfo span:not(:last-child)::after { content: ' ·'; }
@@ -164,9 +177,21 @@
   .resumo { grid-template-columns: 1fr 1fr; }
   .resumo > div { padding: 13px; }
   .resumo strong { font-size: 17px; }
-  .pedido { grid-template-columns: 1fr auto; padding: 13px 14px; }
+  .acoesMassa { align-items:stretch; flex-direction:column; }
+  .acoesMassa > div { display:grid; grid-template-columns:1fr 1fr; }
+  .acoesMassa > div button:last-child { grid-column:1 / -1; }
+  .pedidoAbrir { grid-template-columns: 1fr auto; padding: 13px 14px 13px 46px; }
   .pedidoInfo { grid-column: 1 / -1; }
   .pedidoFinal { grid-column: 2; grid-row: 1; }
   .pedidoFinal small { max-width: 105px; text-align: right; }
   .listaTopo { align-items: flex-start; flex-direction: column; gap: 5px; }
+}
+
+@media print {
+  :global(#sidebar), :global(#mainTop), :global(.pedido-painel), .filtros, .resumo, .acoesMassa, .paginacao { display:none !important; }
+  :global(#main) { padding:0 !important; background:#fff !important; }
+  .historico, .lista { max-width:none; border:0; }
+  .naoSelecionadoPrint { display:none !important; }
+  .seletor { display:none; }
+  .pedidoAbrir { padding-left:14px; }
 }

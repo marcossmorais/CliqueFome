@@ -24,7 +24,7 @@ export default async function CatalogoPage() {
   }));
 
   return (
-    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Catálogo">
+    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Cardápio">
       <CatalogoClient
         lojaId={loja.id}
         categoriasIniciais={(categorias as Categoria[]) || []}
