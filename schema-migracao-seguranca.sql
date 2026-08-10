@@ -61,10 +61,11 @@ grant select (
   id, loja_id, categoria_id, nome, descricao,
   preco, preco_promocional, imagem_url, etiqueta, destaque,
   esconder_observacao, esconder_quantidade, dias_semana, tipos_pedido,
-  ativo, ordem
+  ativo, ordem, sugestao_carrinho
 ) on produtos to anon;
 -- Fora da lista, de propósito: preco_custo, codigo_pdv, codigo_interno,
--- unidade_medida, created_at.
+-- unidade_medida, created_at, preset_origem (metadado interno de
+-- catálogo, só usado no painel autenticado).
 
 revoke select on lojas from anon;
 grant select (
