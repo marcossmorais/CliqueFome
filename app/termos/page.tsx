@@ -39,7 +39,7 @@ export default function TermosPage() {
         <nav aria-label="Navegação dos documentos">
           <a href="#termos">Termos de Uso</a>
           <a href="#privacidade">Privacidade</a>
-          <Link href="/admin/suporte">Central de Ajuda</Link>
+          <Link href="/painel">Central de Ajuda</Link>
         </nav>
       </header>
 
@@ -395,7 +395,7 @@ export default function TermosPage() {
         </div>
         <div>
           <Link href="/">Página inicial</Link>
-          <Link href="/admin/suporte">Central de Ajuda</Link>
+          <Link href="/painel">Central de Ajuda</Link>
           <a href="#conteudo-legal">Voltar ao topo</a>
         </div>
       </footer>

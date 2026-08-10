@@ -50,7 +50,7 @@ const nextConfig: NextConfig = {
       // /cardapio.html?loja=x é tratado no proxy.ts, não aqui: o Next
       // repassa a query string no redirect e a URL nova sairia como
       // /oh-taal?loja=oh-taal.
-      { source: '/admin.html', destination: '/admin/catalogo', permanent: true },
+      { source: '/admin.html', destination: '/painel', permanent: true },
       { source: '/index.html', destination: '/', permanent: true },
     ];
   },

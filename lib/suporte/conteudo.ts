@@ -161,6 +161,9 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
 export type PassoTutorial = {
   titulo: string;
   descricao: string;
+  /** Área do painel, relativa à loja atual (ex: 'cardapio'). O prefixo
+   *  /painel/<slug> é montado por quem renderiza — este arquivo não sabe
+   *  de qual loja é a sessão. */
   rota?: string;
 };
 
@@ -182,7 +185,7 @@ export const TUTORIAIS: Tutorial[] = [
     nivel: 'Essencial',
     duracao: '5 min',
     passos: [
-      { titulo: 'Abra Configurações', descricao: 'Use o menu lateral para acessar Configurações → Minha loja.', rota: '/admin/config' },
+      { titulo: 'Abra Configurações', descricao: 'Use o menu lateral para acessar Configurações → Minha loja.', rota: 'config' },
       { titulo: 'Ajuste a aparência', descricao: 'Envie logo e capa, escolha a cor da marca e salve o bloco.' },
       { titulo: 'Revise os dados', descricao: 'Confira nome, nicho e WhatsApp com DDD.' },
       { titulo: 'Defina as regras', descricao: 'Em Funcionamento, preencha pedido mínimo, tempo de preparo e retirada/delivery.' },
@@ -197,7 +200,7 @@ export const TUTORIAIS: Tutorial[] = [
     nivel: 'Essencial',
     duracao: '10 min',
     passos: [
-      { titulo: 'Crie as categorias', descricao: 'Separe os itens como o cliente procura: Lanches, Bebidas, Sobremesas.', rota: '/admin/cardapio' },
+      { titulo: 'Crie as categorias', descricao: 'Separe os itens como o cliente procura: Lanches, Bebidas, Sobremesas.', rota: 'cardapio' },
       { titulo: 'Cadastre os produtos', descricao: 'Use nomes objetivos, descrição curta, preço correto e imagem nítida.' },
       { titulo: 'Defina disponibilidade', descricao: 'Mantenha ativos apenas os itens realmente vendáveis.' },
       { titulo: 'Ordene o catálogo', descricao: 'Arraste categorias e produtos para colocar os mais importantes primeiro.' },
@@ -213,7 +216,7 @@ export const TUTORIAIS: Tutorial[] = [
     duracao: '8 min',
     passos: [
       { titulo: 'Planeje a escolha', descricao: 'Defina se a lista representa tamanho, sabor, borda ou adicionais.' },
-      { titulo: 'Crie a lista', descricao: 'Na subaba Complementos, informe mínimo, máximo, repetição e regra de preço.', rota: '/admin/cardapio' },
+      { titulo: 'Crie a lista', descricao: 'Na subaba Complementos, informe mínimo, máximo, repetição e regra de preço.', rota: 'cardapio' },
       { titulo: 'Cadastre as opções', descricao: 'Adicione cada escolha com preço extra e quantidade máxima quando aplicável.' },
       { titulo: 'Vincule aos produtos', descricao: 'Edite os produtos e selecione a lista recém-criada.' },
       { titulo: 'Teste os limites', descricao: 'No cardápio, tente salvar abaixo do mínimo, acima do máximo e com combinações diferentes.' },
@@ -227,7 +230,7 @@ export const TUTORIAIS: Tutorial[] = [
     nivel: 'Essencial',
     duracao: '3 min',
     passos: [
-      { titulo: 'Abra Links do cardápio', descricao: 'O painel mostra o endereço público associado ao slug da loja.', rota: '/admin/links' },
+      { titulo: 'Abra Links do cardápio', descricao: 'O painel mostra o endereço público associado ao slug da loja.', rota: 'links' },
       { titulo: 'Clique em Abrir', descricao: 'Revise o cardápio em uma nova aba e faça o teste no celular.' },
       { titulo: 'Simule o checkout', descricao: 'Monte um carrinho e confirme número, itens, totais e destino da mensagem.' },
       { titulo: 'Copie o endereço', descricao: 'Depois da validação, use o botão Copiar para divulgar o link.' },
@@ -241,7 +244,7 @@ export const TUTORIAIS: Tutorial[] = [
     nivel: 'Operação',
     duracao: '5 min',
     passos: [
-      { titulo: 'Abra Gestão de pedidos', descricao: 'A fila separa pedidos em andamento dos prontos e do histórico.', rota: '/admin/pedidos' },
+      { titulo: 'Abra Gestão de pedidos', descricao: 'A fila separa pedidos em andamento dos prontos e do histórico.', rota: 'pedidos' },
       { titulo: 'Selecione um pedido', descricao: 'Confira cliente, tipo, itens, observações, pagamento e total no painel detalhado.' },
       { titulo: 'Avance com cuidado', descricao: 'Mude o status apenas após cumprir a etapa indicada pelo botão.' },
       { titulo: 'Trate conflitos', descricao: 'Se outra aba alterar o pedido, leia o aviso e trabalhe com o estado atualizado.' },
@@ -256,7 +259,7 @@ export const TUTORIAIS: Tutorial[] = [
     nivel: 'Operação',
     duracao: '4 min',
     passos: [
-      { titulo: 'Inicie um novo pedido', descricao: 'Na Gestão de pedidos, clique em “+ Novo pedido”.', rota: '/admin/pedidos' },
+      { titulo: 'Inicie um novo pedido', descricao: 'Na Gestão de pedidos, clique em “+ Novo pedido”.', rota: 'pedidos' },
       { titulo: 'Identifique o atendimento', descricao: 'Preencha cliente, contato, origem e tipo correto: entrega, retirada, balcão ou encomenda.' },
       { titulo: 'Adicione os itens', descricao: 'Busque os produtos, informe quantidades e revise os valores.' },
       { titulo: 'Confira antes de salvar', descricao: 'Valide destino, endereço quando necessário, pagamento e observações.' },

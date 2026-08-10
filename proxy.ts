@@ -6,8 +6,11 @@ import { NextResponse, type NextRequest } from 'next/server';
  * Duas funções:
  *  1. Renova o cookie de sessão a cada request (Server Components não podem
  *     escrever cookie, então a renovação precisa acontecer aqui).
- *  2. Barra /admin/* pra quem não está logado — no SERVIDOR. Esconder botão
- *     no front não protege nada: sem isso, digitar a URL direto entrava.
+ *  2. Barra a área interna pra quem não está logado — no SERVIDOR. Esconder
+ *     botão no front não protege nada: sem isso, digitar a URL direto
+ *     entrava. Quem impede um lojista de abrir o painel de OUTRA loja não é
+ *     este arquivo, e sim o layout de /painel/[loja] (que resolve o slug
+ *     filtrando por dono_id) mais a RLS.
  */
 export async function proxy(request: NextRequest) {
   // Link antigo do cardápio: /cardapio.html?loja=oh-taal -> /oh-taal
@@ -47,20 +50,25 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const areaProtegida = pathname.startsWith('/admin') && pathname !== '/admin/login';
+  const areaProtegida =
+    pathname.startsWith('/painel') ||
+    pathname.startsWith('/superadmin') ||
+    pathname === '/criar-loja';
 
   if (areaProtegida && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/admin/login';
+    url.pathname = '/entrar';
     // Guarda pra onde a pessoa queria ir, pra devolver depois do login.
     url.searchParams.set('proximo', pathname);
     return NextResponse.redirect(url);
   }
 
-  // Já logado não fica na tela de login.
-  if (pathname === '/admin/login' && user) {
+  // Já logado não fica na tela de login. Vai pro /painel, que descobre a
+  // loja e redireciona — aqui no Edge não dá pra consultar o banco pra
+  // montar /painel/<slug> direto.
+  if (pathname === '/entrar' && user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/admin/catalogo';
+    url.pathname = '/painel';
     url.search = '';
     return NextResponse.redirect(url);
   }
@@ -74,7 +82,7 @@ export const config = {
   // O matcher anterior pegava TODAS as rotas, o que fazia a landing e o
   // cardápio público — que não têm sessão nem nada a proteger — pagarem uma
   // chamada de rede ao Supabase (getUser) a cada visita. Restringir aqui
-  // não abre brecha: quem protege /admin continua sendo este proxy, e o
-  // layout do painel revalida a sessão no servidor por cima.
-  matcher: ['/admin/:path*', '/cardapio.html'],
+  // não abre brecha: quem protege a área interna continua sendo este proxy,
+  // e o layout do painel revalida a sessão no servidor por cima.
+  matcher: ['/painel/:path*', '/superadmin/:path*', '/entrar', '/criar-loja', '/cardapio.html'],
 };
