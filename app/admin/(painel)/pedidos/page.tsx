@@ -17,7 +17,7 @@ export default async function PedidosPage() {
 
   const [{ data: pedidos }, { data: categorias }, { data: produtosBrutos }] = await Promise.all([
     sb.from('pedidos').select('*, pedido_itens(id)').eq('loja_id', loja.id).order('criado_em', { ascending: false }),
-    sb.from('categorias').select('id, nome, emoji, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
+    sb.from('categorias').select('id, nome, emoji, icone, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
     // Mesma consulta do cardápio público (app/[loja]/page.tsx): o pedido
     // manual do painel precisa das mesmas listas de complemento pra não
     // ficar restrito a produto simples, sem opção — era essa a limitação

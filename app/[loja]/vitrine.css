@@ -161,6 +161,7 @@ body{
   overflow-x:auto;
   scrollbar-width:none;
 }
+.cardapio-app .menu-filters:not(.menu-filters-with-icons){ display:none; }
 .cardapio-app .menu-filters::-webkit-scrollbar{ display:none; }
 .cardapio-app .filter-btn{
   display:grid;

@@ -24,6 +24,7 @@ import {
 import type { ConfigDeliveryPublica } from '@/lib/delivery/tipos';
 import { ENDERECO_VAZIO, enderecoEmLinha, enderecoEstruturadoValido, type EnderecoEstruturado } from '@/lib/delivery/tipos';
 import { formaPagamentoPermitida, type FormaPagamentoOffline } from '@/lib/pedidos/pagamento';
+import { IconeCategoria } from '@/components/cardapio/IconeCategoria';
 
 const TEXTO_AVISO: Record<string, string> = {
   removido: 'saiu do cardápio',
@@ -453,6 +454,17 @@ export function CardapioClient({
             {categoriasVisiveis.map((c) => (
               <button key={c.id} type="button" className={'filter-btn' + (categoriaId === c.id && !termoBusca ? ' active' : '')} onClick={() => selecionarCategoria(c.id)}>
                 <span className="filter-emoji">{c.emoji || '•'}</span><span>{c.nome}</span>
+              </button>
+            ))}
+          </nav>
+
+          <nav className="menu-filters menu-filters-with-icons" aria-label="Categorias do cardápio">
+            <button type="button" className={'filter-btn' + (categoriaId === 'todos' && !termoBusca ? ' active' : '')} onClick={() => selecionarCategoria('todos')}>
+              <span className="filter-emoji"><IconeCategoria nome="Todos" icone="generico" /></span><span>Todos</span>
+            </button>
+            {categoriasVisiveis.map((c) => (
+              <button key={`icone-${c.id}`} type="button" className={'filter-btn' + (categoriaId === c.id && !termoBusca ? ' active' : '')} onClick={() => selecionarCategoria(c.id)}>
+                <span className="filter-emoji"><IconeCategoria nome={c.nome} icone={c.icone} /></span><span>{c.nome}</span>
               </button>
             ))}
           </nav>
