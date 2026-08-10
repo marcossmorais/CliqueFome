@@ -1,7 +1,7 @@
 export const CATEGORIAS_FAQ = [
   { id: 'todos', nome: 'Todas' },
   { id: 'inicio', nome: 'Primeiros passos' },
-  { id: 'catalogo', nome: 'Catálogo' },
+  { id: 'catalogo', nome: 'Cardápio' },
   { id: 'pedidos', nome: 'Pedidos' },
   { id: 'loja', nome: 'Minha loja' },
   { id: 'conta', nome: 'Conta e privacidade' },
@@ -29,7 +29,7 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
     passos: [
       'Informe o nome da loja, o nicho e o WhatsApp solicitado na criação.',
       'Abra “Minha empresa” para completar a identidade visual e as regras de entrega.',
-      'Abra “Catálogo” para cadastrar categorias, produtos e complementos.',
+      'Abra “Cardápio” para cadastrar categorias, produtos e complementos.',
       'Use “Links do cardápio” para copiar e testar o endereço público da sua loja.',
     ],
     palavrasChave: ['cadastro', 'criar loja', 'começar', 'onboarding', 'primeiro acesso'],
@@ -49,9 +49,9 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
     categoria: 'catalogo',
     pergunta: 'Como cadastro uma categoria e um produto?',
     resposta:
-      'No Catálogo, crie primeiro a categoria e depois o produto. O produto pode receber nome, descrição, preço, imagem, disponibilidade e listas de complementos.',
+      'No Cardápio, crie primeiro a categoria e depois o produto. O produto pode receber nome, descrição, preço, imagem, disponibilidade e listas de complementos.',
     passos: [
-      'Entre em “Catálogo” e selecione “+ Categoria”.',
+      'Entre em “Cardápio” e selecione “+ Categoria”.',
       'Dê um nome claro, salve e selecione a nova categoria.',
       'Clique em “+ Novo produto”, preencha os campos obrigatórios e vincule as listas desejadas.',
       'Salve e confira o item no cardápio público.',
@@ -77,7 +77,7 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
     categoria: 'catalogo',
     pergunta: 'Como pauso um item ou escondo uma categoria?',
     resposta:
-      'Use o controle de disponibilidade do produto para sinalizar que ele não pode ser comprado. Para retirar um conjunto inteiro da navegação, desative a categoria no Catálogo.',
+      'Use o controle de disponibilidade do produto para sinalizar que ele não pode ser comprado. Para retirar um conjunto inteiro da navegação, desative a categoria no Cardápio.',
     observacao:
       'Depois de mudar a disponibilidade, confira o cardápio público. Produtos indisponíveis podem continuar visíveis com indicação de esgotado, enquanto categorias desativadas deixam de ser exibidas.',
     palavrasChave: ['pausar', 'ocultar', 'esgotado', 'inativo', 'disponibilidade', 'categoria'],
@@ -121,7 +121,7 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
     categoria: 'loja',
     pergunta: 'Onde altero nome, logo, WhatsApp e regras de entrega?',
     resposta:
-      'Abra “Configurações”. Em “Minha loja” ficam nome, logo, capa, cor da marca, WhatsApp e cidade; em “Funcionamento” ficam pedido mínimo, tempo de preparo e se a loja aceita retirada e/ou delivery. A taxa de entrega em si fica em “Áreas de entrega”.',
+      'Abra “Perfil → Configurações”. Em “Minha loja” ficam nome, logo, capa, cor da marca, WhatsApp e cidade; em “Funcionamento” ficam pedido mínimo, tempo de preparo e se a loja aceita retirada e/ou delivery. A taxa de entrega fica em “Delivery”.',
     observacao:
       'Salve cada bloco e confira o cardápio público. Use um número de WhatsApp com DDD e revise se o tempo mínimo é menor ou igual ao máximo.',
     palavrasChave: ['logo', 'capa', 'cor', 'whatsapp', 'taxa', 'pedido mínimo', 'tempo', 'empresa', 'loja', 'configurações'],

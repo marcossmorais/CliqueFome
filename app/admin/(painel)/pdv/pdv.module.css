@@ -1,0 +1,13 @@
+.pagina { max-width:900px; }
+.pagina header { margin-bottom:18px; padding:28px; border-radius:18px; color:#fff; background:linear-gradient(135deg,var(--verde-escuro),var(--verde)); }
+.pagina header span { color:#ffc485; font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+.pagina h2 { margin:5px 0; font:700 30px/1.2 var(--fonte-titulo),sans-serif; }
+.pagina header p { margin:0; color:rgba(255,255,255,.8); }
+.grade { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.card { display:grid; grid-template-columns:auto 1fr; gap:12px; min-width:0; padding:20px; border:1px solid var(--borda); border-radius:15px; color:var(--texto); background:var(--superficie); box-shadow:0 5px 16px rgba(20,37,30,.04); }
+.card:hover { border-color:var(--verde); transform:translateY(-1px); }
+.card i { display:grid; place-items:center; width:40px; height:40px; border-radius:11px; color:var(--verde); background:var(--verde-claro); font-size:22px; font-style:normal; }
+.card strong { font-size:15px; }
+.card p { margin:5px 0 13px; color:var(--texto-suave); font-size:12.5px; line-height:1.45; }
+.card > span { grid-column:2; width:max-content; color:var(--laranja); font-size:11px; font-weight:800; }
+@media (max-width:760px) { .grade { grid-template-columns:1fr; } }

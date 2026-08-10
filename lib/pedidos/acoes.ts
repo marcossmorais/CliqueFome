@@ -9,6 +9,7 @@ export async function buscarPedidos(sb: Sb, lojaId: string): Promise<PedidoResum
     .from('pedidos')
     .select('*, pedido_itens(id)')
     .eq('loja_id', lojaId)
+    .is('historico_oculto_em', null)
     .order('criado_em', { ascending: false });
   if (error) throw error;
   return (data as PedidoResumo[]) || [];
@@ -55,16 +56,22 @@ export async function avancarStatus(
 /** Cancelar também é uma transição: pedido já entregue não volta atrás —
  * a RPC libera cancelamento de qualquer status ativo, mas nunca a partir
  * de concluído/cancelado. */
-export async function cancelarPedido(sb: Sb, pedidoId: string, statusEsperado: StatusPedido) {
-  const { error } = await sb.rpc('transicionar_pedido', {
+export async function cancelarPedido(sb: Sb, pedidoId: string, statusEsperado: StatusPedido, motivo: string) {
+  const { error } = await sb.rpc('cancelar_pedido', {
     p_pedido_id: pedidoId,
     p_status_esperado: statusEsperado,
-    p_novo_status: 'cancelado',
+    p_motivo: motivo,
   });
   if (error) {
     if (error.message?.includes('CONFLITO')) throw new ConflitoDePedido();
     throw error;
   }
+}
+
+export async function arquivarPedidosHistorico(sb: Sb, pedidoIds: string[]) {
+  if (pedidoIds.length < 1 || pedidoIds.length > 100) throw new Error('Selecione entre 1 e 100 pedidos.');
+  const { error } = await sb.rpc('arquivar_pedidos_historico', { p_pedido_ids: pedidoIds });
+  if (error) throw error;
 }
 
 export async function marcarPagamento(

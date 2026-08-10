@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { ConflitoDePedido, avancarStatus, buscarPedidos } from '@/lib/pedidos/acoes';
 import { minutosAteOPrazo, ordenarPorUrgencia } from '@/lib/pedidos/prioridade';
@@ -183,7 +184,9 @@ export function PedidosClient({
     }
   }
 
-  const historico = ordenarPorUrgencia(filtrados.filter((p) => HISTORICO.includes(p.status)));
+  const historico = filtrados
+    .filter((p) => HISTORICO.includes(p.status))
+    .sort((a, b) => new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime());
 
 
   return (
@@ -210,6 +213,11 @@ export function PedidosClient({
         >
           {verHistorico ? 'Voltar à operação' : 'Histórico'}
         </button>
+        {verHistorico && (
+          <Link href="/admin/pedidos/historico" className="btn-ghost btn-small">
+            Filtros avançados
+          </Link>
+        )}
       </div>
 
       <div className="pedidos-metricas">

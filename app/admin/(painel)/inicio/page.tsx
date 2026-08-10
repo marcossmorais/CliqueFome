@@ -246,7 +246,7 @@ export default async function InicioPage() {
                     ))}
                   </ol>
                 ) : <EstadoVazio>Os produtos mais vendidos aparecem após o primeiro pedido do dia.</EstadoVazio>}
-                <Link href="/admin/catalogo" className={styles.linkAcao}>Ver catálogo →</Link>
+                <Link href="/admin/catalogo" className={styles.linkAcao}>Ver cardápio →</Link>
               </article>
 
               <article className={`${styles.bloco} ${resumo.pagamentosPendentes ? styles.pagamentoAlerta : styles.pagamentoOk}`}>

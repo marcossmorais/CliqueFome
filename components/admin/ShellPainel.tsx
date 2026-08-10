@@ -38,6 +38,9 @@ export function ShellPainel({
   const pathname = usePathname();
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
+  const perfilAtivo = ['/admin/config', '/admin/links', '/admin/avaliacoes'].some(
+    (rota) => pathname === rota || pathname.startsWith(`${rota}/`)
+  );
 
   async function sair() {
     const sb = criarClientNavegador();
@@ -72,7 +75,7 @@ export function ShellPainel({
                     <Link
                       key={item.id}
                       href={href}
-                      className={'nav-item' + (pathname === href ? ' ativo' : '')}
+                      className={'nav-item' + (pathname === href || pathname.startsWith(`${href}/`) ? ' ativo' : '')}
                       title={item.pronta ? undefined : 'Em breve'}
                       onClick={() => setAberto(false)}
                     >
@@ -90,6 +93,18 @@ export function ShellPainel({
           </nav>
 
           <div className="sidebar-bottom">
+            <details className="perfil-menu" open={perfilAtivo || undefined}>
+              <summary className={'nav-item' + (perfilAtivo ? ' ativo' : '')}>
+                <Icone chave="empresa" />
+                <span className="rotulo">Perfil</span>
+                <span className="perfil-seta" aria-hidden="true">⌃</span>
+              </summary>
+              <div className="perfil-opcoes">
+                <Link href="/admin/config" onClick={() => setAberto(false)}><Icone chave="config" /> Configurações</Link>
+                <Link href="/admin/links" onClick={() => setAberto(false)}><Icone chave="links" /> Links</Link>
+                <Link href="/admin/avaliacoes" onClick={() => setAberto(false)}><Icone chave="avaliacoes" /> Avaliações</Link>
+              </div>
+            </details>
             {souAdmin && (
               <Link href="/admin/lojas" className="btn-ghost btn-small" style={{ textAlign: 'center' }}>
                 Trocar de loja

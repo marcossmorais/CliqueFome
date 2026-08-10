@@ -55,6 +55,7 @@ export default async function HistoricoPage({
       .from('pedidos')
       .select('*, pedido_itens(id)', { count: 'exact' })
       .eq('loja_id', lojaId)
+      .is('historico_oculto_em', null)
       .in('status', ['concluido', 'cancelado']);
 
     if (filtros.status) consulta = consulta.eq('status', filtros.status);
@@ -91,6 +92,7 @@ export default async function HistoricoPage({
         .from('pedidos')
         .select('id, total')
         .eq('loja_id', lojaId)
+        .is('historico_oculto_em', null)
         .in('status', ['concluido', 'cancelado']);
 
       if (filtros.status) consulta = consulta.eq('status', filtros.status);
@@ -132,8 +134,9 @@ export default async function HistoricoPage({
   const totalPaginas = Math.max(1, Math.ceil(quantidade / POR_PAGINA));
 
   return (
-    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Histórico de pedidos">
+    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Gestão de pedidos · Histórico">
       <HistoricoClient
+        lojaId={lojaId}
         pedidos={(resultado.data as PedidoHistorico[]) ?? []}
         filtros={filtros}
         pagina={pagina}

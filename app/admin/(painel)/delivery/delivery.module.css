@@ -1,3 +1,11 @@
+.hub { width: 100%; min-width: 0; }
+.abas { display:flex; gap:6px; width:100%; max-width:780px; margin-bottom:18px; padding:5px; border:1px solid var(--borda); border-radius:12px; background:var(--superficie); }
+.abas button { flex:1; min-width:0; padding:9px 10px; border:0; border-radius:8px; color:var(--texto-suave); background:transparent; font-size:13px; font-weight:700; cursor:pointer; }
+.abas button.abaAtiva { color:#fff; background:var(--verde); }
+.entregadores { max-width:780px; padding:clamp(24px,4vw,38px); border:1px solid var(--borda); border-radius:20px; background:var(--superficie); box-shadow:0 8px 28px rgba(15,61,46,.08); }
+.entregadores h2 { margin:5px 0 8px; font-family:var(--fonte-titulo),sans-serif; }
+.entregadores p { margin:0 0 18px; color:var(--texto-suave); line-height:1.6; }
+
 .pagina {
   --verde: #176a45;
   --verde-escuro: #0f3d2e;

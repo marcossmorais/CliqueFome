@@ -8,7 +8,10 @@ import { formatBRL, NOMES_ORIGEM, NOMES_TIPO } from '@/lib/pedidos/tipos';
 import { useAgora } from '@/hooks/useAgora';
 import { IconeBusca } from '@/components/admin/IconesCatalogo';
 import type { FiltrosHistorico, PedidoHistorico } from '@/lib/pedidos/historico';
+import { fimExclusivoIso, inicioDoDiaIso } from '@/lib/pedidos/historico';
 import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
+import { arquivarPedidosHistorico } from '@/lib/pedidos/acoes';
+import { criarClientNavegador } from '@/lib/supabase/client';
 import styles from './historico.module.css';
 
 function formatarData(valor: string) {
@@ -28,7 +31,7 @@ function hrefPagina(filtros: FiltrosHistorico, pagina: number) {
     if (valor) params.set(chave, valor);
   });
   params.set('pagina', String(pagina));
-  return `/admin/historico?${params}`;
+  return `/admin/pedidos/historico?${params}`;
 }
 
 function origemDoPedido(pedido: PedidoHistorico) {
@@ -36,7 +39,14 @@ function origemDoPedido(pedido: PedidoHistorico) {
   return NOMES_ORIGEM[pedido.origem];
 }
 
+function campoCsv(valor: unknown) {
+  let texto = String(valor ?? '').replace(/\r?\n/g, ' ').trim();
+  if (/^[=+\-@]/.test(texto)) texto = `'${texto}`;
+  return `"${texto.replace(/"/g, '""')}"`;
+}
+
 export function HistoricoClient({
+  lojaId,
   pedidos,
   filtros,
   pagina,
@@ -44,6 +54,7 @@ export function HistoricoClient({
   quantidade,
   valorTotal,
 }: {
+  lojaId: string;
   pedidos: PedidoHistorico[];
   filtros: FiltrosHistorico;
   pagina: number;
@@ -55,16 +66,118 @@ export function HistoricoClient({
   const agora = useAgora();
   const [pedidoAbertoId, setPedidoAbertoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [arquivando, setArquivando] = useState(false);
+  const [carregandoTodos, setCarregandoTodos] = useState(false);
+  const [todosFiltrados, setTodosFiltrados] = useState<PedidoHistorico[] | null>(null);
   const pedidoAberto = useMemo(
     () => pedidos.find((pedido) => pedido.id === pedidoAbertoId) ?? null,
     [pedidoAbertoId, pedidos]
   );
+  const pedidosDisponiveis = todosFiltrados ?? pedidos;
+  const pedidosSelecionados = selecionados.size > 0
+    ? pedidosDisponiveis.filter((pedido) => selecionados.has(pedido.id))
+    : pedidos;
+  const todosDaPaginaSelecionados = pedidos.length > 0 && pedidos.every((pedido) => selecionados.has(pedido.id));
+
+  function alternarSelecao(id: string) {
+    setSelecionados((atuais) => {
+      const proximos = new Set(atuais);
+      if (proximos.has(id)) proximos.delete(id); else proximos.add(id);
+      return proximos;
+    });
+  }
+
+  function selecionarPagina() {
+    setTodosFiltrados(null);
+    setSelecionados(todosDaPaginaSelecionados ? new Set() : new Set(pedidos.map((pedido) => pedido.id)));
+  }
+
+  async function selecionarTodosFiltrados() {
+    setCarregandoTodos(true);
+    setErro(null);
+    try {
+      const sb = criarClientNavegador();
+      const lista: PedidoHistorico[] = [];
+      let inicio = 0;
+      while (true) {
+        let consulta = sb.from('pedidos').select('*').eq('loja_id', lojaId)
+          .in('status', ['concluido', 'cancelado']).is('historico_oculto_em', null);
+        if (filtros.status) consulta = consulta.eq('status', filtros.status);
+        if (filtros.origem === 'balcao') consulta = consulta.eq('tipo', 'balcao');
+        else if (filtros.origem) consulta = consulta.eq('origem', filtros.origem);
+        if (filtros.tipo === 'encomenda') consulta = consulta.eq('tipo', 'encomenda');
+        if (filtros.tipo === 'pronta_entrega') consulta = consulta.neq('tipo', 'encomenda');
+        if (filtros.pagamento) consulta = consulta.ilike('forma_pagamento', `%${filtros.pagamento}%`);
+        if (filtros.busca) {
+          const termos = [`cliente_nome.ilike.%${filtros.busca}%`, `cliente_telefone.ilike.%${filtros.busca}%`];
+          if (/^\d+$/.test(filtros.busca)) termos.push(`numero.eq.${Number(filtros.busca)}`);
+          consulta = consulta.or(termos.join(','));
+        }
+        const de = inicioDoDiaIso(filtros.inicio);
+        const ate = fimExclusivoIso(filtros.fim);
+        if (de) consulta = consulta.gte('criado_em', de);
+        if (ate) consulta = consulta.lt('criado_em', ate);
+        const { data, error } = await consulta.order('criado_em', { ascending: false }).range(inicio, inicio + 999);
+        if (error) throw error;
+        const lote = (data as PedidoHistorico[]) ?? [];
+        lista.push(...lote);
+        if (lote.length < 1000) break;
+        inicio += 1000;
+      }
+      setTodosFiltrados(lista);
+      setSelecionados(new Set(lista.map((pedido) => pedido.id)));
+    } catch {
+      setErro('Não foi possível selecionar todos os resultados filtrados.');
+    } finally {
+      setCarregandoTodos(false);
+    }
+  }
+
+  function exportarCsv() {
+    const cabecalho = ['Número', 'Data', 'Cliente', 'Telefone', 'Status', 'Origem', 'Tipo', 'Pagamento', 'Total', 'Motivo do cancelamento'];
+    const linhas = pedidosSelecionados.map((pedido) => [
+      pedido.numero, formatarData(pedido.criado_em), pedido.cliente_nome, pedido.cliente_telefone,
+      pedido.status === 'cancelado' ? 'Cancelado' : 'Entregue/Retirado', origemDoPedido(pedido),
+      NOMES_TIPO[pedido.tipo], nomeFormaPagamento(pedido.forma_pagamento), Number(pedido.total).toFixed(2).replace('.', ','),
+      pedido.motivo_cancelamento ?? '',
+    ]);
+    const csv = '\uFEFF' + [cabecalho, ...linhas].map((linha) => linha.map(campoCsv).join(';')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `historico-pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function removerDoHistorico() {
+    if (selecionados.size === 0) return;
+    if (!confirm(`Remover ${selecionados.size} pedido(s) do histórico? Os registros serão preservados com segurança no banco.`)) return;
+    setArquivando(true);
+    setErro(null);
+    try {
+      const ids = [...selecionados];
+      const sb = criarClientNavegador();
+      for (let inicio = 0; inicio < ids.length; inicio += 100) {
+        await arquivarPedidosHistorico(sb, ids.slice(inicio, inicio + 100));
+      }
+      setSelecionados(new Set());
+      setTodosFiltrados(null);
+      setPedidoAbertoId(null);
+      router.refresh();
+    } catch {
+      setErro('Não foi possível remover os pedidos do histórico. Atualize a página e tente novamente.');
+    } finally {
+      setArquivando(false);
+    }
+  }
 
   return (
     <div className={`area ativo ${styles.historico}`}>
       {erro && <div className="msg msg-erro" role="alert">{erro}</div>}
 
-      <form className={styles.filtros} method="get" action="/admin/historico">
+      <form className={styles.filtros} method="get" action="/admin/pedidos/historico">
         <div className={styles.busca}>
           <label htmlFor="historicoBusca">Buscar pedido</label>
           <div className={styles.campoBusca}>
@@ -137,7 +250,7 @@ export function HistoricoClient({
 
         <div className={styles.acoesFiltro}>
           <button type="submit" className="btn-primary btn-small">Aplicar filtros</button>
-          <Link href="/admin/historico" className="btn-ghost btn-small">Limpar</Link>
+          <Link href="/admin/pedidos/historico" className="btn-ghost btn-small">Limpar</Link>
         </div>
       </form>
 
@@ -149,6 +262,26 @@ export function HistoricoClient({
         <div>
           <span>Valor total filtrado</span>
           <strong>{formatBRL(valorTotal)}</strong>
+        </div>
+      </section>
+
+      <section className={styles.acoesMassa} aria-label="Ações do histórico">
+        <label>
+          <input type="checkbox" checked={todosDaPaginaSelecionados} onChange={selecionarPagina} />
+          Selecionar os {pedidos.length} desta página
+        </label>
+        {quantidade > pedidos.length && (
+          <button type="button" className="btn-ghost btn-small" disabled={carregandoTodos} onClick={selecionarTodosFiltrados}>
+            {carregandoTodos ? 'Selecionando…' : `Selecionar todos os ${quantidade} resultados`}
+          </button>
+        )}
+        <span>{selecionados.size > 0 ? `${selecionados.size} selecionado(s)` : 'Sem seleção: exporta a página atual'}</span>
+        <div>
+          <button type="button" className="btn-ghost btn-small" disabled={pedidos.length === 0} onClick={exportarCsv}>Exportar CSV</button>
+          <button type="button" className="btn-ghost btn-small" disabled={pedidos.length === 0} onClick={() => window.print()}>PDF da página</button>
+          <button type="button" className={styles.remover} disabled={selecionados.size === 0 || arquivando} onClick={removerDoHistorico}>
+            {arquivando ? 'Removendo…' : 'Remover do histórico'}
+          </button>
         </div>
       </section>
 
@@ -170,14 +303,15 @@ export function HistoricoClient({
           ) : (
             <div className={styles.pedidos}>
               {pedidos.map((pedido) => (
-                <button
+                <div
                   key={pedido.id}
-                  type="button"
-                  className={`${styles.pedido} ${pedidoAbertoId === pedido.id ? styles.selecionado : ''}`}
-                  onClick={() => setPedidoAbertoId(pedido.id)}
-                  aria-label={`Abrir detalhes do pedido ${pedido.numero}, ${pedido.cliente_nome}`}
+                  className={`${styles.pedido} ${pedidoAbertoId === pedido.id ? styles.selecionado : ''} ${selecionados.size > 0 && !selecionados.has(pedido.id) ? styles.naoSelecionadoPrint : ''}`}
                 >
-                  <span className={styles.pedidoPrincipal}>
+                  <label className={styles.seletor} title={`Selecionar pedido ${pedido.numero}`}>
+                    <input type="checkbox" checked={selecionados.has(pedido.id)} onChange={() => alternarSelecao(pedido.id)} />
+                  </label>
+                  <button type="button" className={styles.pedidoAbrir} onClick={() => setPedidoAbertoId(pedido.id)} aria-label={`Abrir detalhes do pedido ${pedido.numero}, ${pedido.cliente_nome}`}>
+                    <span className={styles.pedidoPrincipal}>
                     <span className={styles.numero}>#{pedido.numero}</span>
                     <span className={styles.cliente}>
                       <strong>{pedido.cliente_nome}</strong>
@@ -196,10 +330,11 @@ export function HistoricoClient({
                     <strong>{formatBRL(pedido.total)}</strong>
                     <small>{formatarData(pedido.criado_em)}</small>
                   </span>
-                  {pedido.status === 'cancelado' && pedido.motivo_cancelamento && (
-                    <span className={styles.motivo}>Motivo: {pedido.motivo_cancelamento}</span>
-                  )}
-                </button>
+                    {pedido.status === 'cancelado' && pedido.motivo_cancelamento && (
+                      <span className={styles.motivo}>Motivo: {pedido.motivo_cancelamento}</span>
+                    )}
+                  </button>
+                </div>
               ))}
             </div>
           )}
