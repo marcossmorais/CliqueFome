@@ -64,7 +64,11 @@ async function carregar(slug: string) {
   const { data: loja, error: erroLoja } = await sb
     .from('lojas')
     .select(
-      'id, slug, nome, nicho, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_entrega_min, tempo_entrega_max, taxa_entrega, pedido_minimo, delivery_ativo, recebendo_encomendas, retirada_ativa'
+      // `nicho` fica de fora de propósito: schema-migracao-seguranca.sql
+      // não concede essa coluna ao anon (é metadado de catálogo/preset, não
+      // usado por CardapioClient.tsx) — incluir aqui derruba a consulta
+      // inteira com "permission denied for table lojas".
+      'id, slug, nome, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_entrega_min, tempo_entrega_max, taxa_entrega, pedido_minimo, delivery_ativo, recebendo_encomendas, retirada_ativa'
     )
     .eq('slug', slug)
     .maybeSingle();
@@ -80,7 +84,15 @@ async function carregar(slug: string) {
     sb
       .from('produtos')
       .select(
-        'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, sugestao_carrinho, ordem, dias_semana, tipos_pedido, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, tipos_pedido, ordem, ativo, complementos(id, nome, preco, qtd_max, imagem_url, ativo, sugestao_carrinho, ordem)))'
+        // `sugestao_carrinho` (produtos e complementos) está fora da lista de
+        // propósito: schema-migracao-seguranca.sql revoga o SELECT da tabela
+        // inteira pro papel `anon` e concede coluna a coluna, e essas colunas
+        // novas nunca entraram no grant — uma só coluna sem permissão derruba
+        // a consulta inteira ("permission denied for table produtos"), o que
+        // tirou TODO cardápio público do ar. Pra reativar as sugestões no
+        // carrinho, rodar schema-migracao-grant-sugestao-carrinho.sql primeiro
+        // e só então voltar as colunas aqui.
+        'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, ordem, dias_semana, tipos_pedido, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, tipos_pedido, ordem, ativo, complementos(id, nome, preco, qtd_max, imagem_url, ativo, ordem)))'
       )
       .eq('loja_id', loja.id)
       // Traz também os inativos: viram card "Esgotado" em vez de sumir, pra
