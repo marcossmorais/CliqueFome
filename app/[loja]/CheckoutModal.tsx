@@ -75,11 +75,13 @@ type Etapa = 'carrinho' | 'entrega';
 export function CheckoutModal({
   aberto, linhas, nome, telefone, endereco, modo, formaPagamento, erro, enviando, pedidoRegistrado,
   deliveryConfig, taxaEstatica, cidadeEscolhida, cotacao, onFechar, onMudarQtd, onRemover,
+  lojaAberta, deliveryAtivo, retiradaAtiva,
   onNome, onTelefone, onEndereco, onCidade, onCalcularFrete, onModo, onFormaPagamento, onFinalizar, onNovoPedido,
 }: {
   aberto: boolean; linhas: LinhaCarrinho[]; nome: string; telefone: string;
   endereco: EnderecoEstruturado; modo: ModoEntrega; formaPagamento: FormaPagamentoOffline | ''; erro: string | null; enviando: boolean;
   pedidoRegistrado: PedidoRegistrado | null; deliveryConfig: ConfigDeliveryPublica | null;
+  lojaAberta: boolean; deliveryAtivo: boolean; retiradaAtiva: boolean;
   taxaEstatica: number;
   cidadeEscolhida: string; cotacao: CotacaoEstado; onFechar: () => void;
   onMudarQtd: (lineId: string, delta: number) => void; onRemover: (lineId: string) => void;
@@ -246,7 +248,9 @@ export function CheckoutModal({
             )}
 
             <div className="checkout-resumo"><div className="checkout-total"><span>Subtotal</span><strong>{formatBRL(subtotal)}</strong></div></div>
-            <button type="button" className="btn-primary checkout-acao" disabled={linhas.length === 0} onClick={() => setEtapa('entrega')}>
+            {!lojaAberta && <p className="checkout-erro" role="status">A loja está fechada. Seu carrinho fica salvo para depois.</p>}
+            {lojaAberta && !deliveryAtivo && !retiradaAtiva && <p className="checkout-erro" role="status">Delivery e retirada estão pausados no momento.</p>}
+            <button type="button" className="btn-primary checkout-acao" disabled={linhas.length === 0 || !lojaAberta || (!deliveryAtivo && !retiradaAtiva)} onClick={() => setEtapa('entrega')}>
               Continuar pedido
             </button>
           </div>
@@ -256,13 +260,19 @@ export function CheckoutModal({
 
             <section className="checkout-bloco">
               <h3>Como você quer receber?</h3>
+              {!lojaAberta && <p className="checkout-erro" role="status">A loja está fechada e não está recebendo pedidos agora.</p>}
+              {lojaAberta && !deliveryAtivo && retiradaAtiva && <p className="checkout-pagamento">Delivery pausado. A retirada continua disponível.</p>}
               <div className="checkout-opcoes">
-                <button type="button" className={modo === 'entrega' ? 'selecionada' : ''} onClick={() => onModo('entrega')}>
-                  <span>🛵</span><div><strong>Receber no meu endereço</strong><small>Calculamos a taxa antes de confirmar</small></div><b aria-hidden="true" />
-                </button>
-                <button type="button" className={modo === 'retirada' ? 'selecionada' : ''} onClick={() => onModo('retirada')}>
-                  <span>🚶</span><div><strong>Retirar no estabelecimento</strong><small>{deliveryConfig?.enderecoRetirada || 'Confirme o endereço com a loja'}</small></div><b aria-hidden="true" />
-                </button>
+                {deliveryAtivo && (
+                  <button type="button" disabled={!lojaAberta} className={modo === 'entrega' ? 'selecionada' : ''} onClick={() => onModo('entrega')}>
+                    <span>🛵</span><div><strong>Receber no meu endereço</strong><small>Calculamos a taxa antes de confirmar</small></div><b aria-hidden="true" />
+                  </button>
+                )}
+                {retiradaAtiva && (
+                  <button type="button" disabled={!lojaAberta} className={modo === 'retirada' ? 'selecionada' : ''} onClick={() => onModo('retirada')}>
+                    <span>🚶</span><div><strong>Retirar no estabelecimento</strong><small>{deliveryConfig?.enderecoRetirada || 'Confirme o endereço com a loja'}</small></div><b aria-hidden="true" />
+                  </button>
+                )}
               </div>
             </section>
 
@@ -330,7 +340,7 @@ export function CheckoutModal({
             {erro && <p className="checkout-erro" role="alert">{erro}</p>}
             <div className="checkout-resumo"><div><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>{modo === 'entrega' && <div><span>Taxa de entrega</span><span>{cotacao.status === 'ok' ? formatBRL(taxa) : 'A calcular'}</span></div>}<div className="checkout-total"><span>Total</span><strong>{formatBRL(total)}</strong></div></div>
             <p className="checkout-pagamento"><strong>Pedido e pagamento são separados:</strong> seu pedido entra imediatamente na gestão da loja; o pagamento será confirmado manualmente pelo restaurante.</p>
-            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento} onClick={onFinalizar}>{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
+            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento || !lojaAberta || (modo === 'entrega' ? !deliveryAtivo : !retiradaAtiva)} onClick={onFinalizar}>{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
           </div>
         )}
       </section>

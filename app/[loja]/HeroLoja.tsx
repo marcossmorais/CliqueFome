@@ -23,7 +23,7 @@ function AvaliacaoLoja() {
 
 export function HeroLoja({ loja }: { loja: LojaPublica }) {
   const [infoAberta, setInfoAberta] = useState(false);
-  const aceitando = loja.delivery_ativo;
+  const aceitando = loja.recebendo_encomendas && (loja.delivery_ativo || loja.retirada_ativa);
   const tempo = loja.tempo_entrega_min && loja.tempo_entrega_max
     ? `${loja.tempo_entrega_min}–${loja.tempo_entrega_max} min`
     : null;

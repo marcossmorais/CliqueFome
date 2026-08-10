@@ -1,4 +1,5 @@
 import { criarClientNavegador } from '@/lib/supabase/client';
+import { produtoApareceNoTipo } from '@/lib/cardapio/tipos';
 import type { PedidoItem, PedidoResumo, StatusPedido } from './tipos';
 
 type Sb = ReturnType<typeof criarClientNavegador>;
@@ -120,6 +121,25 @@ export async function criarPedidoManual(
     statusInicial: 'pendente' | 'confirmado';
   }
 ) {
+  // A tela pode ter sido aberta antes de alguém esgotar o item no catálogo.
+  // Revalida imediatamente antes da RPC para dar um erro claro; a RPC/trigger
+  // continuam sendo a barreira definitiva contra corrida e POST adulterado.
+  const idsProdutos = [...new Set(params.itens.map((item) => item.produto_id))];
+  const { data: disponibilidade, error: erroDisponibilidade } = await sb
+    .from('produtos')
+    .select('id, nome, ativo, tipos_pedido')
+    .in('id', idsProdutos);
+  if (erroDisponibilidade) throw erroDisponibilidade;
+
+  const produtosPorId = new Map((disponibilidade || []).map((produto) => [produto.id, produto]));
+  for (const id of idsProdutos) {
+    const produto = produtosPorId.get(id);
+    if (!produto || !produto.ativo) throw new Error(`Produto esgotado ou indisponível: ${produto?.nome || 'item removido'}.`);
+    if (!produtoApareceNoTipo(produto.tipos_pedido, params.tipo)) {
+      throw new Error(`O produto "${produto.nome}" não está disponível para ${params.tipo === 'encomenda' ? 'agendamento' : 'este tipo de pedido'}.`);
+    }
+  }
+
   const { data, error } = await sb.rpc('criar_pedido', {
     p_loja_slug: params.lojaSlug,
     p_cliente_nome: params.clienteNome,

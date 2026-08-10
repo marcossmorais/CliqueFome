@@ -1,6 +1,7 @@
 import { useArrastar } from '@/hooks/useArrastar';
 import { Alca } from '@/components/admin/IconesCatalogo';
 import { ETIQUETAS, formatBRL, type Categoria, type Produto } from '@/lib/catalogo/tipos';
+import styles from './produtos.module.css';
 
 export function GridProdutos({
   produtos,
@@ -9,6 +10,8 @@ export function GridProdutos({
   busca,
   onEditarCategoria,
   onEditarProduto,
+  onToggleDisponibilidade,
+  produtoAtualizandoId,
   onReordenar,
 }: {
   produtos: Produto[];
@@ -17,6 +20,8 @@ export function GridProdutos({
   busca: string;
   onEditarCategoria: (c: Categoria) => void;
   onEditarProduto: (p: Produto) => void;
+  onToggleDisponibilidade: (p: Produto) => void;
+  produtoAtualizandoId: string | null;
   onReordenar: (ids: string[]) => void;
 }) {
   const cat = categorias.find((c) => c.id === categoriaSelecionadaId) || null;
@@ -52,7 +57,7 @@ export function GridProdutos({
           {lista.map((p, i) => {
             const promo = p.preco_promocional != null;
             return (
-              <div key={p.id} data-id={p.id} className="prod-card" onClick={() => onEditarProduto(p)}>
+              <div key={p.id} data-id={p.id} className={`prod-card ${!p.ativo ? styles.indisponivel : ''}`} onClick={() => onEditarProduto(p)}>
                 {!busca && <Alca />}
                 {p.imagem_url ? (
                   // eslint-disable-next-line @next/next/no-img-element -- foto do catálogo do usuário, vinda do Storage
@@ -74,13 +79,26 @@ export function GridProdutos({
                   </div>
                   <div className="prod-tags">
                     <span className={'tag ' + (p.ativo ? 'tag-ativo' : 'tag-inativo')}>
-                      {p.ativo ? 'Ativo' : 'Pausado'}
+                      {p.ativo ? 'Disponível' : 'Esgotado'}
                     </span>
                     {p.etiqueta && ETIQUETAS[p.etiqueta] && (
                       <span className="tag tag-etiqueta">{ETIQUETAS[p.etiqueta]}</span>
                     )}
                     {p.destaque && <span className="tag tag-etiqueta">Destaque</span>}
                   </div>
+                  <button
+                    type="button"
+                    className={styles.disponibilidade}
+                    data-disponivel={p.ativo}
+                    disabled={produtoAtualizandoId === p.id}
+                    onClick={(evento) => {
+                      evento.stopPropagation();
+                      onToggleDisponibilidade(p);
+                    }}
+                    aria-label={p.ativo ? `Marcar ${p.nome} como esgotado` : `Disponibilizar ${p.nome}`}
+                  >
+                    {produtoAtualizandoId === p.id ? 'Salvando…' : p.ativo ? 'Marcar esgotado' : 'Disponibilizar'}
+                  </button>
                 </div>
                 <button type="button" className="prod-menu-btn" title="Editar">
                   ✎

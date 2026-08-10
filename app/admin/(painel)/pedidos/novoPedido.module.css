@@ -111,6 +111,10 @@
   text-align: left;
 }
 .cardProduto:hover { border-color: var(--verde-claro); background: #f7fbf9; }
+.cardProdutoEsgotado{ cursor:not-allowed!important; opacity:.58; }
+.cardProdutoEsgotado:hover{ border-color:var(--borda); background:var(--superficie); }
+.cardProdutoEsgotado img{ filter:grayscale(.6); }
+.etiquetaEsgotado{ display:inline-flex; width:max-content; margin-top:3px; padding:2px 7px; border-radius:999px; background:#f9e8e8; color:#9b3939!important; font-size:9px!important; font-weight:800; text-transform:uppercase; letter-spacing:.35px; }
 .cardFoto {
   display: flex;
   align-items: center;
@@ -277,6 +281,7 @@
 :global(html[data-admin-theme='dark']) .cardInfo span,
 :global(html[data-admin-theme='dark']) .formaIcone{ color:var(--verde-claro); }
 :global(html[data-admin-theme='dark']) .erro{ color:#ef9b9b; background:#351d1d; }
+:global(html[data-admin-theme='dark']) .etiquetaEsgotado{ background:#3a2020; color:#ef9a9a!important; }
 
 @media (max-width: 980px) {
   .corpo { grid-template-columns: 1fr; grid-auto-rows: auto; overflow-y: auto; }

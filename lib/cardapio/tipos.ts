@@ -14,6 +14,7 @@ export type LojaPublica = {
   pedido_minimo: number;
   delivery_ativo: boolean;
   recebendo_encomendas: boolean;
+  retirada_ativa: boolean;
 };
 
 export type CategoriaPublica = { id: string; nome: string; emoji: string | null; ordem: number };
@@ -116,6 +117,16 @@ export function formatarTelefone(valor: string) {
  */
 export function apareceNoTipo(tipos: string[] | null | undefined, tipoPedido: string) {
   return !tipos || tipos.length === 0 || tipos.includes(tipoPedido);
+}
+
+/**
+ * Encomenda precisa ser habilitada deliberadamente no produto. Para os
+ * demais canais, o array vazio continua significando "todos", preservando
+ * os catálogos existentes.
+ */
+export function produtoApareceNoTipo(tipos: string[] | null | undefined, tipoPedido: string) {
+  if (tipoPedido === 'encomenda') return !!tipos?.includes('encomenda');
+  return apareceNoTipo(tipos, tipoPedido);
 }
 
 /** Preço que vale na venda — promocional tem precedência. */

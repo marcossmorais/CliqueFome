@@ -64,7 +64,7 @@ async function carregar(slug: string) {
   const { data: loja, error: erroLoja } = await sb
     .from('lojas')
     .select(
-      'id, slug, nome, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_entrega_min, tempo_entrega_max, taxa_entrega, pedido_minimo, delivery_ativo, recebendo_encomendas'
+      'id, slug, nome, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_entrega_min, tempo_entrega_max, taxa_entrega, pedido_minimo, delivery_ativo, recebendo_encomendas, retirada_ativa'
     )
     .eq('slug', slug)
     .maybeSingle();

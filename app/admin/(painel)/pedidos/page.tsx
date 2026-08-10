@@ -29,7 +29,6 @@ export default async function PedidosPage() {
         'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, ordem, tipos_pedido, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, tipos_pedido, ordem, ativo, complementos(id, nome, preco, qtd_max, imagem_url, ativo, ordem)))'
       )
       .eq('loja_id', loja.id)
-      .eq('ativo', true)
       .order('ordem'),
   ]);
 

@@ -43,6 +43,7 @@ create table lojas (
   pedido_minimo numeric(10,2) not null default 0,
   delivery_ativo boolean not null default true,
   recebendo_encomendas boolean not null default true,
+  retirada_ativa boolean not null default true,
   created_at timestamptz not null default now()
 );
 

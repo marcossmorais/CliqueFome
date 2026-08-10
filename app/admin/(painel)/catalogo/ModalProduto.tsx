@@ -350,7 +350,7 @@ export function ModalProduto({
             <p className="dica">Nenhum dia marcado = o item aparece todos os dias.</p>
             <ChipsToggle itens={DIAS} selecionados={diasSemana} onToggle={toggleDia} />
             <label>Tipos de pedido</label>
-            <p className="dica">Nenhum marcado = o item aparece em todos os tipos.</p>
+            <p className="dica">Nenhum marcado = canais normais. Marque Encomenda / agendamento para permitir pedidos futuros deste produto.</p>
             <ChipsToggle itens={TIPOS_PEDIDO} selecionados={tiposPedido} onToggle={toggleTipo} />
           </div>
         </div>

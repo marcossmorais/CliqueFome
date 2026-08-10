@@ -6,6 +6,7 @@ import { criarClientNavegador } from '@/lib/supabase/client';
 import { criarPedidoManual, type ItemPedidoManual } from '@/lib/pedidos/acoes';
 import {
   apareceNoTipo,
+  produtoApareceNoTipo,
   extraDaLinha,
   formatarTelefone,
   formatBRL,
@@ -123,7 +124,7 @@ export function NovoPedidoPainel({
     const termo = busca.trim().toLowerCase();
     return produtos.filter((p) => {
       if (categoriaId !== 'todos' && p.categoria_id !== categoriaId) return false;
-      if (!apareceNoTipo(p.tipos_pedido, tipo)) return false;
+      if (!produtoApareceNoTipo(p.tipos_pedido, tipo)) return false;
       if (termo && !`${p.nome} ${p.descricao || ''}`.toLowerCase().includes(termo)) return false;
       return true;
     });
@@ -132,7 +133,7 @@ export function NovoPedidoPainel({
   const contagemPorCategoria = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const p of produtos) {
-      if (!apareceNoTipo(p.tipos_pedido, tipo)) continue;
+      if (!produtoApareceNoTipo(p.tipos_pedido, tipo)) continue;
       const chave = p.categoria_id ?? '__sem_categoria__';
       mapa.set(chave, (mapa.get(chave) ?? 0) + 1);
     }
@@ -145,6 +146,7 @@ export function NovoPedidoPainel({
   }
 
   function adicionarLinha(p: ProdutoPublico, escolhas: EscolhaComplemento[], obs: string, qtd: number) {
+    if (!p.ativo || !produtoApareceNoTipo(p.tipos_pedido, tipo)) return;
     const lineId = idDaLinha(p.id, escolhas, obs);
     setLinhas((atual) => {
       const existente = atual.find((l) => l.lineId === lineId);
@@ -159,6 +161,7 @@ export function NovoPedidoPainel({
   }
 
   function aoClicarProduto(p: ProdutoPublico) {
+    if (!p.ativo || !produtoApareceNoTipo(p.tipos_pedido, tipo)) return;
     if (p.grupos.some((g) => apareceNoTipo(g.tipos_pedido, tipo))) {
       setProdutoAberto(p);
       return;
@@ -259,7 +262,7 @@ export function NovoPedidoPainel({
               onClick={() => setCategoriaId('todos')}
             >
               <span>Todos os itens</span>
-              <span>{produtos.filter((p) => apareceNoTipo(p.tipos_pedido, tipo)).length}</span>
+              <span>{produtos.filter((p) => produtoApareceNoTipo(p.tipos_pedido, tipo)).length}</span>
             </button>
             {categorias.map((c) => (
               <button
@@ -296,7 +299,13 @@ export function NovoPedidoPainel({
                   const minimo = precoMinimo(p);
                   const base = precoBase(p);
                   return (
-                    <button type="button" key={p.id} className={styles.cardProduto} onClick={() => aoClicarProduto(p)}>
+                    <button
+                      type="button"
+                      key={p.id}
+                      className={`${styles.cardProduto} ${!p.ativo ? styles.cardProdutoEsgotado : ''}`}
+                      disabled={!p.ativo}
+                      onClick={() => aoClicarProduto(p)}
+                    >
                       <span className={styles.cardFoto}>
                         {p.imagem_url ? (
                           // eslint-disable-next-line @next/next/no-img-element -- foto do catálogo, vinda do Storage
@@ -307,6 +316,7 @@ export function NovoPedidoPainel({
                       </span>
                       <span className={styles.cardInfo}>
                         <strong>{p.nome}</strong>
+                        {!p.ativo && <small className={styles.etiquetaEsgotado}>Esgotado</small>}
                         <span>
                           {minimo > base && 'A partir de '}
                           {formatBRL(minimo > base ? minimo : base)}
@@ -346,6 +356,15 @@ export function NovoPedidoPainel({
                 onChange={(e) => {
                   const novoTipo = e.target.value as TipoManual;
                   setTipo(novoTipo);
+                  setCategoriaId('todos');
+                  setLinhas((atuais) => {
+                    const permitidos = new Set(
+                      produtos
+                        .filter((produto) => produto.ativo && produtoApareceNoTipo(produto.tipos_pedido, novoTipo))
+                        .map((produto) => produto.id)
+                    );
+                    return atuais.filter((linha) => permitidos.has(linha.produtoId));
+                  });
                   setFormaPagamento((atual) =>
                     formaPagamentoPermitida(novoTipo === 'delivery' ? 'delivery' : 'retirada', atual) ? atual : ''
                   );

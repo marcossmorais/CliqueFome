@@ -102,6 +102,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
   }
 
+  // A interface esconder uma opção é apenas UX. O servidor confere o
+  // estado operacional de novo para impedir POST manual em loja fechada.
+  const { data: lojaOperacao, error: erroLojaOperacao } = await sb
+    .from('lojas')
+    .select('id, whatsapp_numero, recebendo_encomendas, delivery_ativo, retirada_ativa')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (erroLojaOperacao) {
+    logger.error({ err: erroLojaOperacao, rota: ROTA, lojaSlug: slug }, 'Falha ao consultar estado operacional da loja');
+    return respostaErro('Não foi possível confirmar se a loja está aberta. Tente novamente.', 503);
+  }
+  if (!lojaOperacao) return respostaErro('Loja não encontrada.', 404);
+  if (!lojaOperacao.recebendo_encomendas) {
+    return respostaErro('A loja está fechada e não está recebendo pedidos no momento.', 409);
+  }
+  if (entrada.tipo === 'delivery' && !lojaOperacao.delivery_ativo) {
+    return respostaErro('A loja não está aceitando entregas no momento.', 409);
+  }
+  if (entrada.tipo === 'retirada' && !lojaOperacao.retirada_ativa) {
+    return respostaErro('A retirada está indisponível no momento.', 409);
+  }
+
   const ip = ipDoCliente(request);
   let chaveIp: string;
   let chaveTelefone: string;
@@ -115,11 +137,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   let taxaEntregaValidada: number | null = null;
   if (entrada.tipo === 'delivery') {
-    const { data: loja } = await sb.from('lojas').select('id').eq('slug', slug).maybeSingle();
-    if (!loja) return respostaErro('Loja não encontrada.', 404);
     const [{ data: config }, { data: enderecoLoja }] = await Promise.all([
-      sb.from('configuracoes_delivery').select('loja_id').eq('loja_id', loja.id).maybeSingle(),
-      sb.from('enderecos_estabelecimento').select('loja_id').eq('loja_id', loja.id).maybeSingle(),
+      sb.from('configuracoes_delivery').select('loja_id').eq('loja_id', lojaOperacao.id).maybeSingle(),
+      sb.from('enderecos_estabelecimento').select('loja_id').eq('loja_id', lojaOperacao.id).maybeSingle(),
     ]);
     // Só o fluxo V2 exige cotação. Loja ainda não migrada preserva a taxa fixa
     // legada; depois da migração, nenhuma taxa do navegador é aceita solta.
@@ -130,7 +150,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       try {
         const cotacao = verificarTokenCotacao(entrada.cotacaoToken);
         const hashEsperado = hashEndereco(normalizarTexto(entrada.enderecoCotacao));
-        if (!cotacao || cotacao.lojaId !== loja.id || cotacao.enderecoHash !== hashEsperado) {
+        if (!cotacao || cotacao.lojaId !== lojaOperacao.id || cotacao.enderecoHash !== hashEsperado) {
           return respostaErro('A cotação expirou ou não pertence a este endereço. Calcule novamente.', 422);
         }
         taxaEntregaValidada = cotacao.taxaCentavos / 100;
@@ -211,13 +231,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const origem = request.nextUrl.origin;
   const trackingUrl = `${origem}/pedido/${resultado.token}`;
 
-  const [{ data: loja }, { data: itensDb }] = await Promise.all([
-    sb.from('lojas').select('whatsapp_numero').eq('slug', slug).maybeSingle(),
-    sb
-      .from('pedido_itens')
-      .select('nome, quantidade, subtotal, observacao, pedido_item_opcoes(grupo_nome, nome, preco, quantidade)')
-      .eq('pedido_id', resultado.id),
-  ]);
+  const { data: itensDb } = await sb
+    .from('pedido_itens')
+    .select('nome, quantidade, subtotal, observacao, pedido_item_opcoes(grupo_nome, nome, preco, quantidade)')
+    .eq('pedido_id', resultado.id);
 
   const itensMensagem = (itensDb || []).map((item) => ({
     nome: item.nome as string,
@@ -243,7 +260,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     formaPagamento: entrada.formaPagamento,
   });
 
-  const numeroWhats = (loja?.whatsapp_numero || '').replace(/\D/g, '');
+  const numeroWhats = (lojaOperacao.whatsapp_numero || '').replace(/\D/g, '');
   const urlWhatsapp = numeroWhats ? `https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}` : null;
 
   return NextResponse.json(

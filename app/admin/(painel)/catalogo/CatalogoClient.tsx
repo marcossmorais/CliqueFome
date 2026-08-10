@@ -38,6 +38,7 @@ export function CatalogoClient({
   const [categorias, setCategorias] = useState(categoriasIniciais);
   const [produtos, setProdutos] = useState(produtosIniciais);
   const [grupos, setGrupos] = useState(gruposIniciais);
+  const [produtoAtualizandoId, setProdutoAtualizandoId] = useState<string | null>(null);
 
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
 
@@ -131,6 +132,28 @@ export function CatalogoClient({
     setCategorias((atual) => atual.map((x) => (x.id === c.id ? { ...x, ativo: !x.ativo } : x)));
   }
 
+  async function toggleDisponibilidadeProduto(produto: Produto) {
+    if (produtoAtualizandoId) return;
+    const novoEstado = !produto.ativo;
+    setProdutoAtualizandoId(produto.id);
+    setProdutos((atual) => atual.map((item) => item.id === produto.id ? { ...item, ativo: novoEstado } : item));
+
+    const sb = criarClientNavegador();
+    const { error } = await sb
+      .from('produtos')
+      .update({ ativo: novoEstado })
+      .eq('id', produto.id)
+      .eq('loja_id', lojaId);
+
+    if (error) {
+      setProdutos((atual) => atual.map((item) => item.id === produto.id ? { ...item, ativo: produto.ativo } : item));
+      mostrarMsg('Não foi possível alterar a disponibilidade do produto.');
+    } else {
+      mostrarMsg(novoEstado ? 'Produto disponível.' : 'Produto marcado como esgotado.', 'ok');
+    }
+    setProdutoAtualizandoId(null);
+  }
+
   // ---------- botão "+ Novo" muda conforme a subaba ----------
   const botaoNovo =
     subtab === 'produtos'
@@ -206,6 +229,8 @@ export function CatalogoClient({
               busca={busca}
               onEditarCategoria={(c) => setModalCategoria({ aberto: true, categoria: c })}
               onEditarProduto={(p) => setModalProduto({ aberto: true, produto: p })}
+              onToggleDisponibilidade={(p) => void toggleDisponibilidadeProduto(p)}
+              produtoAtualizandoId={produtoAtualizandoId}
               onReordenar={onReordenarProdutos}
             />
           </div>

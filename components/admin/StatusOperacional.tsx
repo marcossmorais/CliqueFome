@@ -43,19 +43,29 @@ export function OperacaoProvider({
 
   async function alterar(campo: CampoOperacao, valor: boolean) {
     if (salvando) return;
-    const anterior = estado[campo];
-    setEstado((atual) => ({ ...atual, [campo]: valor }));
+    const anterior = estado;
+    const fecharLoja = campo === 'lojaAberta' && !valor;
+    const proximo = {
+      ...estado,
+      [campo]: valor,
+      ...(fecharLoja ? { delivery: false } : {}),
+    };
+    const alteracoesBanco = fecharLoja
+      ? { recebendo_encomendas: false, delivery_ativo: false }
+      : { [COLUNA[campo]]: valor };
+
+    setEstado(proximo);
     setSalvando(campo);
     setErro(null);
 
     const sb = criarClientNavegador();
     const { error } = await sb
       .from('lojas')
-      .update({ [COLUNA[campo]]: valor })
+      .update(alteracoesBanco)
       .eq('id', lojaId);
 
     if (error) {
-      setEstado((atual) => ({ ...atual, [campo]: anterior }));
+      setEstado(anterior);
       setErro('Não foi possível alterar o status. Tente novamente.');
     } else {
       router.refresh();
@@ -80,18 +90,19 @@ function Controle({ campo, nome, icone }: { campo: CampoOperacao; nome: string; 
   const operacao = useOperacao();
   const ativo = operacao[campo];
   const ocupado = operacao.salvando !== null;
+  const bloqueadoPelaLoja = campo === 'delivery' && !operacao.lojaAberta;
 
   return (
     <label className={styles.controle}>
       <span className={styles.controleTexto}>
         <span aria-hidden="true">{icone}</span>
-        <span><strong>{nome}</strong><small>{ativo ? 'Ativo' : 'Pausado'}</small></span>
+        <span><strong>{nome}</strong><small>{bloqueadoPelaLoja ? 'Loja fechada' : ativo ? 'Ativo' : 'Pausado'}</small></span>
       </span>
       <span className={styles.switch}>
         <input
           type="checkbox"
           checked={ativo}
-          disabled={ocupado}
+          disabled={ocupado || bloqueadoPelaLoja}
           onChange={(evento) => void operacao.alterar(campo, evento.target.checked)}
           aria-label={`${ativo ? 'Desativar' : 'Ativar'} ${nome.toLowerCase()}`}
         />

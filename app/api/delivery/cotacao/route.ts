@@ -25,7 +25,7 @@ type ConfigRow = {
   valor_por_km: number;
   taxa_maxima: number;
   distancia_maxima_km: number;
-  lojas: { delivery_ativo: boolean } | null;
+  lojas: { delivery_ativo: boolean; recebendo_encomendas: boolean } | null;
   enderecos_estabelecimento: { latitude: number; longitude: number } | null;
 };
 
@@ -73,13 +73,15 @@ export async function POST(request: NextRequest) {
   const { data, error } = await sb
     .from('configuracoes_delivery')
     .select(
-      'loja_id,setor,tipo_taxa,cidade_atendida,taxa_fixa,valor_por_km,taxa_maxima,distancia_maxima_km,lojas!inner(delivery_ativo,slug),enderecos_estabelecimento!inner(latitude,longitude)',
+      'loja_id,setor,tipo_taxa,cidade_atendida,taxa_fixa,valor_por_km,taxa_maxima,distancia_maxima_km,lojas!inner(delivery_ativo,recebendo_encomendas,slug),enderecos_estabelecimento!inner(latitude,longitude)',
     )
     .eq('lojas.slug', slug)
     .maybeSingle();
   if (error || !data) return erro('Entrega não configurada para esta loja.', 404);
   const config = data as unknown as ConfigRow;
-  if (!config.lojas?.delivery_ativo) return erro('A loja não está aceitando entregas agora.', 409);
+  if (!config.lojas?.recebendo_encomendas || !config.lojas.delivery_ativo) {
+    return erro('A loja não está aceitando entregas agora.', 409);
+  }
 
   let taxaCidade: number | null = null;
   let cidadeResolvida = config.cidade_atendida;

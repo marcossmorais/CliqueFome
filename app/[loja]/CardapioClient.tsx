@@ -9,6 +9,7 @@ import { CartaoProduto } from './CartaoProduto';
 import { CheckoutModal, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado } from './CheckoutModal';
 import {
   apareceNoTipo,
+  produtoApareceNoTipo,
   ehCarrinhoValido,
   formatBRL,
   precoBase,
@@ -70,7 +71,7 @@ export function CardapioClient({
     ...ENDERECO_VAZIO,
     cidade: deliveryConfig?.cidade || '',
   });
-  const [modo, setModo] = useState<ModoEntrega>('retirada');
+  const [modo, setModo] = useState<ModoEntrega>(() => loja.retirada_ativa ? 'retirada' : 'entrega');
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoOffline | ''>('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -163,7 +164,7 @@ export function CardapioClient({
   // em Destaques, Mais pedidos e novamente na categoria, que era uma das
   // principais fontes de confusão no desenho anterior.
   const produtosPorTipo = useMemo(
-    () => produtos.filter((p) => apareceNoTipo(p.tipos_pedido, tipoPedido)),
+    () => produtos.filter((p) => produtoApareceNoTipo(p.tipos_pedido, tipoPedido)),
     [produtos, tipoPedido]
   );
 
@@ -273,6 +274,11 @@ export function CardapioClient({
     setErro(null);
     if (linhas.length === 0 || enviando) return;
 
+    if (!loja.recebendo_encomendas) {
+      setErro('A loja está fechada e não está recebendo pedidos no momento.');
+      return;
+    }
+
     if (!nome.trim()) {
       setErro('Informe seu nome.');
       return;
@@ -292,6 +298,10 @@ export function CardapioClient({
     }
     if (modo === 'entrega' && !loja.delivery_ativo) {
       setErro('A loja não está aceitando entregas no momento.');
+      return;
+    }
+    if (modo === 'retirada' && !loja.retirada_ativa) {
+      setErro('A retirada está indisponível no momento.');
       return;
     }
     if (modo === 'entrega' && usaCotacaoDinamica && cotacao.status !== 'ok') {
@@ -398,8 +408,8 @@ export function CardapioClient({
         </nav>
 
         <div id="info-loja" className="sidebar-info">
-          <strong className={loja.delivery_ativo ? 'aberto' : 'fechado'}>
-            <i /> {loja.delivery_ativo ? 'Aceitando pedidos' : 'Pedidos pausados'}
+          <strong className={loja.recebendo_encomendas && (loja.delivery_ativo || loja.retirada_ativa) ? 'aberto' : 'fechado'}>
+            <i /> {loja.recebendo_encomendas && (loja.delivery_ativo || loja.retirada_ativa) ? 'Aceitando pedidos' : 'Loja fechada'}
           </strong>
           {loja.tempo_entrega_min && loja.tempo_entrega_max && (
             <p><span>Tempo de entrega</span>{loja.tempo_entrega_min}–{loja.tempo_entrega_max} min</p>
@@ -510,6 +520,9 @@ export function CardapioClient({
         enviando={enviando}
         pedidoRegistrado={pedidoRegistrado}
         deliveryConfig={deliveryConfig}
+        lojaAberta={loja.recebendo_encomendas}
+        deliveryAtivo={loja.delivery_ativo}
+        retiradaAtiva={loja.retirada_ativa}
         taxaEstatica={taxaEstatica}
         cidadeEscolhida={cidadeEscolhida}
         cotacao={cotacao}

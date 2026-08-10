@@ -72,6 +72,7 @@ export const TIPOS_PEDIDO = [
   { id: 'retirada', nome: 'Retirada' },
   { id: 'balcao', nome: 'Balcão' },
   { id: 'mesa', nome: 'Mesa' },
+  { id: 'encomenda', nome: 'Encomenda / agendamento' },
 ];
 
 export const ETIQUETAS: Record<string, string> = {
