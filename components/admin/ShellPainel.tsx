@@ -108,6 +108,11 @@ export function ShellPainel({
                 <Link href={`${base}/avaliacoes`} onClick={() => setAberto(false)}><Icone chave="avaliacoes" /> Avaliações</Link>
               </div>
             </details>
+            {souAdmin && (
+              <Link href="/superadmin" className="btn-ghost btn-small" style={{ textAlign: 'center' }}>
+                Painel da plataforma
+              </Link>
+            )}
             <button type="button" className="btn-ghost btn-small" onClick={sair}>
               Sair
             </button>

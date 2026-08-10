@@ -7,14 +7,15 @@ import { obterPrimeiraLoja, obterUsuario } from '@/lib/loja';
  * depois do login e qualquer atalho antigo caem neste ponto, que resolve
  * a loja e redireciona pra /painel/<slug>/inicio.
  *
- * Quem não tem loja nenhuma vai pra /criar-loja. Quando o /superadmin
- * existir (Fase B), o super admin sem loja própria passa a cair lá.
+ * Super admin sem loja própria vai pro /superadmin — senão cairia em
+ * "crie sua loja", que não é o caso dele.
  */
 export default async function PainelPage() {
   const user = await obterUsuario();
   if (!user) redirect('/entrar?proximo=/painel');
 
-  const { loja } = await obterPrimeiraLoja();
+  const { loja, souAdmin } = await obterPrimeiraLoja();
   if (loja) redirect(`/painel/${loja.slug}/inicio`);
+  if (souAdmin) redirect('/superadmin');
   redirect('/criar-loja');
 }
