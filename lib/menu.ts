@@ -6,7 +6,7 @@
  * e tudo que ainda é placeholder cai junto no grupo "Em breve", no fim do
  * menu. O agrupamento antigo (Operação/Cardápio/Entrega/Gestão/Config)
  * misturava pronto com placeholder dentro do mesmo grupo — quem abria o
- * painel via "Mesas e comandas" antes de "Catálogo" só descobria que a
+ * painel via "Mesas e comandas" antes de "Cardápio" só descobria que a
  * tela estava vazia depois de clicar.
  *
  * `pronta: false` desenha a bolinha de "em breve" e leva pra tela vazia.
@@ -53,7 +53,7 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     itens: [
       { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', pronta: true },
       { id: 'kds', nome: 'Cozinha', icone: 'kds', pronta: true },
-      { id: 'catalogo', nome: 'Cardápio', icone: 'catalogo', pronta: true },
+      { id: 'cardapio', nome: 'Cardápio', icone: 'catalogo', pronta: true },
       {
         id: 'delivery',
         nome: 'Delivery',

@@ -197,7 +197,7 @@ export const TUTORIAIS: Tutorial[] = [
     nivel: 'Essencial',
     duracao: '10 min',
     passos: [
-      { titulo: 'Crie as categorias', descricao: 'Separe os itens como o cliente procura: Lanches, Bebidas, Sobremesas.', rota: '/admin/catalogo' },
+      { titulo: 'Crie as categorias', descricao: 'Separe os itens como o cliente procura: Lanches, Bebidas, Sobremesas.', rota: '/admin/cardapio' },
       { titulo: 'Cadastre os produtos', descricao: 'Use nomes objetivos, descrição curta, preço correto e imagem nítida.' },
       { titulo: 'Defina disponibilidade', descricao: 'Mantenha ativos apenas os itens realmente vendáveis.' },
       { titulo: 'Ordene o catálogo', descricao: 'Arraste categorias e produtos para colocar os mais importantes primeiro.' },
@@ -213,7 +213,7 @@ export const TUTORIAIS: Tutorial[] = [
     duracao: '8 min',
     passos: [
       { titulo: 'Planeje a escolha', descricao: 'Defina se a lista representa tamanho, sabor, borda ou adicionais.' },
-      { titulo: 'Crie a lista', descricao: 'Na subaba Complementos, informe mínimo, máximo, repetição e regra de preço.', rota: '/admin/catalogo' },
+      { titulo: 'Crie a lista', descricao: 'Na subaba Complementos, informe mínimo, máximo, repetição e regra de preço.', rota: '/admin/cardapio' },
       { titulo: 'Cadastre as opções', descricao: 'Adicione cada escolha com preço extra e quantidade máxima quando aplicável.' },
       { titulo: 'Vincule aos produtos', descricao: 'Edite os produtos e selecione a lista recém-criada.' },
       { titulo: 'Teste os limites', descricao: 'No cardápio, tente salvar abaixo do mínimo, acima do máximo e com combinações diferentes.' },

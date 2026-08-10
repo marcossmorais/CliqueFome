@@ -29,7 +29,7 @@ const GRUPOS: { titulo: string; funcs: Func[] }[] = [
   {
     titulo: 'Cardápio e vendas',
     funcs: [
-      { titulo: 'Catálogo', texto: 'Categorias, produtos, listas de complementos e opções — com foto, preço e disponibilidade.', icone: svg(<><path d="M5 4h14v16H5z" /><path d="M9 8h6M9 12h6M9 16h3" /></>) },
+      { titulo: 'Cardápio', texto: 'Categorias, produtos, listas de complementos e opções — com foto, preço e disponibilidade.', icone: svg(<><path d="M5 4h14v16H5z" /><path d="M9 8h6M9 12h6M9 16h3" /></>) },
       { titulo: 'Links do cardápio', texto: 'Link próprio de delivery e de balcão pra divulgar onde quiser.', icone: svg(<><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1" /><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1" /></>) },
       { titulo: 'Delivery e áreas de entrega', texto: 'Áreas por raio, polígono ou bairro, cada uma com taxa e tempo de entrega próprios.', icone: svg(<><path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></>) },
       { titulo: 'Entregadores', texto: 'Cadastre seus motoboys pra vincular ao pedido na hora da entrega.', icone: svg(<><circle cx="6" cy="18" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.5 18h7M13 18V7h3l3 5v6M4 8h6" /></>) },
@@ -78,7 +78,7 @@ export default function Home() {
           <a href="#funcionalidades">Funcionalidades</a>
           <a href="#planos">Planos</a>
         </div>
-        <Link href="/admin/catalogo" className="btn btn-primary btn-small">
+        <Link href="/admin/cardapio" className="btn btn-primary btn-small">
           Acessar conta
         </Link>
       </nav>
@@ -93,7 +93,7 @@ export default function Home() {
           lanchonetes, hamburguerias, pizzarias e açaiterias.
         </p>
         <div className="ctas">
-          <Link href="/admin/catalogo" className="btn btn-primary">
+          <Link href="/admin/cardapio" className="btn btn-primary">
             Acessar conta
           </Link>
           <a href="#planos" className="btn btn-ghost">

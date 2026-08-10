@@ -18,7 +18,7 @@ const PLANOS = [
     destaque: false,
     cta: 'btn-ghost',
     itens: [
-      'Catálogo: categorias, produtos, complementos e opções',
+      'Cardápio: categorias, produtos, complementos e opções',
       'Gestão de pedidos (delivery, retirada e balcão)',
       'Links do cardápio de delivery e balcão',
       'Minha empresa: horários e formas de pagamento',
@@ -38,7 +38,7 @@ const PLANOS = [
       'Mesas e comandas com taxa de serviço',
       'KDS — tela da cozinha',
       'Caixa com sangria, suprimento e conferência',
-      'Áreas de entrega e cadastro de entregadores',
+      'Delivery e cadastro de entregadores',
       'Desempenho e relatórios',
       'Financeiro e emissão de notas (fiscal)',
       'Configurações: impressão, agendamentos e integrações',
@@ -107,7 +107,7 @@ export function PlanosSecao() {
                   </li>
                 ))}
               </ul>
-              <Link href="/admin/catalogo" className={'btn ' + plano.cta}>
+              <Link href="/admin/cardapio" className={'btn ' + plano.cta}>
                 Começar agora
               </Link>
             </div>

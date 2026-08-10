@@ -8,7 +8,7 @@ import { TODAS_AREAS, ICONES } from '@/lib/menu';
  * "Gestão de pedidos" caía num 404 cru — o admin.html antigo mostrava um
  * "em breve", e é esse comportamento que fica aqui.
  *
- * Rota estática (ex: /admin/catalogo) sempre ganha desta, então as telas
+ * Rota estática (ex: /admin/cardapio) sempre ganha desta, então as telas
  * já migradas não passam por aqui.
  */
 export default async function AreaEmBrevePage({
