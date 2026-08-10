@@ -52,6 +52,29 @@ export type PedidoResumo = {
   pedido_itens: { id: string }[];
 };
 
+/** Ícone (path de svg 24x24, stroke) e cor por etapa — usado tanto no
+ * stepper da tela pública de acompanhamento quanto no badge do admin, pra
+ * mudar de etapa ficar visível de longe, não só no texto. */
+export const ICONE_STATUS: Record<StatusPedido, string> = {
+  pendente: 'M12 21a9 9 0 110-18 9 9 0 010 18zM12 7v5l4 2',
+  confirmado: 'M12 21a9 9 0 110-18 9 9 0 010 18zM8 12.5l2.5 2.5L16 9',
+  em_preparo: 'M12 2C9 6 6 9 6 13a6 6 0 0012 0c0-2.5-1.5-4-1.5-4s0 2.5-1.5 2.5S13 9 13 7c0-2 1-3-1-5z',
+  pronto: 'M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2M9.5 13.5l2 2 3-4',
+  saiu_entrega: 'M8.5 18h7M13 18V7h3l3 5v6M4 8h6M8.5 18a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM20.5 18a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z',
+  concluido: 'M5 13l4 4L19 7',
+  cancelado: 'M12 21a9 9 0 110-18 9 9 0 010 18zM9 9l6 6M15 9l-6 6',
+};
+
+export const COR_STATUS: Record<StatusPedido, string> = {
+  pendente: '#E0A020',
+  confirmado: '#2F6FE0',
+  em_preparo: '#F28C28',
+  pronto: '#2FA968',
+  saiu_entrega: '#0E9488',
+  concluido: '#0F3D2E',
+  cancelado: '#B23B3B',
+};
+
 export const NOMES_STATUS: Record<StatusPedido, string> = {
   pendente: 'Pendente',
   confirmado: 'Confirmado',

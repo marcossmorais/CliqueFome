@@ -40,18 +40,101 @@
   font-size: 24px;
 }
 
-.tracking-status {
-  align-self: flex-start;
-  margin-top: 4px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  font-size: 12px;
-  font-weight: 700;
+/* Stepper de etapas — cada "cardizinho" é um círculo com ícone; passadas e
+   a atual ganham a cor da etapa (COR_STATUS), futuras ficam neutras. Borda
+   branca no círculo garante contraste mesmo quando a cor da etapa é
+   parecida com o fundo (ex: concluído, um verde bem escuro). */
+.tracking-stepper {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 10px;
+  padding: 0;
+  list-style: none;
 }
 
-.tracking-status-cancelado {
-  background: rgba(220, 80, 70, 0.35);
+.tracking-etapa {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.tracking-etapa::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: -50%;
+  z-index: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.tracking-etapa:first-child::before {
+  display: none;
+}
+.tracking-etapa.alcancada::before {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.tracking-etapa-icone {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+}
+.tracking-etapa.alcancada .tracking-etapa-icone {
+  border-color: rgba(255, 255, 255, 0.9);
+  background: var(--cor-status);
+  color: #fff;
+}
+.tracking-etapa.atual .tracking-etapa-icone {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
+}
+.tracking-etapa-icone svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tracking-etapa-nome {
+  max-width: 64px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+.tracking-etapa.alcancada .tracking-etapa-nome {
+  color: #fff;
+}
+
+.tracking-cancelado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.tracking-cancelado .tracking-etapa-icone {
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: var(--cor-status);
+  color: #fff;
+}
+.tracking-cancelado strong {
+  font-size: 14px;
 }
 
 .tracking-pagamento {

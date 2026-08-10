@@ -2,7 +2,7 @@ export const FORMAS_PAGAMENTO_OFFLINE = {
   dinheiro_entrega: 'Dinheiro na entrega',
   cartao_credito_entrega: 'Cartão de crédito na entrega',
   cartao_debito_entrega: 'Cartão de débito na entrega',
-  pix_manual: 'Pix direto para a loja',
+  pix_manual: 'Fazer Pix no WhatsApp',
   pagamento_retirada: 'Pagamento na retirada',
 } as const;
 
@@ -38,7 +38,7 @@ export function nomeFormaPagamento(forma: string | null | undefined) {
 export function instrucaoPagamento(forma: string) {
   switch (forma) {
     case 'pix_manual':
-      return 'O pedido já foi enviado à loja. Combine ou envie o Pix diretamente ao restaurante; a confirmação será manual.';
+      return 'Você será encaminhado pro WhatsApp da loja pra combinar e enviar o Pix — o pedido já está registrado, a confirmação do pagamento é manual.';
     case 'pagamento_retirada':
       return 'O pagamento será feito diretamente no estabelecimento, no momento da retirada.';
     case 'dinheiro_entrega':

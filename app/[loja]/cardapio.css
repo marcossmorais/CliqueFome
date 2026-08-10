@@ -143,6 +143,36 @@
     white-space: nowrap;
   }
 
+  /* BARRA DE ACOMPANHAMENTO (topo, só aparece com pedido ativo há < 4h).
+     Renderizada como IRMÃ de .cardapio-app (não filha) — esse container
+     vira grid de 2 colunas no desktop (vitrine.css), e um filho a mais
+     bagunçaria as células do grid. Sticky (não fixed) porque assim ela
+     reserva o próprio espaço no fluxo normal, empurrando o conteúdo pra
+     baixo sozinha — sem precisar calcular padding manualmente. */
+  .acompanhar-barra{
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 16px;
+    padding-top: max(10px, env(safe-area-inset-top));
+    background: var(--marca);
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .acompanhar-barra-cta{
+    flex-shrink: 0;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
   /* CARDÁPIO — mobile-first */
   .menu-section{
     position: relative;

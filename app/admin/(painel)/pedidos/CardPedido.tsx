@@ -1,5 +1,22 @@
 import { nivelUrgencia, textoTempo } from '@/lib/pedidos/prioridade';
-import { formatBRL, NOMES_ORIGEM, NOMES_TIPO, rotuloAvancar, type PedidoResumo } from '@/lib/pedidos/tipos';
+import {
+  COR_STATUS,
+  formatBRL,
+  ICONE_STATUS,
+  NOMES_ORIGEM,
+  NOMES_STATUS,
+  NOMES_TIPO,
+  rotuloAvancar,
+  type PedidoResumo,
+} from '@/lib/pedidos/tipos';
+
+function IconeStatus({ status }: { status: PedidoResumo['status'] }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={ICONE_STATUS[status]} />
+    </svg>
+  );
+}
 
 /**
  * Card da coluna de pedidos. Layout vertical (e não em linha) porque as
@@ -42,6 +59,10 @@ export function CardPedido({
       </div>
 
       <div className="pedido-card-linha2">
+        <span className="pedido-chip-status" style={{ ['--cor-status' as string]: COR_STATUS[pedido.status] }}>
+          <IconeStatus status={pedido.status} />
+          {NOMES_STATUS[pedido.status]}
+        </span>
         <span className="pedido-chip">{NOMES_TIPO[pedido.tipo]}</span>
         {pedido.origem !== 'site' && <span className="pedido-chip">{NOMES_ORIGEM[pedido.origem]}</span>}
         <span className="pedido-card-tempo">

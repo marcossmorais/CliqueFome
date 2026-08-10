@@ -13,7 +13,9 @@ import {
 import { textoTempo } from '@/lib/pedidos/prioridade';
 import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
 import {
+  COR_STATUS,
   formatBRL,
+  ICONE_STATUS,
   NOMES_ORIGEM,
   NOMES_STATUS,
   NOMES_TIPO,
@@ -22,6 +24,14 @@ import {
   type PedidoItem,
   type PedidoResumo,
 } from '@/lib/pedidos/tipos';
+
+function IconeStatus({ status }: { status: PedidoResumo['status'] }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={ICONE_STATUS[status]} />
+    </svg>
+  );
+}
 
 export function PainelDetalhePedido({
   pedido,
@@ -141,7 +151,11 @@ export function PainelDetalhePedido({
       <aside className="pedido-painel">
         <div className="modal-topo">
           <div className="modal-titulo">
-            Pedido #{pedido.numero} <span className="tag tag-inativo">{NOMES_STATUS[pedido.status]}</span>
+            Pedido #{pedido.numero}{' '}
+            <span className="pedido-chip-status" style={{ ['--cor-status' as string]: COR_STATUS[pedido.status] }}>
+              <IconeStatus status={pedido.status} />
+              {NOMES_STATUS[pedido.status]}
+            </span>
           </div>
           <button type="button" className="modal-fechar" aria-label="Fechar" onClick={onFechar}>
             ✕

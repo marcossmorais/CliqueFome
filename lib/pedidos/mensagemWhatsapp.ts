@@ -50,7 +50,9 @@ export function montarMensagemPedido(params: {
     `Total: ${formatBRL(total)}`,
     `Forma de pagamento: ${nomeFormaPagamento(formaPagamento)}`,
     '',
-    'Pagamento a receber pela loja — confirmação manual.',
+    formaPagamento === 'pix_manual'
+      ? 'Vamos combinar o Pix por aqui mesmo — a confirmação do pagamento é manual.'
+      : 'Pagamento a receber pela loja — confirmação manual.',
     `Acompanhar: ${trackingUrl}`,
   ].join('\n');
 }

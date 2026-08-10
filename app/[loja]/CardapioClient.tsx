@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { usePedidoAcompanhado } from '@/hooks/usePedidoAcompanhado';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
 import { CartaoProduto } from './CartaoProduto';
@@ -83,6 +84,7 @@ export function CardapioClient({
   const usaCotacaoDinamica = !!deliveryConfig?.configurada;
   const [cidadeEscolhida, setCidadeEscolhida] = useState(deliveryConfig?.cidade || '');
   const [cotacao, setCotacao] = useState<CotacaoEstado>(COTACAO_INICIAL);
+  const { ativo: pedidoAcompanhado, registrar: registrarAcompanhamento } = usePedidoAcompanhado(loja.slug);
 
   function mudarEndereco(v: string) {
     setEndereco(v);
@@ -343,7 +345,16 @@ export function CardapioClient({
       atualizar(() => []);
       setIdempotencyKey(crypto.randomUUID());
       setPedidoRegistrado({ pedido: corpo.pedido, proximaAcao: corpo.proxima_acao });
+      registrarAcompanhamento({ token: corpo.pedido.token, numero: corpo.pedido.numero });
       setEnviando(false);
+      // Pix no WhatsApp é o único caminho pra fechar o pagamento — tenta
+      // abrir sozinho. Pode ser bloqueado como popup (Safari/Chrome mobile
+      // bloqueiam window.open fora de um clique síncrono, e este roda
+      // depois do fetch), por isso o botão continua visível na tela de
+      // sucesso como caminho manual de volta.
+      if (corpo.pedido.forma_pagamento === 'pix_manual' && corpo.proxima_acao?.tipo === 'whatsapp') {
+        window.open(corpo.proxima_acao.url, '_blank', 'noopener,noreferrer');
+      }
     } catch {
       setErro('Falha de conexão ao enviar seu pedido. Seu carrinho continua salvo — tente de novo.');
       setEnviando(false);
@@ -358,7 +369,18 @@ export function CardapioClient({
   }
 
   return (
-    <div className="cardapio-app" style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
+    <>
+      {pedidoAcompanhado && !modalAberto && (
+        <a
+          className="acompanhar-barra"
+          href={`/pedido/${pedidoAcompanhado.token}`}
+          style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}
+        >
+          <span>Acompanhando o pedido #{pedidoAcompanhado.numero}</span>
+          <span className="acompanhar-barra-cta">Ver andamento →</span>
+        </a>
+      )}
+      <div className="cardapio-app" style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
       <aside className="menu-sidebar" aria-label="Navegação da loja">
         <div className="sidebar-marca">
           <span
@@ -514,6 +536,7 @@ export function CardapioClient({
           setModalAberto(false);
         }}
       />
-    </div>
+      </div>
+    </>
   );
 }

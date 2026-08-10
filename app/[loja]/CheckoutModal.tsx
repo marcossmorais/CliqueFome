@@ -31,7 +31,7 @@ const ROTULOS_FORMA_PAGAMENTO: Record<FormaPagamentoOffline, string> = {
   dinheiro_entrega: 'Dinheiro',
   cartao_credito_entrega: 'Cartão de crédito',
   cartao_debito_entrega: 'Cartão de débito',
-  pix_manual: 'Pix direto para a loja',
+  pix_manual: 'Pix no WhatsApp',
   pagamento_retirada: 'Pagar no estabelecimento',
 };
 
@@ -208,7 +208,11 @@ export function CheckoutModal({
             </div>
             <div className="checkout-total"><span>Total</span><strong>{formatBRL(pedidoRegistrado.pedido.total)}</strong></div>
             {pedidoRegistrado.proximaAcao?.tipo === 'whatsapp' && (
-              <a className="btn-primary checkout-acao" href={pedidoRegistrado.proximaAcao.url} target="_blank" rel="noopener noreferrer">Abrir WhatsApp (opcional)</a>
+              pedidoRegistrado.pedido.forma_pagamento === 'pix_manual' ? (
+                <a className="btn-primary checkout-acao" href={pedidoRegistrado.proximaAcao.url} target="_blank" rel="noopener noreferrer">Continuar no WhatsApp pra fazer o Pix</a>
+              ) : (
+                <a className="btn-continue" href={pedidoRegistrado.proximaAcao.url} target="_blank" rel="noopener noreferrer">Abrir WhatsApp (opcional)</a>
+              )
             )}
             <a className="btn-continue" href={pedidoRegistrado.pedido.tracking_url}>Acompanhar meu pedido</a>
             <button type="button" className="btn-continue" onClick={onNovoPedido}>Fechar e fazer novo pedido</button>

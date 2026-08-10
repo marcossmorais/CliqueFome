@@ -46,7 +46,7 @@ const ROTULOS_FORMA_PAGAMENTO: Record<FormaPagamentoOffline, string> = {
   dinheiro_entrega: 'Dinheiro',
   cartao_credito_entrega: 'Cartão de crédito',
   cartao_debito_entrega: 'Cartão de débito',
-  pix_manual: 'Pix direto para a loja',
+  pix_manual: 'Pix no WhatsApp',
   pagamento_retirada: 'Pagar no estabelecimento',
 };
 
