@@ -44,6 +44,14 @@ removidas antes do commit — elas não têm autenticação.
 **No Windows, `pkill` não mata processo.** Use `netstat -ano | grep :3000` +
 `Stop-Process`.
 
+## Logs
+
+Rotas de API (`app/api/**/route.ts`, runtime `nodejs`) logam com
+`import { logger } from '@/lib/observabilidade/logger'` (Pino, JSON
+estruturado). Cinco níveis — `debug`/`info`/`warn`/`error`/`fatal`, uso de
+cada um documentado no topo do próprio arquivo. Nunca em `proxy.ts`: roda
+em Edge Runtime, onde o Pino não funciona.
+
 ## Detalhes que já causaram bug
 
 - `useState` + `useEffect` pra ler `localStorage`/relógio → mismatch de

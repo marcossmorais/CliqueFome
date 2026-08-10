@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { somenteDigitosCep, type EnderecoPorCep } from '@/lib/endereco/cep';
+import { logger } from '@/lib/observabilidade/logger';
 
 export const runtime = 'nodejs';
+
+const ROTA = '/api/endereco/cep/[cep]';
 
 type Limite = { inicio: number; quantidade: number };
 const globalCep = globalThis as typeof globalThis & { __cfCepLimites?: Map<string, Limite> };
@@ -58,7 +61,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(endereco, {
       headers: { 'Cache-Control': 'public, s-maxage=2592000, stale-while-revalidate=86400' },
     });
-  } catch {
+  } catch (falha) {
+    logger.error({ err: falha, rota: ROTA, cep }, 'Falha ao consultar CEP na ViaCEP');
     return respostaErro('Consulta de CEP indisponível. Preencha manualmente.', 503);
   } finally {
     clearTimeout(timer);

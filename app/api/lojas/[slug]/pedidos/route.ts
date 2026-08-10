@@ -10,8 +10,11 @@ import { criarClientPrivilegiado, hashLimite, hashPayload } from '@/lib/pedidos/
 import { verificarTokenCotacao } from '@/lib/delivery/cotacao';
 import { hashEndereco } from '@/lib/delivery/servidor';
 import { normalizarTexto } from '@/lib/delivery/tipos';
+import { logger } from '@/lib/observabilidade/logger';
 
 export const runtime = 'nodejs';
+
+const ROTA = '/api/lojas/[slug]/pedidos';
 
 const TAMANHO_MAXIMO_BYTES = 60_000;
 
@@ -36,7 +39,8 @@ async function captchaValido(token: string | undefined) {
     });
     const dados = (await resposta.json().catch(() => null)) as { success?: boolean } | null;
     return dados?.success === true;
-  } catch {
+  } catch (erro) {
+    logger.error({ err: erro, rota: ROTA }, 'Falha ao verificar captcha (Turnstile) — tratando como inválido');
     return false;
   }
 }
@@ -72,7 +76,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let corpoJson: unknown;
   try {
     corpoJson = JSON.parse(bruto);
-  } catch {
+  } catch (erro) {
+    logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'JSON malformado no corpo do pedido');
     return respostaErro('Dados inválidos.', 422);
   }
 
@@ -81,6 +86,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     entrada = validarEntradaCheckout(corpoJson);
   } catch (erro) {
     if (erro instanceof ErroValidacaoCheckout) return respostaErro(erro.message, 422);
+    logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha inesperada ao validar entrada do checkout');
     return respostaErro('Dados inválidos.', 422);
   }
 
@@ -91,7 +97,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let sb;
   try {
     sb = criarClientPrivilegiado();
-  } catch {
+  } catch (erro) {
+    logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha ao criar client privilegiado do Supabase');
     return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
   }
 
@@ -101,7 +108,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     chaveIp = hashLimite(`${ip}:${slug}`);
     chaveTelefone = hashLimite(`${entrada.clienteTelefone}:${slug}`);
-  } catch {
+  } catch (erro) {
+    logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha ao gerar hash de limite de pedidos');
     return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
   }
 
@@ -126,7 +134,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           return respostaErro('A cotação expirou ou não pertence a este endereço. Calcule novamente.', 422);
         }
         taxaEntregaValidada = cotacao.taxaCentavos / 100;
-      } catch {
+      } catch (erro) {
+        logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha ao verificar token de cotação de entrega');
         return respostaErro('Não foi possível validar a cotação de entrega.', 503);
       }
     }

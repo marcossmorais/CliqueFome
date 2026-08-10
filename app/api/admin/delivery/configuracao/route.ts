@@ -10,8 +10,11 @@ import {
 } from '@/lib/delivery/tipos';
 import { criarClientPrivilegiado } from '@/lib/delivery/servidor';
 import { criarClientServidor } from '@/lib/supabase/server';
+import { logger } from '@/lib/observabilidade/logger';
 
 export const runtime = 'nodejs';
+
+const ROTA = '/api/admin/delivery/configuracao';
 
 function numero(valor: unknown) {
   const n = typeof valor === 'number' ? valor : Number(valor);
@@ -48,7 +51,8 @@ export async function GET(request: Request) {
       { config: config ?? null, cidades: cidades ?? [], endereco: endereco ?? null },
       { headers: { 'Cache-Control': 'no-store' } },
     );
-  } catch {
+  } catch (falha) {
+    logger.error({ err: falha, rota: ROTA, lojaId }, 'Falha ao carregar configuração de delivery');
     return NextResponse.json({ erro: 'Configuração de delivery indisponível.' }, { status: 503 });
   }
 }
@@ -57,7 +61,8 @@ export async function PUT(request: Request) {
   let corpo: Record<string, unknown>;
   try {
     corpo = (await request.json()) as Record<string, unknown>;
-  } catch {
+  } catch (falha) {
+    logger.error({ err: falha, rota: ROTA }, 'JSON malformado no corpo da configuração de delivery');
     return NextResponse.json({ erro: 'Dados inválidos.' }, { status: 400 });
   }
 
@@ -127,6 +132,7 @@ export async function PUT(request: Request) {
       );
     }
   } catch (erro) {
+    logger.error({ err: erro, rota: ROTA, lojaId, tipoTaxa }, 'Falha ao geocodificar endereço da loja');
     // Taxa fixa não depende de rota. Uma indisponibilidade externa não pode
     // impedir a loja de salvar essa modalidade; as coordenadas serão exigidas
     // e recalculadas quando o dono mudar para "por km".
@@ -182,7 +188,8 @@ export async function PUT(request: Request) {
     });
     if (error) throw error;
     return NextResponse.json({ ok: true, enderecoFormatado });
-  } catch {
+  } catch (falha) {
+    logger.error({ err: falha, rota: ROTA, lojaId }, 'Falha ao salvar configuração de delivery');
     return NextResponse.json({ erro: 'Não foi possível salvar a configuração.' }, { status: 503 });
   }
 }

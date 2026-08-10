@@ -10,8 +10,11 @@ import {
   validarLimitesDaCotacao,
   type EnderecoEstruturado,
 } from '@/lib/delivery/tipos';
+import { logger } from '@/lib/observabilidade/logger';
 
 export const runtime = 'nodejs';
+
+const ROTA = '/api/delivery/cotacao';
 
 type ConfigRow = {
   loja_id: string;
@@ -49,7 +52,8 @@ export async function POST(request: NextRequest) {
   let corpo: { lojaSlug?: unknown; endereco?: unknown; cidade?: unknown };
   try {
     corpo = (await request.json()) as typeof corpo;
-  } catch {
+  } catch (falha) {
+    logger.error({ err: falha, rota: ROTA }, 'JSON malformado no corpo da cotação');
     return erro('Dados inválidos.', 400);
   }
   const slug = typeof corpo.lojaSlug === 'string' ? corpo.lojaSlug.trim() : '';
@@ -62,7 +66,8 @@ export async function POST(request: NextRequest) {
   let sb;
   try {
     sb = criarClientPrivilegiado();
-  } catch {
+  } catch (falha) {
+    logger.error({ err: falha, rota: ROTA, lojaSlug: slug }, 'Falha ao criar client privilegiado do Supabase');
     return erro('Cálculo de entrega ainda não configurado.', 503);
   }
   const { data, error } = await sb
@@ -141,6 +146,7 @@ export async function POST(request: NextRequest) {
         cacheRotas.set(chaveCache, { distanciaMetros, enderecoFormatado, expira: Date.now() + 10 * 60_000 });
       }
     } catch (falha) {
+      logger.error({ err: falha, rota: ROTA, lojaSlug: slug }, 'Falha ao geocodificar ou calcular rota de entrega');
       return erro(
         falha instanceof ErroGeoapify && falha.codigo !== 'SERVICO_INDISPONIVEL'
           ? 'Não encontramos uma rota segura. Confira todos os campos do endereço.'
@@ -178,7 +184,8 @@ export async function POST(request: NextRequest) {
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );
-  } catch {
+  } catch (falha) {
+    logger.error({ err: falha, rota: ROTA, lojaSlug: slug }, 'Falha ao assinar token de cotação');
     return erro('Assinatura de cotação não configurada.', 503);
   }
 }

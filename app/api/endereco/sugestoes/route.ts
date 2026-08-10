@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { autocompletarEndereco, ErroGeoapify, type CodigoErroGeoapify } from '@/lib/delivery/geoapify';
 import { criarClientServidor } from '@/lib/supabase/server';
+import { logger } from '@/lib/observabilidade/logger';
 
 export const runtime = 'nodejs';
+
+const ROTA = '/api/endereco/sugestoes';
 
 // Autocomplete de endereço custa cota da Geoapify a cada tecla (mesmo com
 // debounce no cliente). Diferente da consulta de CEP (ViaCEP, gratuita e
@@ -53,6 +56,7 @@ export async function GET(request: NextRequest) {
     const mensagem = erro instanceof ErroGeoapify
       ? mensagens[erro.codigo] ?? 'A busca de endereço está indisponível no momento.'
       : 'A busca de endereço está indisponível no momento.';
+    logger.error({ err: erro, rota: ROTA, usuarioId: usuario.user.id }, 'Falha ao buscar sugestões de endereço');
     return respostaErro(mensagem, 503);
   }
 }
