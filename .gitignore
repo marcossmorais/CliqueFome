@@ -1,5 +1,9 @@
 node_modules/
 .next/
 .env*.local
+.env.test
 .vercel
 tsconfig.tsbuildinfo
+coverage/
+playwright-report/
+test-results/

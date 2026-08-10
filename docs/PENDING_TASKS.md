@@ -244,3 +244,45 @@ rodar em produção (ver "Bloqueando" acima).
 test:delivery`) cobrem lógica pura. Fluxos de UI (catálogo, pedidos,
 carrinho, formulário de delivery) continuam só verificados à mão, no
 navegador — nada disso pega regressão de layout ou de integração amanhã.
+
+## Observabilidade, qualidade e CI — 2026-08-09
+
+Adicionado nesta rodada: `instrumentation.ts` (OpenTelemetry via
+`@vercel/otel`, ligado sozinho — sem conta nova, aparece no dashboard da
+Vercel; Sentry via `@sentry/nextjs`, mas só ativa se `SENTRY_DSN` existir),
+Knip (`npm run knip`), dois specs Playwright formalizados em
+`tests/e2e/` (`npm run test:e2e`), `npm run test` agregando os testes
+unitários com cobertura (`coverage/lcov.info`), e
+`.github/workflows/ci.yml` rodando tudo isso a cada push/PR.
+
+**O que falta pra cada peça funcionar de verdade em CI/produção** (nada
+disso eu consigo fazer sozinho — precisa de conta/segredo do dono):
+
+- **Sentry**: criar conta grátis em sentry.io, criar um projeto Next.js,
+  colar o DSN em `SENTRY_DSN` nas env vars da Vercel. Sem isso, o código
+  já está pronto mas fica inerte (nem tenta mandar nada).
+- **Codecov**: criar conta em codecov.io (grátis pra repo público),
+  pegar o token do repositório e cadastrar como secret `CODECOV_TOKEN`
+  no GitHub (Settings → Secrets and variables → Actions). Sem o secret,
+  o upload do `codecov-action` falha silenciosamente
+  (`fail_ci_if_error: false`) — o resto do CI continua passando.
+- **CI precisa dos secrets do Supabase**: `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — mesmos
+  valores do `.env.local`, cadastrados como secrets do repositório no
+  GitHub. Sem eles, os jobs `build` e `e2e` do workflow vão falhar (a
+  aplicação não sobe sem essas variáveis).
+- **e2e em CI**: além dos secrets do Supabase, precisa de
+  `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` (login de uma loja de teste,
+  nunca conta real) e opcionalmente `E2E_LOJA_SLUG` (default
+  `lojateste`). Sem essas duas primeiras, o spec de login pula sozinho
+  (não quebra o pipeline) — mas o spec de checkout com Pix roda sempre,
+  já que não precisa de login.
+- **Datadog / New Relic**: ficaram de fora de propósito — são APM pagos;
+  avaliar quando o volume de tráfego justificar (o OpenTelemetry já
+  instrumentado facilita plugar qualquer um dos dois depois, sem reescrever
+  nada).
+- **Knip não bloqueia o CI ainda**: hoje aponta ~14 exports e 11 types
+  não usados (a maioria em `lib/*/tipos.ts`, provavelmente
+  código morto de refatorações passadas) — não foram removidos nesta
+  rodada pra não misturar limpeza de código com a adição da ferramenta.
+  Vale uma passada dedicada depois.
