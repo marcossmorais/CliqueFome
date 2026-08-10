@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { obterLojaAtual, obterUsuario } from '@/lib/loja';
 import { SairDaConta } from './SairDaConta';
+import { TemaAdmin } from '@/components/admin/TemaAdmin';
 import '../admin.css';
 
 /**
@@ -26,6 +27,7 @@ export default async function CriarLojaPage() {
 
   return (
     <main className="onboarding">
+      <TemaAdmin flutuante />
       <div className="onboarding-caixa">
         <h1>Sua conta ainda não tem uma loja</h1>
         <p>

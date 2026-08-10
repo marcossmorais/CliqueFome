@@ -143,6 +143,11 @@
 .paginacao a:last-child { text-align: right; }
 .paginacao > span { color: var(--texto-suave); font-size: 11px; text-align: center; }
 
+:global(html[data-admin-theme='dark']) .pedido:hover{ background:var(--fundo-2); }
+:global(html[data-admin-theme='dark']) .concluido{ color:#78d6a1; background:#183a28; }
+:global(html[data-admin-theme='dark']) .cancelado{ color:#efa0a0; background:#3a2020; }
+:global(html[data-admin-theme='dark']) .motivo{ color:#efaaaa; background:#321c1c; }
+
 @media (max-width: 900px) {
   .campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pedido { grid-template-columns: minmax(160px, 1fr) minmax(150px, 1fr); }

@@ -269,6 +269,15 @@
 .criarPedido:hover:not(:disabled) { background: var(--verde-escuro); }
 .criarPedido:disabled { cursor: not-allowed; opacity: .5; }
 
+:global(html[data-admin-theme='dark']) .categoria span:last-child,
+:global(html[data-admin-theme='dark']) .categoriaAtiva span:last-child{ background:#26342d; }
+:global(html[data-admin-theme='dark']) .categoria:hover,
+:global(html[data-admin-theme='dark']) .cardProduto:hover,
+:global(html[data-admin-theme='dark']) .formasPagamento button:hover{ background:var(--fundo-2); }
+:global(html[data-admin-theme='dark']) .cardInfo span,
+:global(html[data-admin-theme='dark']) .formaIcone{ color:var(--verde-claro); }
+:global(html[data-admin-theme='dark']) .erro{ color:#ef9b9b; background:#351d1d; }
+
 @media (max-width: 980px) {
   .corpo { grid-template-columns: 1fr; grid-auto-rows: auto; overflow-y: auto; }
   .colCategorias { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--borda); }

@@ -7,6 +7,7 @@ import { MENU, ICONES } from '@/lib/menu';
 import { LogoCliqueFome } from '@/components/LogoCliqueFome';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { StatusOperacional } from '@/components/admin/StatusOperacional';
+import { TemaAdmin } from '@/components/admin/TemaAdmin';
 
 function Icone({ chave }: { chave: string }) {
   return (
@@ -107,6 +108,7 @@ export function ShellPainel({
             </button>
             <h1>{titulo}</h1>
             <StatusOperacional />
+            <TemaAdmin />
           </div>
           {children}
         </main>

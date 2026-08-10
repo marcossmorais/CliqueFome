@@ -215,6 +215,15 @@
 .salvar:hover:not(:disabled) { background: var(--verde-escuro); }
 .salvar:disabled { cursor: not-allowed; opacity: .52; }
 
+:global(html[data-admin-theme='dark']) .aviso{ border-color:#604b26; color:#e6bf78; background:#2c2415; }
+:global(html[data-admin-theme='dark']) .bloco,
+:global(html[data-admin-theme='dark']) .sugestoesLista{ background:var(--superficie); }
+:global(html[data-admin-theme='dark']) .enderecoResumo{ border-color:var(--borda); color:var(--texto); background:var(--fundo-2); }
+:global(html[data-admin-theme='dark']) .enderecoResumo strong{ color:var(--texto); }
+:global(html[data-admin-theme='dark']) .radio:has(input:checked),
+:global(html[data-admin-theme='dark']) .adicionar{ color:#79d5a3; background:var(--verde-tint); }
+:global(html[data-admin-theme='dark']) .sugestoesLista button:hover{ color:var(--texto); background:var(--fundo-2); }
+
 @media (max-width: 900px) {
   .enderecoGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .campoLargo { grid-column: 1 / -1; }

@@ -174,6 +174,12 @@
   border: 0;
 }
 
+:global(html[data-admin-theme='dark']) .aviso{ border-color:#604b26; color:#e6bf78; background:#2c2415; }
+:global(html[data-admin-theme='dark']) .opcao,
+:global(html[data-admin-theme='dark']) .bloqueada{ background:var(--superficie); }
+:global(html[data-admin-theme='dark']) .proximaEtapa{ color:var(--texto-suave); background:var(--fundo-2); }
+:global(html[data-admin-theme='dark']) .opcao small{ color:#c8ae72; }
+
 @media (max-width: 620px) {
   .hero { flex-direction: column; gap: 16px; }
   .opcao { align-items: flex-start; padding: 19px; }

@@ -1,0 +1,75 @@
+html[data-admin-theme='dark'] #appView,
+html[data-admin-theme='dark'] #authView,
+html[data-admin-theme='dark'] .onboarding{
+  --fundo:#0d1511;
+  --fundo-2:#121d17;
+  --superficie:#17231d;
+  --borda:#2c3b33;
+  --texto:#edf3ef;
+  --texto-suave:#9ba9a1;
+  --verde-tint:#193a29;
+  color-scheme:dark;
+  background:var(--fundo);
+  color:var(--texto);
+}
+html[data-admin-theme='dark'] #main{ background:var(--fundo); color:var(--texto); }
+html[data-admin-theme='dark'] #sidebar{ background:linear-gradient(165deg,#071e16,#124e35); }
+html[data-admin-theme='dark'] .nav-item.ativo{ background:#e8f2ec; color:#0f3d2e; }
+html[data-admin-theme='dark'] .card,
+html[data-admin-theme='dark'] .modal-sheet,
+html[data-admin-theme='dark'] .painel-col,
+html[data-admin-theme='dark'] .pedido-card,
+html[data-admin-theme='dark'] .pedido-painel,
+html[data-admin-theme='dark'] .opcao-card,
+html[data-admin-theme='dark'] .uso-item,
+html[data-admin-theme='dark'] .onboarding-caixa{
+  background:var(--superficie);
+  border-color:var(--borda);
+}
+html[data-admin-theme='dark'] input,
+html[data-admin-theme='dark'] textarea,
+html[data-admin-theme='dark'] select{
+  background:#111b16;
+  border-color:var(--borda);
+  color:var(--texto);
+}
+html[data-admin-theme='dark'] input::placeholder,
+html[data-admin-theme='dark'] textarea::placeholder{ color:#718078; }
+html[data-admin-theme='dark'] .btn-ghost,
+html[data-admin-theme='dark'] #menuToggle,
+html[data-admin-theme='dark'] .col-header .btn-icone{
+  background:var(--superficie);
+  border-color:var(--borda);
+  color:var(--texto);
+}
+html[data-admin-theme='dark'] .btn-ghost:hover,
+html[data-admin-theme='dark'] .prod-card:hover,
+html[data-admin-theme='dark'] .lista-linha:hover,
+html[data-admin-theme='dark'] .cat-item:hover,
+html[data-admin-theme='dark'] .opcao-card:hover,
+html[data-admin-theme='dark'] .pedido-manual-sugestao:hover{
+  background:#1c2b23;
+}
+html[data-admin-theme='dark'] .modal-rodape,
+html[data-admin-theme='dark'] .pedido-painel-rodape,
+html[data-admin-theme='dark'] .pedidos-coluna,
+html[data-admin-theme='dark'] .metrica,
+html[data-admin-theme='dark'] .link-box,
+html[data-admin-theme='dark'] .lista-usos,
+html[data-admin-theme='dark'] .pedido-chip{
+  background:var(--fundo-2);
+  border-color:var(--borda);
+}
+html[data-admin-theme='dark'] .prod-card,
+html[data-admin-theme='dark'] .pedido-manual-sugestao{ background:var(--superficie); }
+html[data-admin-theme='dark'] .pedido-card.selecionado,
+html[data-admin-theme='dark'] .cat-item.ativo,
+html[data-admin-theme='dark'] .btn-ghost.ativo{ background:var(--verde-tint); }
+html[data-admin-theme='dark'] .pedido-chip-status{
+  background:color-mix(in srgb,var(--cor-status) 22%, var(--superficie));
+}
+html[data-admin-theme='dark'] .esqueleto{
+  background:linear-gradient(90deg,#17231d 25%,#213129 50%,#17231d 75%);
+  background-size:200% 100%;
+}
+html[data-admin-theme='dark'] ::-webkit-scrollbar-thumb{ background:#405148; }

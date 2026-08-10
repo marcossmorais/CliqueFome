@@ -237,6 +237,21 @@
 .vazio p { margin-bottom: 14px; font-size: 13px; }
 .vazio button { min-height: 40px; border: 1px solid var(--borda); color: var(--ajuda-verde); background: #fff; }
 
+:global(html[data-admin-theme='dark']) .busca,
+:global(html[data-admin-theme='dark']) .atalhos a,
+:global(html[data-admin-theme='dark']) .filtros button,
+:global(html[data-admin-theme='dark']) .listaFaq,
+:global(html[data-admin-theme='dark']) .tutorialCard,
+:global(html[data-admin-theme='dark']) .canalCard,
+:global(html[data-admin-theme='dark']) .passos li > span,
+:global(html[data-admin-theme='dark']) .vazio button{ background:var(--superficie); color:var(--texto); }
+:global(html[data-admin-theme='dark']) .busca input[type='search']{ color:var(--texto); }
+:global(html[data-admin-theme='dark']) .faqItem summary:hover{ background:var(--fundo-2); }
+:global(html[data-admin-theme='dark']) .faqResposta{ color:var(--texto-suave); }
+:global(html[data-admin-theme='dark']) .faqResposta aside{ color:#efbd7a; background:#302417; }
+:global(html[data-admin-theme='dark']) .canalLegal{ background:linear-gradient(145deg,var(--superficie),var(--fundo-2)); }
+:global(html[data-admin-theme='dark']) .vazio{ background:var(--fundo-2); }
+
 @media (max-width: 900px) {
   .hero { grid-template-columns: 1fr; gap: 24px; }
   .atalhos { grid-template-columns: 1fr; }

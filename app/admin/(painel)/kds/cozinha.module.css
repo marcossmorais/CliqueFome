@@ -4,6 +4,15 @@
   padding-bottom: 40px;
 }
 
+:global(html[data-admin-theme='dark']) .topo h2,
+:global(html[data-admin-theme='dark']) .metrica strong,
+:global(html[data-admin-theme='dark']) .filaTopo h2,
+:global(html[data-admin-theme='dark']) .numero{ color:var(--texto); }
+:global(html[data-admin-theme='dark']) .chips span{ color:var(--texto-suave); background:var(--fundo-2); }
+:global(html[data-admin-theme='dark']) .listaItens > li{ border-color:var(--borda); }
+:global(html[data-admin-theme='dark']) .agendamento{ color:#e8bd83; background:#2e2418; }
+:global(html[data-admin-theme='dark']) .mensagemErro{ border-color:#654040; color:#efa0a0; background:#351d1d; }
+
 .topo {
   display: flex;
   align-items: flex-start;

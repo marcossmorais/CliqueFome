@@ -7,12 +7,12 @@
   gap:9px;
   border:1px solid var(--borda);
   border-radius:11px;
-  background:#fff;
+  background:var(--superficie);
   color:var(--texto);
   box-shadow:0 2px 9px rgba(15,61,46,.05);
 }
-.resumo{ display:flex; align-items:center; gap:13px; color:#65706a; font-size:11px; white-space:nowrap; }
-.resumo b{ color:#27332d; font-weight:750; }
+.resumo{ display:flex; align-items:center; gap:13px; color:var(--texto-suave); font-size:11px; white-space:nowrap; }
+.resumo b{ color:var(--texto); font-weight:750; }
 .online{ color:#23945b!important; }
 .online b{ color:#187244!important; }
 .offline{ color:#ad3f3f!important; }
@@ -27,19 +27,19 @@
   padding:10px 14px;
   border:1px solid var(--borda);
   border-radius:14px;
-  background:#fff;
+  background:var(--superficie);
   box-shadow:0 15px 38px rgba(25,40,32,.16);
 }
 .popoverTitulo{ display:flex; align-items:center; justify-content:space-between; padding:3px 2px 8px; }
 .popoverTitulo strong{ font-size:13px; }
-.popoverTitulo button{ width:30px; height:30px; padding:0; border-radius:8px; background:transparent; color:#66716b; font-size:20px; }
+.popoverTitulo button{ width:30px; height:30px; padding:0; border-radius:8px; background:transparent; color:var(--texto-suave); font-size:20px; }
 .controle{ display:flex; min-height:54px; margin:0; padding:8px 2px; align-items:center; justify-content:space-between; gap:12px; color:var(--texto); }
-.popover .controle + .controle{ border-top:1px solid #edf0ee; }
+.popover .controle + .controle{ border-top:1px solid var(--borda); }
 .controleTexto{ display:flex; align-items:center; gap:10px; }
-.controleTexto>span:first-child{ display:grid; width:28px; height:28px; place-items:center; border-radius:8px; background:#edf7f1; color:var(--verde); font-size:12px; }
+.controleTexto>span:first-child{ display:grid; width:28px; height:28px; place-items:center; border-radius:8px; background:var(--verde-tint); color:var(--verde-claro); font-size:12px; }
 .controleTexto>span:last-child{ display:grid; gap:2px; }
 .controleTexto strong{ font-size:12px; }
-.controleTexto small{ color:#7c8781; font-size:10px; }
+.controleTexto small{ color:var(--texto-suave); font-size:10px; }
 .switch{ position:relative; width:42px; height:24px; flex:0 0 42px; }
 .switch input{ position:absolute; z-index:2; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; }
 .switch>span{ position:absolute; inset:0; border-radius:999px; background:#d5dbd8; transition:.16s; }
@@ -52,9 +52,9 @@
 
 .painel{
   padding:20px;
-  border:1px solid #dfe7e2;
+  border:1px solid var(--borda);
   border-radius:16px;
-  background:linear-gradient(135deg,#f5fbf7,#fff);
+  background:linear-gradient(135deg,var(--fundo-2),var(--superficie));
   box-shadow:0 8px 26px rgba(19,69,48,.06);
 }
 .painelTopo{ display:flex; align-items:center; justify-content:space-between; gap:18px; }
@@ -62,7 +62,12 @@
 .painelTopo>div>strong{ font-size:15px; }
 .sobretitulo{ color:#728079; font-size:10px; font-weight:800; letter-spacing:.55px; text-transform:uppercase; }
 .gradeControles{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:15px; }
-.gradeControles .controle{ min-height:62px; padding:9px 11px; border:1px solid #e2e9e5; border-radius:11px; background:#fff; }
+.gradeControles .controle{ min-height:62px; padding:9px 11px; border:1px solid var(--borda); border-radius:11px; background:var(--superficie); }
+
+:global(html[data-admin-theme='dark']) .online,
+:global(html[data-admin-theme='dark']) .online b{ color:#62cf91!important; }
+:global(html[data-admin-theme='dark']) .offline,
+:global(html[data-admin-theme='dark']) .offline b{ color:#ef9292!important; }
 
 @media (max-width:760px){
   .gatilho{ min-height:38px; padding:7px 9px; }

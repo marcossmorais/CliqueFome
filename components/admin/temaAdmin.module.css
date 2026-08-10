@@ -1,0 +1,25 @@
+.botao{
+  display:inline-flex;
+  min-height:40px;
+  padding:8px 11px;
+  align-items:center;
+  gap:7px;
+  border:1px solid var(--borda);
+  border-radius:11px;
+  background:var(--superficie);
+  color:var(--texto);
+  box-shadow:0 2px 9px rgba(15,61,46,.05);
+}
+.botao:hover{ background:var(--fundo-2); }
+.botao:focus-visible{ outline:3px solid rgba(47,169,104,.25); outline-offset:2px; }
+.icone{ display:grid; width:20px; height:20px; place-items:center; color:var(--verde-claro); font-size:18px; line-height:1; }
+.rotulo{ color:var(--texto-suave); font-size:10.5px; white-space:nowrap; }
+.rotulo b{ color:var(--texto); }
+.flutuante{ position:fixed; z-index:20; top:20px; right:20px; }
+:global(#mainTop h1){ min-width:0; }
+@media(max-width:700px){
+  .botao{ min-height:38px; padding:7px 9px; }
+  .botao:not(.flutuante) .rotulo{ display:none; }
+  .flutuante{ top:14px; right:14px; }
+  :global(#mainTop h1){ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
