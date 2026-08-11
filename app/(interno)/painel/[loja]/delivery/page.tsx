@@ -2,6 +2,7 @@ import { ShellPainel } from '@/components/admin/ShellPainel';
 import { obterLojaPorSlug } from '@/lib/loja';
 import { DeliveryFacilitadoForm } from './DeliveryFacilitadoForm';
 import { DeliveryHub } from './DeliveryHub';
+import { TaxasEspecificasForm } from './TaxasEspecificasForm';
 
 /**
  * Configuração de "Áreas de entrega" — hoje só cobre o Delivery facilitado
@@ -26,7 +27,14 @@ export default async function DeliveryPage({
 
   return (
     <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Delivery">
-      <DeliveryHub configuracao={<DeliveryFacilitadoForm lojaId={loja.id} lojaSlug={loja.slug} />} />
+      <DeliveryHub
+        configuracao={
+          <>
+            <DeliveryFacilitadoForm lojaId={loja.id} lojaSlug={loja.slug} />
+            <TaxasEspecificasForm lojaId={loja.id} />
+          </>
+        }
+      />
     </ShellPainel>
   );
 }

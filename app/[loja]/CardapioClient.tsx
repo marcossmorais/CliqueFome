@@ -427,6 +427,7 @@ export function CardapioClient({
           formaPagamento,
           endereco: modo === 'entrega' ? enderecoFinal : undefined,
           enderecoCotacao: modo === 'entrega' ? enderecoEmLinha(enderecoDetalhado) : undefined,
+          enderecoDetalhado: modo === 'entrega' ? enderecoDetalhado : undefined,
           cotacaoToken: modo === 'entrega' && cotacao.status === 'ok' ? cotacao.token : undefined,
           totalEsperadoCentavos: Math.round(totalGeral * 100),
           itens: linhas.map((l) => ({
@@ -444,6 +445,14 @@ export function CardapioClient({
 
       if (!resposta.ok) {
         setErro(corpo.erro || 'Não foi possível registrar seu pedido. Tente novamente.');
+        // A loja mexeu na taxa (ou a cotação envelheceu) enquanto o checkout
+        // estava aberto. Derrubar a cotação obriga a recalcular antes de
+        // confirmar de novo — é o que impede cobrar um valor diferente do
+        // que a pessoa viu. O CARRINHO fica intacto: falha de cotação não é
+        // motivo pra alguém perder o pedido que montou.
+        if (corpo.codigo === 'COTACAO_DESATUALIZADA' || corpo.codigo === 'COTACAO_INVALIDA' || corpo.codigo === 'COTACAO_NECESSARIA') {
+          setCotacao(COTACAO_INICIAL);
+        }
         setEnviando(false);
         return;
       }

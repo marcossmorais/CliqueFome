@@ -144,6 +144,12 @@ export function TrackingClient({ token, inicial }: { token: string; inicial: Ped
           <span>Subtotal</span>
           <span>{formatBRL(pedido.subtotal)}</span>
         </div>
+        {/* Continua lendo `taxa_entrega` (reais) e não a coluna em centavos:
+            esta tela é alimentada pela RPC `pedido_por_token`, que monta um
+            jsonb campo a campo e não devolve `taxa_entrega_cents`. Trocar
+            aqui sem redefinir a RPC faria a linha sumir da tela. A RPC fica
+            para o PR que mexer nela por outro motivo — os dois valores são
+            iguais por construção (trigger), então não há divergência. */}
         {pedido.taxa_entrega > 0 && (
           <div className="tracking-linha">
             <span>Taxa de entrega</span>

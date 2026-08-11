@@ -42,7 +42,12 @@ export type PedidoResumo = {
   status: StatusPedido;
   pagamento_status: PagamentoStatus;
   subtotal: number;
+  /** Mantida porque a cadeia de RPCs que cria o pedido ainda escreve nela.
+   *  Para EXIBIR, use `taxa_entrega_cents`. */
   taxa_entrega: number;
+  /** Derivada por trigger a partir de `taxa_entrega` — sempre exatamente
+   *  `round(taxa_entrega * 100)`, nunca uma aproximação. */
+  taxa_entrega_cents: number;
   total: number;
   data_hora_agendada: string | null;
   origem: OrigemPedido;
@@ -119,6 +124,14 @@ export const ROTULO_AVANCAR: Partial<Record<StatusPedido, string>> = {
   pronto: 'Saiu p/ entrega',
   saiu_entrega: 'Marcar como entregue',
 };
+
+/** Mesma regra do formatador de centavos do cardápio, disponível aqui pra
+ *  as telas de pedido não precisarem importar de dois módulos. */
+export function formatBRLCentavos(cents: number) {
+  const inteiro = Math.trunc(Math.abs(cents));
+  const sinal = cents < 0 ? '-' : '';
+  return `${sinal}R$ ${Math.floor(inteiro / 100)},${String(inteiro % 100).padStart(2, '0')}`;
+}
 
 export function formatBRL(v: number | string) {
   return 'R$ ' + Number(v).toFixed(2).replace('.', ',');

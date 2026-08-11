@@ -15,6 +15,7 @@ import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
 import {
   COR_STATUS,
   formatBRL,
+  formatBRLCentavos,
   ICONE_STATUS,
   NOMES_ORIGEM,
   NOMES_STATUS,
@@ -237,10 +238,10 @@ export function PainelDetalhePedido({
               <span>Subtotal</span>
               <span>{formatBRL(pedido.subtotal)}</span>
             </div>
-            {pedido.taxa_entrega > 0 && (
+            {pedido.taxa_entrega_cents > 0 && (
               <div className="pedido-total-linha">
                 <span>Entrega</span>
-                <span>{formatBRL(pedido.taxa_entrega)}</span>
+                <span>{formatBRLCentavos(pedido.taxa_entrega_cents)}</span>
               </div>
             )}
             <div className="pedido-total-linha pedido-total-final">

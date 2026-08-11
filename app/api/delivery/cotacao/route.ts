@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { criarTokenCotacao } from '@/lib/delivery/cotacao';
-import { calcularDistanciaDeRota, ErroGeoapify, geocodificarEndereco } from '@/lib/delivery/geoapify';
+import { calcularDistanciaDeRota, ErroGeoapify, geocodificarParaEndereco } from '@/lib/delivery/geoapify';
 import { criarClientPrivilegiado, hashEndereco, hashLimite } from '@/lib/delivery/servidor';
+import { textoParaGeocodificar } from '@/lib/delivery/endereco';
 import {
-  calcularTaxaPorDistancia,
+  fecharCotacaoPorKm,
+  planejarCotacao,
+  MENSAGEM_INDISPONIVEL,
+  type ConfiguracaoEntrega,
+  type PlanoCotacao,
+  type TaxaEspecifica,
+} from '@/lib/delivery/taxas';
+import {
   enderecoEmLinha,
   enderecoEstruturadoValido,
   normalizarTexto,
-  validarLimitesDaCotacao,
   type EnderecoEstruturado,
 } from '@/lib/delivery/tipos';
 import { logger } from '@/lib/observabilidade/logger';
@@ -15,27 +22,15 @@ import { logger } from '@/lib/observabilidade/logger';
 export const runtime = 'nodejs';
 
 const ROTA = '/api/delivery/cotacao';
-
-type ConfigRow = {
-  loja_id: string;
-  setor: string;
-  tipo_taxa: 'fixa' | 'por_km';
-  cidade_atendida: string;
-  taxa_fixa: number;
-  valor_por_km: number;
-  taxa_maxima: number;
-  distancia_maxima_km: number;
-  lojas: { delivery_ativo: boolean; recebendo_encomendas: boolean } | null;
-  enderecos_estabelecimento: { latitude: number; longitude: number } | null;
-};
+const VALIDADE_MS = 15 * 60_000;
 
 type CacheRota = { distanciaMetros: number; enderecoFormatado: string; expira: number };
 const globalCache = globalThis as typeof globalThis & { __cfDeliveryCache?: Map<string, CacheRota> };
 const cacheRotas = globalCache.__cfDeliveryCache ?? new Map<string, CacheRota>();
 globalCache.__cfDeliveryCache = cacheRotas;
 
-function erro(mensagem: string, status: number) {
-  return NextResponse.json({ erro: mensagem }, { status, headers: { 'Cache-Control': 'no-store' } });
+function erro(mensagem: string, status: number, extra?: Record<string, unknown>) {
+  return NextResponse.json({ erro: mensagem, ...extra }, { status, headers: { 'Cache-Control': 'no-store' } });
 }
 
 function limparEndereco(valor: unknown): EnderecoEstruturado {
@@ -48,19 +43,33 @@ function limparEndereco(valor: unknown): EnderecoEstruturado {
   };
 }
 
+type LinhaConfig = {
+  store_id: string;
+  enabled: boolean;
+  calculation_type: 'FIXED' | 'PER_KM';
+  fixed_fee_cents: number;
+  price_per_km_cents: number;
+  max_fee_cents: number;
+  max_distance_meters: number;
+  origin_lat: number | null;
+  origin_lng: number | null;
+  updated_at: string;
+  lojas: { delivery_ativo: boolean; recebendo_encomendas: boolean } | null;
+};
+
 export async function POST(request: NextRequest) {
-  let corpo: { lojaSlug?: unknown; endereco?: unknown; cidade?: unknown };
+  let corpo: { lojaSlug?: unknown; endereco?: unknown };
   try {
     corpo = (await request.json()) as typeof corpo;
   } catch (falha) {
     logger.error({ err: falha, rota: ROTA }, 'JSON malformado no corpo da cotação');
     return erro('Dados inválidos.', 400);
   }
+
   const slug = typeof corpo.lojaSlug === 'string' ? corpo.lojaSlug.trim() : '';
   const endereco = limparEndereco(corpo.endereco);
-  const cidadeEscolhida = typeof corpo.cidade === 'string' ? corpo.cidade.trim().slice(0, 100) : '';
   if (!/^[a-z0-9-]{1,80}$/.test(slug) || !enderecoEstruturadoValido(endereco)) {
-    return erro('Preencha CEP, logradouro, número, bairro, cidade e UF corretamente.', 400);
+    return erro('Confirme o endereço de entrega, incluindo o número.', 400);
   }
 
   let sb;
@@ -70,119 +79,161 @@ export async function POST(request: NextRequest) {
     logger.error({ err: falha, rota: ROTA, lojaSlug: slug }, 'Falha ao criar client privilegiado do Supabase');
     return erro('Cálculo de entrega ainda não configurado.', 503);
   }
+
   const { data, error } = await sb
-    .from('configuracoes_delivery')
+    .from('store_delivery_settings')
     .select(
-      'loja_id,setor,tipo_taxa,cidade_atendida,taxa_fixa,valor_por_km,taxa_maxima,distancia_maxima_km,lojas!inner(delivery_ativo,recebendo_encomendas,slug),enderecos_estabelecimento!inner(latitude,longitude)',
+      'store_id,enabled,calculation_type,fixed_fee_cents,price_per_km_cents,max_fee_cents,max_distance_meters,origin_lat,origin_lng,updated_at,lojas!inner(slug,delivery_ativo,recebendo_encomendas)',
     )
     .eq('lojas.slug', slug)
     .maybeSingle();
-  if (error || !data) return erro('Entrega não configurada para esta loja.', 404);
-  const config = data as unknown as ConfigRow;
-  if (!config.lojas?.recebendo_encomendas || !config.lojas.delivery_ativo) {
-    return erro('A loja não está aceitando entregas agora.', 409);
+  if (error) {
+    logger.error({ err: error, rota: ROTA, lojaSlug: slug }, 'Falha ao ler configuração de entrega');
+    return erro('Não foi possível calcular a entrega agora. Tente novamente.', 503);
   }
+  if (!data) return erro('Entrega não configurada para esta loja.', 404);
+  const linha = data as unknown as LinhaConfig;
 
-  let taxaCidade: number | null = null;
-  let cidadeResolvida = config.cidade_atendida;
-  if (config.setor === 'avancado') {
-    if (!cidadeEscolhida) return erro('Escolha a cidade da entrega.', 400);
-    const alvo = normalizarTexto(cidadeEscolhida);
-    if (alvo !== normalizarTexto(config.cidade_atendida)) {
-      const { data: linha } = await sb
-        .from('configuracoes_delivery_cidades')
-        .select('cidade,taxa')
-        .eq('loja_id', config.loja_id)
-        .eq('cidade_normalizada', alvo)
-        .maybeSingle();
-      if (!linha) return erro('Esta loja ainda não entrega nessa cidade.', 422);
-      taxaCidade = Number((linha as { taxa: number }).taxa);
-      cidadeResolvida = (linha as { cidade: string }).cidade;
-    }
-  }
-  if (normalizarTexto(endereco.cidade) !== normalizarTexto(cidadeResolvida)) {
-    return erro(`O endereço precisa estar em ${cidadeResolvida}.`, 422);
-  }
+  // A tela esconder a opção é só UX. O estado operacional é conferido de novo
+  // aqui porque o cliente pode ter deixado o checkout aberto enquanto a loja
+  // fechava — e porque um POST manual não passa pela tela nenhuma.
+  if (!linha.lojas?.recebendo_encomendas) return erro('A loja está fechada e não está recebendo pedidos agora.', 409);
+  if (!linha.lojas.delivery_ativo) return erro('A loja não está aceitando entregas agora.', 409);
+
+  const config: ConfiguracaoEntrega = {
+    enabled: linha.enabled,
+    calculationType: linha.calculation_type,
+    fixedFeeCents: Number(linha.fixed_fee_cents),
+    pricePerKmCents: Number(linha.price_per_km_cents),
+    maxFeeCents: Number(linha.max_fee_cents),
+    maxDistanceMeters: Number(linha.max_distance_meters),
+    origem: linha.origin_lat != null && linha.origin_lng != null
+      ? { latitude: Number(linha.origin_lat), longitude: Number(linha.origin_lng) }
+      : null,
+    atualizadoEm: linha.updated_at,
+  };
+
+  const { data: linhasOverride } = await sb
+    .from('delivery_fee_overrides')
+    .select('id,scope,city_normalized,neighborhood_normalized,fee_cents')
+    .eq('store_id', linha.store_id)
+    .eq('active', true);
+
+  const taxasEspecificas: TaxaEspecifica[] = (linhasOverride ?? []).map((o) => {
+    const linhaO = o as unknown as {
+      id: string; scope: 'CITY' | 'NEIGHBORHOOD';
+      city_normalized: string; neighborhood_normalized: string | null; fee_cents: number;
+    };
+    return {
+      id: linhaO.id,
+      scope: linhaO.scope,
+      cityNormalized: linhaO.city_normalized,
+      neighborhoodNormalized: linhaO.neighborhood_normalized,
+      feeCents: Number(linhaO.fee_cents),
+    };
+  });
+
+  const destino = {
+    cityNormalized: normalizarTexto(endereco.cidade),
+    neighborhoodNormalized: normalizarTexto(endereco.bairro),
+  };
+
+  // Decide ANTES de qualquer request externa. Se sai daqui como 'pronto',
+  // nenhum crédito de rota é gasto.
+  let plano: PlanoCotacao = planejarCotacao({ config, taxasEspecificas, destino });
 
   const enderecoCompleto = enderecoEmLinha(endereco);
-  const chaveCache = hashEndereco(`${config.loja_id}|${normalizarTexto(enderecoCompleto)}`);
+  let enderecoFormatado = enderecoCompleto;
+  let distanciaMetros: number | null = null;
+
+  const precisaRota = plano.tipo === 'precisa_rota';
+  const chaveCache = hashEndereco(`${linha.store_id}|${normalizarTexto(enderecoCompleto)}`);
   const cache = cacheRotas.get(chaveCache);
   const cacheValido = !!cache && cache.expira > Date.now();
-  const usaRota = taxaCidade == null && config.tipo_taxa === 'por_km' && !cacheValido;
+
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'desconhecido';
   const { data: limite, error: erroLimite } = await sb.rpc('consumir_cota_delivery', {
-    p_chave: hashLimite(ip), p_usa_rota: usaRota,
+    p_chave: hashLimite(ip),
+    p_usa_rota: precisaRota && !cacheValido,
   });
   const l = limite as { permitido?: boolean; motivo?: string } | null;
   if (erroLimite || l?.permitido !== true) {
     return erro(
       l?.motivo === 'LIMITE_DIARIO'
-        ? 'Limite diário de rotas atingido. Confirme a taxa pelo WhatsApp.'
+        ? 'Limite diário de cálculos de rota atingido. Confirme a taxa pelo WhatsApp.'
         : 'Muitas tentativas. Aguarde um minuto.',
       429,
     );
   }
 
-  let distanciaMetros: number | null = null;
-  let enderecoFormatado = enderecoCompleto;
-  if (taxaCidade == null && config.tipo_taxa === 'por_km') {
-    if (!config.enderecos_estabelecimento) return erro('Endereço do estabelecimento não configurado.', 409);
+  if (plano.tipo === 'precisa_rota') {
     try {
       if (cacheValido && cache) {
         distanciaMetros = cache.distanciaMetros;
         enderecoFormatado = cache.enderecoFormatado;
       } else {
-        const destino = await geocodificarEndereco(enderecoCompleto);
-        if (!destino.cidade || normalizarTexto(destino.cidade) !== normalizarTexto(cidadeResolvida)) {
-          return erro(`O endereço precisa estar em ${cidadeResolvida}.`, 422);
-        }
-        distanciaMetros = await calcularDistanciaDeRota(
-          {
-            latitude: Number(config.enderecos_estabelecimento.latitude),
-            longitude: Number(config.enderecos_estabelecimento.longitude),
-          },
-          { latitude: destino.latitude, longitude: destino.longitude },
+        // A ÚNICA geocodificação do endereço do cliente, feita depois de ele
+        // ter informado o número. A loja não é geocodificada aqui: a origem
+        // vem salva da configuração.
+        const geo = await geocodificarParaEndereco(textoParaGeocodificar({
+          formattedAddress: '', street: endereco.logradouro, number: endereco.numero,
+          neighborhood: endereco.bairro, city: endereco.cidade, state: endereco.uf,
+          postalCode: endereco.cep, latitude: null, longitude: null,
+        }));
+        if (geo.latitude == null || geo.longitude == null) throw new ErroGeoapify('ENDERECO_NAO_ENCONTRADO');
+
+        distanciaMetros = Math.round(
+          await calcularDistanciaDeRota(config.origem!, { latitude: geo.latitude, longitude: geo.longitude }),
         );
-        enderecoFormatado = destino.formatado;
+        enderecoFormatado = geo.formattedAddress || enderecoCompleto;
         if (cacheRotas.size >= 500) cacheRotas.delete(cacheRotas.keys().next().value as string);
         cacheRotas.set(chaveCache, { distanciaMetros, enderecoFormatado, expira: Date.now() + 10 * 60_000 });
       }
+
+      plano = fecharCotacaoPorKm({ config, distanceMeters: distanciaMetros });
     } catch (falha) {
       logger.error({ err: falha, rota: ROTA, lojaSlug: slug }, 'Falha ao geocodificar ou calcular rota de entrega');
+      // NUNCA cair pra taxa zero por falha externa. Sem rota não há cotação,
+      // e a tela oferece tentar de novo ou trocar pra retirada.
+      const externo = falha instanceof ErroGeoapify
+        && ['CHAVE_AUSENTE', 'CHAVE_RECUSADA', 'LIMITE_ATINGIDO', 'SERVICO_INDISPONIVEL'].includes(falha.codigo);
       return erro(
-        falha instanceof ErroGeoapify && falha.codigo !== 'SERVICO_INDISPONIVEL'
-          ? 'Não encontramos uma rota segura. Confira todos os campos do endereço.'
-          : 'O serviço de rotas está indisponível. Tente novamente.',
-        503,
+        externo
+          ? 'Não conseguimos calcular a entrega no momento. Tente novamente ou escolha retirada.'
+          : 'Não encontramos uma rota até esse endereço. Confira o número e o bairro.',
+        externo ? 503 : 422,
+        { podeTentarNovamente: true },
       );
     }
   }
 
-  const taxa = taxaCidade ?? (
-    config.tipo_taxa === 'fixa'
-      ? Number(config.taxa_fixa)
-      : calcularTaxaPorDistancia(distanciaMetros as number, Number(config.valor_por_km))
-  );
-  const problema = validarLimitesDaCotacao({
-    distanciaMetros, taxa,
-    distanciaMaximaKm: Number(config.distancia_maxima_km),
-    taxaMaxima: Number(config.taxa_maxima),
-  });
-  if (problema === 'FORA_DA_AREA') return erro('Endereço fora da distância atendida pela loja.', 422);
-  if (problema) return erro('A taxa calculada ficou acima do limite seguro. Confirme pelo WhatsApp.', 422);
+  if (plano.tipo !== 'pronto') {
+    const motivo = plano.tipo === 'indisponivel' ? plano.motivo : 'DELIVERY_DESLIGADO';
+    return erro(MENSAGEM_INDISPONIVEL[motivo], motivo === 'DELIVERY_DESLIGADO' ? 409 : 422);
+  }
 
-  const exp = Date.now() + 15 * 60_000;
-  const enderecoHash = hashEndereco(normalizarTexto(enderecoCompleto));
+  const exp = Date.now() + VALIDADE_MS;
   try {
     const token = criarTokenCotacao({
-      lojaId: config.loja_id, enderecoHash,
-      taxaCentavos: Math.round(taxa * 100), distanciaMetros, exp,
+      lojaId: linha.store_id,
+      enderecoHash: hashEndereco(normalizarTexto(enderecoCompleto)),
+      taxaCentavos: plano.feeCents,
+      distanciaMetros,
+      regra: plano.regra,
+      overrideId: plano.overrideId,
+      configVersao: config.atualizadoEm,
+      exp,
     });
     return NextResponse.json(
       {
-        taxa,
+        taxa: plano.feeCents / 100,
+        taxaCents: plano.feeCents,
         distanciaKm: distanciaMetros == null ? null : Math.round((distanciaMetros / 1000) * 10) / 10,
-        enderecoFormatado, expiraEm: new Date(exp).toISOString(), token,
+        distanciaMetros,
+        regra: plano.regra,
+        enderecoFormatado,
+        expiraEm: new Date(exp).toISOString(),
+        token,
       },
       { headers: { 'Cache-Control': 'no-store' } },
     );

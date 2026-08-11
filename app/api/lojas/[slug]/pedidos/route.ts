@@ -7,7 +7,7 @@ import {
 } from '@/lib/pedidos/checkout';
 import { montarMensagemPedido } from '@/lib/pedidos/mensagemWhatsapp';
 import { criarClientPrivilegiado, hashLimite, hashPayload } from '@/lib/pedidos/servidor';
-import { verificarTokenCotacao } from '@/lib/delivery/cotacao';
+import { MENSAGEM_RECUSA_COTACAO, validarCotacaoParaPedido } from '@/lib/delivery/cotacao';
 import { hashEndereco } from '@/lib/delivery/servidor';
 import { normalizarTexto } from '@/lib/delivery/tipos';
 import { logger } from '@/lib/observabilidade/logger';
@@ -136,28 +136,63 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   let taxaEntregaValidada: number | null = null;
+  let snapshotEntrega: Record<string, unknown> | null = null;
   if (entrada.tipo === 'delivery') {
-    const [{ data: config }, { data: enderecoLoja }] = await Promise.all([
-      sb.from('configuracoes_delivery').select('loja_id').eq('loja_id', lojaOperacao.id).maybeSingle(),
-      sb.from('enderecos_estabelecimento').select('loja_id').eq('loja_id', lojaOperacao.id).maybeSingle(),
-    ]);
-    // Só o fluxo V2 exige cotação. Loja ainda não migrada preserva a taxa fixa
-    // legada; depois da migração, nenhuma taxa do navegador é aceita solta.
-    if (config && enderecoLoja) {
+    const { data: configAtual } = await sb
+      .from('store_delivery_settings')
+      .select('store_id,updated_at')
+      .eq('store_id', lojaOperacao.id)
+      .maybeSingle();
+
+    // Loja ainda não migrada preserva a taxa fixa legada; migrada, nenhuma
+    // taxa vinda do navegador é aceita solta.
+    if (configAtual) {
       if (!entrada.cotacaoToken || !entrada.enderecoCotacao) {
-        return respostaErro('Calcule novamente a taxa de entrega.', 422);
+        return respostaErro('Calcule novamente a taxa de entrega.', 422, { codigo: 'COTACAO_NECESSARIA' });
       }
+      let validacao;
       try {
-        const cotacao = verificarTokenCotacao(entrada.cotacaoToken);
-        const hashEsperado = hashEndereco(normalizarTexto(entrada.enderecoCotacao));
-        if (!cotacao || cotacao.lojaId !== lojaOperacao.id || cotacao.enderecoHash !== hashEsperado) {
-          return respostaErro('A cotação expirou ou não pertence a este endereço. Calcule novamente.', 422);
-        }
-        taxaEntregaValidada = cotacao.taxaCentavos / 100;
+        validacao = validarCotacaoParaPedido({
+          token: entrada.cotacaoToken,
+          lojaId: lojaOperacao.id,
+          enderecoHash: hashEndereco(normalizarTexto(entrada.enderecoCotacao)),
+          configVersaoAtual: (configAtual as { updated_at: string }).updated_at,
+        });
       } catch (erro) {
         logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha ao verificar token de cotação de entrega');
         return respostaErro('Não foi possível validar a cotação de entrega.', 503);
       }
+      if (!validacao.ok) {
+        // A loja mexeu no preço enquanto o checkout estava aberto: não dá pra
+        // cobrar silenciosamente outro valor, nem seguir com o valor velho.
+        // O cliente vê o motivo e recalcula.
+        return respostaErro(MENSAGEM_RECUSA_COTACAO[validacao.motivo], 409, {
+          codigo: validacao.motivo === 'CONFIG_MUDOU' ? 'COTACAO_DESATUALIZADA' : 'COTACAO_INVALIDA',
+        });
+      }
+
+      const cotacao = validacao.cotacao;
+      taxaEntregaValidada = cotacao.taxaCentavos / 100;
+
+      const d = entrada.enderecoDetalhado;
+      snapshotEntrega = {
+        endereco_formatado: entrada.endereco ?? entrada.enderecoCotacao,
+        logradouro: d?.logradouro ?? null,
+        numero: d?.numero ?? null,
+        bairro: d?.bairro ?? null,
+        cidade: d?.cidade ?? null,
+        cidade_normalizada: d?.cidade ? normalizarTexto(d.cidade) : null,
+        uf: d?.uf ?? null,
+        cep: d?.cep ?? null,
+        complemento: d?.complemento || null,
+        referencia: d?.referencia || null,
+        // Taxa, distância e regra saem do TOKEN, nunca do corpo da request.
+        distancia_metros: cotacao.distanciaMetros,
+        taxa_cents: cotacao.taxaCentavos,
+        regra_aplicada: cotacao.regra,
+        override_id: cotacao.overrideId,
+        config_versao: cotacao.configVersao,
+      };
     }
   }
 
@@ -178,8 +213,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     p_chave_ip: chaveIp,
     p_chave_telefone: chaveTelefone,
     p_taxa_entrega_validada: taxaEntregaValidada,
+    // Snapshot da entrega gravado na MESMA transação do pedido: se ele
+    // falhar, o pedido inteiro volta atrás em vez de ficar sem o registro
+    // que explica a cobrança.
+    p_entrega: snapshotEntrega,
   };
-  const { data, error } = await sb.rpc('criar_pedido_publico_offline_v1', parametros);
+  const { data, error } = await sb.rpc('criar_pedido_publico_offline_v2', parametros);
 
   if (error) {
     // Nunca repassar error.message inteiro sem checar: pode conter detalhe
@@ -189,7 +228,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // que é segura porque criar_pedido() só levanta RAISE EXCEPTION com
     // texto pensado pra o cliente ler (mesma convenção do pedido manual).
     const msg = error.message || '';
-    if (error.code === 'PGRST202' || msg.includes('criar_pedido_publico_offline_v1')) {
+    if (error.code === 'PGRST202' || msg.includes('criar_pedido_publico_offline_v')) {
       return respostaErro('O checkout está sendo atualizado. Tente novamente em alguns minutos.', 503);
     }
     if (msg.includes('CART_CHANGED')) {

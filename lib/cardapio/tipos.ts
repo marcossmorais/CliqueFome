@@ -105,6 +105,17 @@ export function formatBRL(v: number) {
   return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 }
 
+/** Formata a partir de centavos inteiros, sem passar por reais em float.
+ *  É o formatador certo pra tudo que o Delivery grava — taxa de entrega,
+ *  taxa específica, snapshot do pedido — porque lá o dado JÁ é inteiro e
+ *  dividir por 100 antes de formatar só reintroduziria a fração que os
+ *  centavos existem pra evitar. */
+export function formatBRLCentavos(cents: number) {
+  const inteiro = Math.trunc(Math.abs(cents));
+  const sinal = cents < 0 ? '-' : '';
+  return `${sinal}R$ ${Math.floor(inteiro / 100)},${String(inteiro % 100).padStart(2, '0')}`;
+}
+
 export function formatarTelefone(valor: string) {
   const digitos = valor.replace(/\D/g, '').slice(0, 11);
   if (digitos.length <= 2) return digitos;

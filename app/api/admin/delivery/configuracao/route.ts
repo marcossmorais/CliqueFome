@@ -9,7 +9,7 @@ import {
   type EnderecoEstruturado,
 } from '@/lib/delivery/tipos';
 import { criarClientPrivilegiado } from '@/lib/delivery/servidor';
-import { criarClientServidor } from '@/lib/supabase/server';
+import { autorizarLoja } from '@/lib/delivery/autorizacao';
 import { logger } from '@/lib/observabilidade/logger';
 
 export const runtime = 'nodejs';
@@ -19,16 +19,6 @@ const ROTA = '/api/admin/delivery/configuracao';
 function numero(valor: unknown) {
   const n = typeof valor === 'number' ? valor : Number(valor);
   return Number.isFinite(n) ? n : NaN;
-}
-
-async function autorizarLoja(lojaId: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(lojaId)) return null;
-  const sb = await criarClientServidor();
-  const [{ data: usuario }, { data: souAdmin }] = await Promise.all([sb.auth.getUser(), sb.rpc('is_admin')]);
-  if (!usuario.user) return null;
-  const consulta = sb.from('lojas').select('id').eq('id', lojaId);
-  const { data } = await (souAdmin ? consulta.maybeSingle() : consulta.eq('dono_id', usuario.user.id).maybeSingle());
-  return data ? usuario.user.id : null;
 }
 
 export async function GET(request: Request) {
