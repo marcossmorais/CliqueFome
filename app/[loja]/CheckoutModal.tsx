@@ -364,8 +364,12 @@ export function CheckoutModal({
                 />
                 {usaCotacaoDinamica ? (
                   <>
-                    <button type="button" className="checkout-calcular" disabled={cotacao.status === 'calculando'} onClick={onCalcularFrete}>{cotacao.status === 'calculando' ? 'Calculando rota…' : 'Calcular taxa de entrega'}</button>
-                    {cotacao.status === 'ok' && <div className="checkout-cotacao"><span>Taxa calculada</span><strong>{formatBRL(cotacao.taxa)}{cotacao.distanciaKm != null ? ` · ${cotacao.distanciaKm} km` : ''}</strong></div>}
+                    {/* "Salvar endereço" e não "Calcular taxa": calcular rota
+                        é mecânica interna, e só acontece quando a loja cobra
+                        por km. Quem está pedindo quer confirmar onde mora — a
+                        taxa aparece como consequência, não como tarefa dele. */}
+                    <button type="button" className="checkout-calcular" disabled={cotacao.status === 'calculando'} onClick={onCalcularFrete}>{cotacao.status === 'calculando' ? 'Salvando endereço…' : 'Salvar endereço'}</button>
+                    {cotacao.status === 'ok' && <div className="checkout-cotacao"><span>Taxa de entrega</span><strong>{formatBRL(cotacao.taxa)}{cotacao.distanciaKm != null ? ` · ${cotacao.distanciaKm} km` : ''}</strong></div>}
                     {cotacao.status === 'erro' && <p className="delivery-erro" role="alert">{cotacao.erro}</p>}
                     <small className="checkout-atribuicao">Rotas por <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a> · © OpenStreetMap contributors</small>
                   </>

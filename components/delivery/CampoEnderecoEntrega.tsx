@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   buscarSugestoes,
   criarControladorBusca,
@@ -57,6 +57,17 @@ export function CampoEnderecoEntrega({
   const [consulta, setConsulta] = useState('');
   const [estado, setEstado] = useState<EstadoAutocomplete>({ status: 'idle' });
   const [selecionado, setSelecionado] = useState(false);
+  /**
+   * Quais campos complementares aparecem, decidido UMA vez — na escolha da
+   * sugestão ou na resolução do CEP.
+   *
+   * Não pode ser derivado do valor atual a cada render: `camposFaltantes`
+   * devolve 'numero' enquanto o número está vazio, então o primeiro caractere
+   * digitado tirava o campo da lista e DESMONTAVA o input no meio da
+   * digitação. O mesmo acontecia com o bairro no segundo caractere. Um campo
+   * que apareceu precisa continuar na tela enquanto está sendo preenchido.
+   */
+  const [camposExtras, setCamposExtras] = useState<Array<'numero' | 'bairro' | 'cep'>>([]);
   const [modoCep, setModoCep] = useState(false);
   const [cep, setCep] = useState('');
   const [destacado, setDestacado] = useState(-1);
@@ -99,7 +110,7 @@ export function CampoEnderecoEntrega({
     setSelecionado(true);
     setDestacado(-1);
     setConsulta(sugestao.formattedAddress);
-    onChange({
+    const escolhido: DeliveryAddress = {
       formattedAddress: sugestao.formattedAddress,
       street: sugestao.street,
       number: sugestao.number,
@@ -111,7 +122,9 @@ export function CampoEnderecoEntrega({
       // é o servidor, na cotação. O cliente nunca é autoridade sobre lat/lng.
       latitude: null,
       longitude: null,
-    });
+    };
+    setCamposExtras(camposFaltantes(escolhido));
+    onChange(escolhido);
   }, [onChange]);
 
   const sugestoes = estado.status === 'resultados' ? estado.sugestoes : [];
@@ -133,7 +146,6 @@ export function CampoEnderecoEntrega({
     }
   };
 
-  const faltantes = useMemo(() => (selecionado ? camposFaltantes(valor) : []), [selecionado, valor]);
   const atualizar = (campo: keyof DeliveryAddress, novo: string) => onChange({ ...valor, [campo]: novo });
 
   // Fallback por CEP: preenche os campos estruturados que o ViaCEP conhece.
@@ -144,7 +156,7 @@ export function CampoEnderecoEntrega({
     setCep(formatado);
     void buscaCep.consultar(formatado, (localizado) => {
       setSelecionado(true);
-      onChange({
+      const resolvido: DeliveryAddress = {
         ...valor,
         formattedAddress: '',
         street: localizado.logradouro || valor.street,
@@ -154,7 +166,11 @@ export function CampoEnderecoEntrega({
         postalCode: localizado.cep,
         latitude: null,
         longitude: null,
-      });
+      };
+      // O ViaCEP nunca devolve número, então 'numero' entra aqui sempre —
+      // e continua na tela enquanto a pessoa digita.
+      setCamposExtras(camposFaltantes(resolvido));
+      onChange(resolvido);
     });
   };
 
@@ -249,19 +265,19 @@ export function CampoEnderecoEntrega({
           {/* Só o que a sugestão não trouxe vira campo. Endereço completo não
               mostra formulário nenhum — é o ponto do fluxo novo. */}
           <div className={estilos.complementares}>
-            {faltantes.includes('numero') && (
+            {camposExtras.includes('numero') && (
               <label className={estilos.subCampo}>
                 Número
                 <input maxLength={20} value={valor.number} onChange={(e) => atualizar('number', e.target.value)} placeholder="120" />
               </label>
             )}
-            {faltantes.includes('bairro') && (
+            {camposExtras.includes('bairro') && (
               <label className={estilos.subCampo}>
                 Bairro
                 <input maxLength={80} value={valor.neighborhood} onChange={(e) => atualizar('neighborhood', e.target.value)} />
               </label>
             )}
-            {faltantes.includes('cep') && (
+            {camposExtras.includes('cep') && (
               <label className={estilos.subCampo}>
                 CEP
                 <input inputMode="numeric" maxLength={9} value={formatarCep(valor.postalCode)} onChange={(e) => atualizar('postalCode', e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="00000-000" />
