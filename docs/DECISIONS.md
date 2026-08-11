@@ -249,3 +249,59 @@ e a URL sairia como `/oh-taal?loja=oh-taal`.
 servidor renderiza um valor e o cliente outro (mismatch de hidratação), e
 `setState` dentro de efeito dispara render em cascata — o lint do React acusa
 os dois. `useSyncExternalStore` tem `getServerSnapshot` justamente pra isso.
+
+---
+
+## Delivery v3: um campo de endereço, não CEP + oito campos
+
+O autocomplete existia desde a v2 (`lib/delivery/geoapify.ts`), mas só o
+painel do lojista o usava — o endpoint que o servia exigia `auth.getUser()`,
+e o cliente do cardápio, que é anônimo, tomava 401. Por isso o checkout
+tinha CEP → oito campos manuais → botão "Calcular taxa de entrega".
+
+Agora é um campo só ("Digite sua rua e número"), servido por
+`/api/delivery/address/autocomplete`, que é **público**. Sem sessão pra
+ancorar o limite, a proteção passou a ser mínimo de 3 caracteres + slug de
+loja real com entrega ativa + teto por IP.
+
+**Alternativa rejeitada:** manter o endpoint autenticado e criar um segundo
+público. Dois caminhos pro mesmo provedor divergem com o tempo — foi
+exatamente assim que o painel ficou com autocomplete e o checkout não.
+
+O ViaCEP continua, mas como **fallback** atrás de um link, não como fluxo
+principal.
+
+---
+
+## Dinheiro do Delivery em centavos inteiros
+
+`store_delivery_settings` e `delivery_fee_overrides` guardam `*_cents` como
+`integer`. As tabelas da v2 usavam `numeric(10,2)` em reais, e o cálculo por
+km fazia `* 100 / 100` em float no meio do caminho.
+
+`pedidos.taxa_entrega` continua em reais **por enquanto** — a conversão dele
+alcança histórico, dashboard e mensagem de WhatsApp, e foi separada num
+passo próprio pra poder ser revisada sozinha.
+
+---
+
+## Tabelas da v2 preservadas, não migradas por movimentação
+
+`configuracoes_delivery`, `configuracoes_delivery_cidades` e
+`enderecos_estabelecimento` seguem populadas e intactas. A migração v3
+**copia** delas. Reverter é parar de ler as novas, sem restore de backup.
+
+**Motivo:** o motor de taxas antigo ainda serve as cotações até o PR
+seguinte. Derrubar a origem dos dados antes disso derrubaria o checkout.
+
+---
+
+## Modo "avançado" sem `<select>` de cidade
+
+O cliente escolhia a cidade num `<select>` antes de digitar o endereço.
+Agora a cidade sai do endereço que o autocomplete resolveu — perguntar a
+cidade a quem já disse a rua é passo redundante.
+
+Continua sendo só conveniência de tela: quem decide se a loja atende aquela
+cidade, e por qual taxa, é o servidor na cotação. As cidades cadastradas
+viraram `delivery_fee_overrides` com `scope='CITY'` no backfill.

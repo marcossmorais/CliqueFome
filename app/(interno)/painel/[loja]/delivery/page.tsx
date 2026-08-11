@@ -26,7 +26,7 @@ export default async function DeliveryPage({
 
   return (
     <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Delivery">
-      <DeliveryHub configuracao={<DeliveryFacilitadoForm lojaId={loja.id} />} />
+      <DeliveryHub configuracao={<DeliveryFacilitadoForm lojaId={loja.id} lojaSlug={loja.slug} />} />
     </ShellPainel>
   );
 }
