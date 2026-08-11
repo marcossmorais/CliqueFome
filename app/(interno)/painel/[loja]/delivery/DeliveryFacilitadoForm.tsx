@@ -218,6 +218,7 @@ export function DeliveryFacilitadoForm({ lojaId, lojaSlug }: { lojaId: string; l
             lojaSlug={lojaSlug}
             rotulo="Endereço do estabelecimento"
             rotuloVisivel={false}
+            detalhado
             valor={deEnderecoEstruturado(endereco)}
             onChange={(novo) => setEndereco((atual) => ({
               ...paraEnderecoEstruturado(novo),

@@ -185,8 +185,10 @@ test('camposFaltantes aponta só o que a sugestão não trouxe', () => {
   });
   assert.deepEqual(camposFaltantes(completo), []);
 
+  // 'uf' entra porque a sugestão veio sem estado — é o caso do interior que
+  // travava o salvar, já que sem entrar aqui o campo nunca aparecia na tela.
   const semNumeroNemCep = endereco({ street: 'Rua João Pessoa', neighborhood: 'Centro', city: 'Campina Grande' });
-  assert.deepEqual(camposFaltantes(semNumeroNemCep), ['numero', 'cep']);
+  assert.deepEqual(camposFaltantes(semNumeroNemCep), ['numero', 'cep', 'uf']);
 });
 
 test('ida e volta para o contrato antigo preserva os campos', () => {
@@ -226,4 +228,41 @@ test('resumo do endereço é curto e sem país', () => {
   }));
   assert.equal(texto, 'Rua João Pessoa, 120 · Centro · Campina Grande - PB');
   assert.doesNotMatch(texto, /Brasil|Brazil/);
+});
+
+test('endereco sem UF e sem bairro (caso real do interior) pede os dois', () => {
+  // Regressao do bug relatado: a Geoapify devolve `state_code` e `suburb`
+  // nulos em boa parte do interior, mesmo acertando rua/numero/CEP com
+  // confianca 1. Sem 'uf' na lista, o campo nunca aparecia — e
+  // `enderecoEstruturadoValido`, que exige duas letras, reprovava um
+  // endereco que a pessoa nao tinha como corrigir.
+  const daGeoapify = endereco({
+    street: 'Rua Santa Rita', number: '284', neighborhood: '',
+    city: 'Itabaiana', state: '', postalCode: '58360000',
+  });
+  const faltando = camposFaltantes(daGeoapify);
+  assert.ok(faltando.includes('uf'), 'UF precisa estar na lista, senao nao vira campo na tela');
+  assert.ok(faltando.includes('bairro'));
+  assert.equal(faltando.includes('numero'), false);
+  assert.equal(faltando.includes('cep'), false);
+});
+
+test('UF invalida conta como faltante', () => {
+  for (const uf of ['', 'P', 'PBA', '12']) {
+    assert.ok(camposFaltantes(endereco({ state: uf })).includes('uf'), `UF ${JSON.stringify(uf)} deveria ser rejeitada`);
+  }
+  assert.equal(camposFaltantes(endereco({ state: 'PB' })).includes('uf'), false);
+});
+
+test('cidade ausente conta como faltante', () => {
+  assert.ok(camposFaltantes(endereco({ city: '' })).includes('cidade'));
+  assert.equal(camposFaltantes(endereco({ city: 'Recife' })).includes('cidade'), false);
+});
+
+test('endereco completo nao pede nada', () => {
+  const completo = endereco({
+    street: 'Rua Santa Rita', number: '284', neighborhood: 'Centro',
+    city: 'Itabaiana', state: 'PB', postalCode: '58360000',
+  });
+  assert.deepEqual(camposFaltantes(completo), []);
 });

@@ -160,12 +160,26 @@ export function deEnderecoEstruturado(endereco: EnderecoEstruturado): DeliveryAd
   };
 }
 
-/** Campos que o endereço ainda não tem e a cotação vai exigir. A tela usa
- *  isto pra mostrar só o que falta, em vez de um formulário inteiro. */
-export function camposFaltantes(endereco: DeliveryAddress): Array<'numero' | 'bairro' | 'cep'> {
-  const faltando: Array<'numero' | 'bairro' | 'cep'> = [];
+export type CampoEndereco = 'numero' | 'bairro' | 'cep' | 'cidade' | 'uf';
+
+/** Ordem de exibição — mesma sequência em que se escreve um endereço. */
+export const CAMPOS_ENDERECO: CampoEndereco[] = ['numero', 'bairro', 'cep', 'cidade', 'uf'];
+
+/**
+ * Campos que o endereço ainda não tem e a cotação vai exigir.
+ *
+ * `uf` e `cidade` estão na lista porque a Geoapify NÃO os devolve sempre: em
+ * boa parte do interior o resultado vem com `state_code` e `suburb` nulos,
+ * mesmo com confiança 1 na rua e no número. Sem eles aqui, a UF ficava vazia
+ * e sem campo na tela — e `enderecoEstruturadoValido`, que exige duas letras,
+ * reprovava um endereço que a pessoa não tinha como corrigir.
+ */
+export function camposFaltantes(endereco: DeliveryAddress): CampoEndereco[] {
+  const faltando: CampoEndereco[] = [];
   if (!temNumero(endereco)) faltando.push('numero');
   if (endereco.neighborhood.trim().length < 2) faltando.push('bairro');
   if (endereco.postalCode.replace(/\D/g, '').length !== 8) faltando.push('cep');
+  if (endereco.city.trim().length < 2) faltando.push('cidade');
+  if (!/^[A-Za-z]{2}$/.test(endereco.state.trim())) faltando.push('uf');
   return faltando;
 }

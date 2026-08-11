@@ -9,12 +9,21 @@ import {
 import {
   camposFaltantes,
   resumoEndereco,
+  type CampoEndereco,
   type DeliveryAddress,
   type SugestaoEnderecoPublica,
 } from '@/lib/delivery/endereco';
 import { formatarCep } from '@/lib/delivery/tipos';
 import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
 import estilos from './campoEndereco.module.css';
+
+const ROTULO_CAMPO: Record<CampoEndereco, string> = {
+  numero: 'número',
+  bairro: 'bairro',
+  cep: 'CEP',
+  cidade: 'cidade',
+  uf: 'UF',
+};
 
 /**
  * Campo único de endereço de entrega.
@@ -41,6 +50,15 @@ export function CampoEnderecoEntrega({
    *  label continua existindo pro leitor de tela, só não é pintado duas
    *  vezes na tela. */
   rotuloVisivel = true,
+  /**
+   * `true` mostra TODOS os campos estruturados sempre, editáveis. É o modo do
+   * painel: o dono cadastra o endereço da loja uma vez, conhece o próprio
+   * endereço melhor que qualquer provedor, e precisa poder corrigir o que a
+   * Geoapify errou — ela devolve `state_code` e `suburb` nulos em boa parte
+   * do interior. No checkout o padrão continua sendo mostrar só o que falta,
+   * com um botão pra abrir o resto.
+   */
+  detalhado = false,
   autoFoco = false,
 }: {
   lojaSlug: string;
@@ -52,6 +70,7 @@ export function CampoEnderecoEntrega({
   onReferencia?: (valor: string) => void;
   rotulo?: string;
   rotuloVisivel?: boolean;
+  detalhado?: boolean;
   autoFoco?: boolean;
 }) {
   const [consulta, setConsulta] = useState('');
@@ -67,7 +86,10 @@ export function CampoEnderecoEntrega({
    * digitação. O mesmo acontecia com o bairro no segundo caractere. Um campo
    * que apareceu precisa continuar na tela enquanto está sendo preenchido.
    */
-  const [camposExtras, setCamposExtras] = useState<Array<'numero' | 'bairro' | 'cep'>>([]);
+  const [camposExtras, setCamposExtras] = useState<CampoEndereco[]>([]);
+  /** Quem clicou em "Editar endereço completo" vê tudo, mesmo o que veio
+   *  preenchido — é a saída pra sugestão que trouxe bairro ou cidade errados. */
+  const [tudoAberto, setTudoAberto] = useState(false);
   const [modoCep, setModoCep] = useState(false);
   const [cep, setCep] = useState('');
   const [destacado, setDestacado] = useState(-1);
@@ -174,6 +196,17 @@ export function CampoEnderecoEntrega({
     });
   };
 
+  // Um campo aparece se: o modo é detalhado, a pessoa abriu tudo, ou ele
+  // estava faltando quando o endereço foi escolhido.
+  const mostrarTudo = detalhado || tudoAberto;
+  const visivel = (campo: CampoEndereco | 'rua') =>
+    mostrarTudo || (campo !== 'rua' && camposExtras.includes(campo));
+
+  // O que AINDA falta agora — recalculado a cada render só pra avisar, nunca
+  // pra decidir quais campos existem (foi isso que desmontava o input no meio
+  // da digitação).
+  const pendentes = selecionado || detalhado ? camposFaltantes(valor) : [];
+
   return (
     <div className={estilos.campo}>
       {!modoCep && (
@@ -258,29 +291,50 @@ export function CampoEnderecoEntrega({
         {modoCep ? '‹ Voltar a buscar pelo endereço' : 'Não encontrou seu endereço? Buscar pelo CEP'}
       </button>
 
-      {selecionado && (
+      {(selecionado || detalhado) && (
         <div className={estilos.confirmacao}>
           <p className={estilos.resumo}>{resumoEndereco(valor) || 'Complete os campos abaixo'}</p>
 
-          {/* Só o que a sugestão não trouxe vira campo. Endereço completo não
-              mostra formulário nenhum — é o ponto do fluxo novo. */}
+          {/* No checkout aparece só o que a sugestão não trouxe; no painel
+              (`detalhado`) aparece tudo, sempre editável. O botão abaixo abre
+              o formulário completo em qualquer um dos dois — é a saída pra
+              sugestão que veio com bairro ou cidade errados, que antes não
+              tinha conserto porque o campo simplesmente não existia. */}
           <div className={estilos.complementares}>
-            {camposExtras.includes('numero') && (
+            {visivel('numero') && (
               <label className={estilos.subCampo}>
                 Número
                 <input maxLength={20} value={valor.number} onChange={(e) => atualizar('number', e.target.value)} placeholder="120" />
               </label>
             )}
-            {camposExtras.includes('bairro') && (
-              <label className={estilos.subCampo}>
-                Bairro
-                <input maxLength={80} value={valor.neighborhood} onChange={(e) => atualizar('neighborhood', e.target.value)} />
-              </label>
-            )}
-            {camposExtras.includes('cep') && (
+            {visivel('cep') && (
               <label className={estilos.subCampo}>
                 CEP
-                <input inputMode="numeric" maxLength={9} value={formatarCep(valor.postalCode)} onChange={(e) => atualizar('postalCode', e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="00000-000" />
+                <input inputMode="numeric" autoComplete="postal-code" maxLength={9} value={formatarCep(valor.postalCode)} onChange={(e) => atualizar('postalCode', e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="00000-000" />
+              </label>
+            )}
+            {visivel('rua') && (
+              <label className={estilos.subCampo}>
+                Rua
+                <input maxLength={120} value={valor.street} onChange={(e) => atualizar('street', e.target.value)} placeholder="Rua Santa Rita" />
+              </label>
+            )}
+            {visivel('bairro') && (
+              <label className={estilos.subCampo}>
+                Bairro
+                <input maxLength={80} value={valor.neighborhood} onChange={(e) => atualizar('neighborhood', e.target.value)} placeholder="Centro" />
+              </label>
+            )}
+            {visivel('cidade') && (
+              <label className={estilos.subCampo}>
+                Cidade
+                <input maxLength={100} autoComplete="address-level2" value={valor.city} onChange={(e) => atualizar('city', e.target.value)} placeholder="Itabaiana" />
+              </label>
+            )}
+            {visivel('uf') && (
+              <label className={estilos.subCampo}>
+                UF
+                <input maxLength={2} autoComplete="address-level1" value={valor.state} onChange={(e) => atualizar('state', e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))} placeholder="PB" />
               </label>
             )}
 
@@ -297,6 +351,18 @@ export function CampoEnderecoEntrega({
               </label>
             )}
           </div>
+
+          {!detalhado && !tudoAberto && (
+            <button type="button" className={estilos.alternar} onClick={() => setTudoAberto(true)}>
+              Conferir ou corrigir o endereço completo
+            </button>
+          )}
+
+          {pendentes.length > 0 && (
+            <p className={estilos.avisoErro} role="status">
+              Falta preencher: {pendentes.map((c) => ROTULO_CAMPO[c]).join(', ')}.
+            </p>
+          )}
         </div>
       )}
     </div>
