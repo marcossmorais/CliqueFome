@@ -187,6 +187,46 @@ export async function PUT(request: Request) {
       p_cidades: cidades,
     });
     if (error) throw error;
+
+    // Espelha a configuração na tabela v3.
+    //
+    // Sem isto, o backfill da migração seria a ÚNICA coisa que já povoou
+    // `store_delivery_settings`: salvar o endereço pelo painel gravava só nas
+    // tabelas v2, e `origin_lat/lng` ficava nulo pra sempre — o que deixaria
+    // o bias de proximidade do autocomplete desligado justamente na loja que
+    // acabou de cadastrar o endereço.
+    //
+    // A v2 continua sendo a fonte de verdade da cotação neste PR; aqui é
+    // espelho. Falhar o espelho não pode desfazer um save que já foi
+    // comitado, então o erro é registrado e o save segue válido.
+    const { error: erroEspelho } = await sb.from('store_delivery_settings').upsert(
+      {
+        store_id: lojaId,
+        calculation_type: tipoTaxa === 'por_km' ? 'PER_KM' : 'FIXED',
+        fixed_fee_cents: Math.round(taxaFixa * 100),
+        price_per_km_cents: Math.round(valorPorKm * 100),
+        max_fee_cents: Math.round(taxaMaxima * 100),
+        max_distance_meters: Math.round(distanciaMaximaKm * 1000),
+        origin_formatted_address: enderecoFormatado,
+        origin_street: endereco.logradouro,
+        origin_number: endereco.numero,
+        origin_neighborhood: endereco.bairro,
+        origin_city: endereco.cidade,
+        origin_city_normalized: normalizarTexto(endereco.cidade),
+        origin_state: endereco.uf,
+        origin_postal_code: endereco.cep,
+        origin_lat: geocodificado?.latitude ?? null,
+        origin_lng: geocodificado?.longitude ?? null,
+      },
+      { onConflict: 'store_id' },
+    );
+    if (erroEspelho) {
+      logger.error(
+        { err: erroEspelho, rota: ROTA, lojaId },
+        'Configuração salva na v2, mas o espelho em store_delivery_settings falhou',
+      );
+    }
+
     return NextResponse.json({ ok: true, enderecoFormatado });
   } catch (falha) {
     logger.error({ err: falha, rota: ROTA, lojaId }, 'Falha ao salvar configuração de delivery');
