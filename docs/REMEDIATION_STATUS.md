@@ -159,15 +159,11 @@ Build de produção (`npm start`), Chromium via Playwright:
 | FUN-11 | ALTO | Edição de produto e reordenação não são atômicas | **PENDENTE** | `ModalProduto` do admin e `CatalogoClient`. |
 | FUN-12 | ALTO | Transições de pedido sem compare-and-set | **CORRIGIDO** | `avancarStatus`, `cancelarPedido` e `marcarPagamento` casam o status esperado e lançam `ConflitoDePedido`. |
 | FUN-13 | ALTO | Erros do Supabase viram vazio ou 404 | **CORRIGIDO** | `page.tsx` trata `error` e lança; `app/[loja]/error.tsx` separa falha de "não existe". Admin ainda engole alguns. |
-| FUN-14 | ALTO | Encomenda com endereço pula `saiu_para_entrega` | **PENDENTE** | `proximoStatus` só testa `tipo === 'delivery'`. |
-| FUN-15 | ALTO | Sem controle de delivery e encomendas no Next | **PENDENTE** | Decisão sua: o card "Status da loja" foi adiado de propósito, pra ser repensado. |
 | FUN-16 | ALTO | Preço negativo é aceito | **CORRIGIDO** | `CHECK >= 0` em `produtos`, `complementos` e `lojas`, mais validação no `ModalLista`. |
 | FUN-17 | MÉDIO | Busca do admin remove espaço ao digitar | **PENDENTE** | `trim` no `onChange`. |
 | FUN-18 | MÉDIO | Histórico reordena por urgência | **PENDENTE** | — |
 | FUN-19 | MÉDIO | Espera média inclui encomendas futuras | **PENDENTE** | — |
-| FUN-20 | MÉDIO | Pedido manual mostra total sem entrega | **PENDENTE** | Junto com a melhoria do formulário manual. |
 | FUN-21 | MÉDIO | Lista exige mais opções ativas do que possui | **CORRIGIDO** | `ModalLista` recusa. Virou bloqueante depois que a RPC passou a exigir `qtd_min`. |
-| FUN-22 | MÉDIO | `delivery_ativo` rotulado como "Aberto agora" | **PENDENTE** | `HeroLoja.tsx`. |
 | FUN-23 | MÉDIO | WhatsApp e tempos sem validação semântica | **PENDENTE** | `DadosLojaForm.tsx`. |
 | FUN-24 | MÉDIO | localStorage bloqueado perde o estado | **CORRIGIDO** | `useLocalStorage` cai para espelho em memória quando a escrita é recusada. |
 | FUN-25 | MÉDIO | Documentação diverge do sistema | **CORRIGIDO** | Docs atualizados nesta rodada. |

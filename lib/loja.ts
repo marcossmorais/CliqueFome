@@ -12,11 +12,9 @@ export type Loja = {
   cidade: string | null;
   sobre: string | null;
   whatsapp_numero: string | null;
-  tempo_entrega_min: number | null;
-  tempo_entrega_max: number | null;
-  taxa_entrega: number;
+  tempo_preparo_min: number | null;
+  tempo_preparo_max: number | null;
   pedido_minimo: number;
-  delivery_ativo: boolean;
   recebendo_encomendas: boolean;
   retirada_ativa: boolean;
 };

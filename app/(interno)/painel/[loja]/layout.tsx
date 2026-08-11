@@ -40,7 +40,6 @@ export default async function PainelLojaLayout({
       lojaId={loja.id}
       estadoInicial={{
         lojaAberta: loja.recebendo_encomendas,
-        delivery: loja.delivery_ativo,
         retirada: loja.retirada_ativa,
       }}
     >

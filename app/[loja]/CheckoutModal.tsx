@@ -3,9 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { extraDaLinha, formatarTelefone, formatBRL, precoBase, subtotalLinha, type LinhaCarrinho, type ProdutoPublico } from '@/lib/cardapio/tipos';
-import { type ConfigDeliveryPublica, type EnderecoEstruturado } from '@/lib/delivery/tipos';
-import { CampoEnderecoEntrega } from '@/components/delivery/CampoEnderecoEntrega';
-import { deEnderecoEstruturado, paraEnderecoEstruturado } from '@/lib/delivery/endereco';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import {
   formasPagamentoPara,
@@ -14,17 +11,10 @@ import {
   type FormaPagamentoOffline,
 } from '@/lib/pedidos/pagamento';
 
-export type ModoEntrega = 'retirada' | 'entrega';
-export type CotacaoEstado =
-  | { status: 'idle' }
-  | { status: 'calculando' }
-  | { status: 'erro'; erro: string }
-  | { status: 'ok'; taxa: number; distanciaKm: number | null; enderecoFormatado: string; token: string; expiraEm: string };
-
 export type PedidoRegistrado = {
   pedido: {
     numero: number; token: string; status: string; pagamento_status: string; forma_pagamento: string;
-    subtotal: number; taxa_entrega: number; total: number; tracking_url: string;
+    subtotal: number; total: number; tracking_url: string;
   };
   proximaAcao: { tipo: string; url: string } | null;
 };
@@ -40,15 +30,15 @@ export type SugestaoComplementoCarrinho = {
 };
 
 const ROTULOS_FORMA_PAGAMENTO: Record<FormaPagamentoOffline, string> = {
-  dinheiro_entrega: 'Dinheiro',
-  cartao_credito_entrega: 'Cartão de crédito',
-  cartao_debito_entrega: 'Cartão de débito',
+  dinheiro: 'Dinheiro',
+  cartao_credito: 'Cartão de crédito',
+  cartao_debito: 'Cartão de débito',
   pix_manual: 'Pix no WhatsApp',
   pagamento_retirada: 'Pagar no estabelecimento',
 };
 
 function IconeFormaPagamento({ forma }: { forma: FormaPagamentoOffline }) {
-  if (forma === 'dinheiro_entrega') {
+  if (forma === 'dinheiro') {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="2.5" y="5" width="19" height="14" rx="2" />
@@ -73,7 +63,7 @@ function IconeFormaPagamento({ forma }: { forma: FormaPagamentoOffline }) {
   );
 }
 
-type Etapa = 'carrinho' | 'entrega';
+type Etapa = 'carrinho' | 'dados';
 
 /**
  * 'fechado' não renderiza nada; os outros três controlam a classe CSS que
@@ -87,7 +77,7 @@ type EstadoModal = 'fechado' | 'entrando' | 'aberto' | 'saindo';
 
 /**
  * Um modal só, com o carrinho como primeira etapa — antes disso o carrinho
- * (lista de itens) e o checkout (entrega/dados) eram duas sobreposições
+ * (lista de itens) e o checkout (retirada/dados) eram duas sobreposições
  * independentes, cada uma com seu próprio backdrop. Empilhadas, a de trás
  * "vazava" atrás da da frente (o cabeçalho "Seu carrinho" aparecia por
  * cima do checkout num vão que o backdrop translúcido não cobria de
@@ -95,26 +85,23 @@ type EstadoModal = 'fechado' | 'entrando' | 'aberto' | 'saindo';
  * dois problemas de uma vez.
  */
 export function CheckoutModal({
-  aberto, lojaSlug, linhas, nome, telefone, endereco, modo, formaPagamento, erro, enviando, pedidoRegistrado,
-  deliveryConfig, taxaEstatica, cotacao, onFechar, onMudarQtd, onRemover,
+  aberto, linhas, nome, telefone, formaPagamento, erro, enviando, pedidoRegistrado,
+  onFechar, onMudarQtd, onRemover,
   sugestoes, sugestoesComplementos, onAdicionarSugestao, onAdicionarComplemento,
-  lojaAberta, deliveryAtivo, retiradaAtiva,
-  onNome, onTelefone, onEndereco, onCalcularFrete, onModo, onFormaPagamento, onFinalizar, onNovoPedido,
+  lojaAberta, retiradaAtiva,
+  onNome, onTelefone, onFormaPagamento, onFinalizar, onNovoPedido,
 }: {
-  aberto: boolean; lojaSlug: string; linhas: LinhaCarrinho[]; nome: string; telefone: string;
-  endereco: EnderecoEstruturado; modo: ModoEntrega; formaPagamento: FormaPagamentoOffline | ''; erro: string | null; enviando: boolean;
-  pedidoRegistrado: PedidoRegistrado | null; deliveryConfig: ConfigDeliveryPublica | null;
-  lojaAberta: boolean; deliveryAtivo: boolean; retiradaAtiva: boolean;
-  taxaEstatica: number;
-  cotacao: CotacaoEstado; onFechar: () => void;
+  aberto: boolean; linhas: LinhaCarrinho[]; nome: string; telefone: string;
+  formaPagamento: FormaPagamentoOffline | ''; erro: string | null; enviando: boolean;
+  pedidoRegistrado: PedidoRegistrado | null;
+  lojaAberta: boolean; retiradaAtiva: boolean;
+  onFechar: () => void;
   sugestoes: { titulo: string; produtos: ProdutoPublico[] }[];
   sugestoesComplementos: SugestaoComplementoCarrinho[];
   onAdicionarSugestao: (produto: ProdutoPublico) => void;
   onAdicionarComplemento: (sugestao: SugestaoComplementoCarrinho) => void;
   onMudarQtd: (lineId: string, delta: number) => void; onRemover: (lineId: string) => void;
   onNome: (v: string) => void; onTelefone: (v: string) => void;
-  onEndereco: (v: EnderecoEstruturado) => void;
-  onCalcularFrete: () => void; onModo: (m: ModoEntrega) => void;
   onFormaPagamento: (forma: FormaPagamentoOffline | '') => void;
   onFinalizar: () => void; onNovoPedido: () => void;
 }) {
@@ -122,7 +109,7 @@ export function CheckoutModal({
   const tituloRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
 
-  // Reabrir sempre começa pelo carrinho — evita reabrir já em "Entrega" com
+  // Reabrir sempre começa pelo carrinho — evita reabrir já nos dados com
   // o cliente sem ter revisado os itens. Padrão documentado do React pra
   // "resetar estado quando uma prop muda": compara com uma cópia da prop
   // guardada em estado (não em ref — ref não pode ser lido durante o
@@ -157,13 +144,7 @@ export function CheckoutModal({
     }
   }, [estado]);
   const subtotal = linhas.reduce((s, linha) => s + subtotalLinha(linha), 0);
-  const usaCotacaoDinamica = !!deliveryConfig?.configurada;
-  const taxa = modo === 'entrega'
-    ? usaCotacaoDinamica
-      ? cotacao.status === 'ok' ? cotacao.taxa : 0
-      : taxaEstatica
-    : 0;
-  const total = subtotal + taxa;
+  const total = subtotal;
 
   useEscFechar(() => { if (!enviando) onFechar(); });
 
@@ -227,7 +208,7 @@ export function CheckoutModal({
         {!pedidoRegistrado && (
           <div className="checkout-etapas" aria-label="Etapas do pedido">
             <span className={etapa === 'carrinho' ? 'ativa' : ''}><b>1</b> Carrinho</span><i />
-            <span className={etapa === 'entrega' ? 'ativa' : ''}><b>2</b> Entrega</span>
+            <span className={etapa === 'dados' ? 'ativa' : ''}><b>2</b> Retirada</span>
           </div>
         )}
 
@@ -315,8 +296,8 @@ export function CheckoutModal({
 
             <div className="checkout-resumo"><div className="checkout-total"><span>Subtotal</span><strong>{formatBRL(subtotal)}</strong></div></div>
             {!lojaAberta && <p className="checkout-erro" role="status">A loja está fechada. Seu carrinho fica salvo para depois.</p>}
-            {lojaAberta && !deliveryAtivo && !retiradaAtiva && <p className="checkout-erro" role="status">Delivery e retirada estão pausados no momento.</p>}
-            <button type="button" className="btn-primary checkout-acao" disabled={linhas.length === 0 || !lojaAberta || (!deliveryAtivo && !retiradaAtiva)} onClick={() => setEtapa('entrega')}>
+            {lojaAberta && !retiradaAtiva && <p className="checkout-erro" role="status">A retirada está pausada no momento.</p>}
+            <button type="button" className="btn-primary checkout-acao" disabled={linhas.length === 0 || !lojaAberta || !retiradaAtiva} onClick={() => setEtapa('dados')}>
               Continuar pedido
             </button>
           </div>
@@ -325,59 +306,15 @@ export function CheckoutModal({
             <button type="button" className="checkout-voltar" onClick={() => setEtapa('carrinho')}>‹ Voltar ao carrinho</button>
 
             <section className="checkout-bloco">
-              <h3>Como você quer receber?</h3>
+              <h3>Retirada</h3>
               {!lojaAberta && <p className="checkout-erro" role="status">A loja está fechada e não está recebendo pedidos agora.</p>}
-              {lojaAberta && !deliveryAtivo && retiradaAtiva && <p className="checkout-pagamento">Delivery pausado. A retirada continua disponível.</p>}
+              {lojaAberta && !retiradaAtiva && <p className="checkout-erro" role="status">A retirada está pausada no momento.</p>}
               <div className="checkout-opcoes">
-                {deliveryAtivo && (
-                  <button type="button" disabled={!lojaAberta} className={modo === 'entrega' ? 'selecionada' : ''} onClick={() => onModo('entrega')}>
-                    <span>🛵</span><div><strong>Receber no meu endereço</strong><small>Calculamos a taxa antes de confirmar</small></div><b aria-hidden="true" />
-                  </button>
-                )}
-                {retiradaAtiva && (
-                  <button type="button" disabled={!lojaAberta} className={modo === 'retirada' ? 'selecionada' : ''} onClick={() => onModo('retirada')}>
-                    <span>🚶</span><div><strong>Retirar no estabelecimento</strong><small>{deliveryConfig?.enderecoRetirada || 'Confirme o endereço com a loja'}</small></div><b aria-hidden="true" />
-                  </button>
-                )}
+                <div className="checkout-retirada">
+                  <span>🚶</span><div><strong>Retirar no estabelecimento</strong><small>Confirme o endereço com a loja</small></div><b aria-hidden="true" />
+                </div>
               </div>
             </section>
-
-            {modo === 'entrega' && (
-              <section className="checkout-bloco">
-                <h3>Endereço de entrega</h3>
-                {/* Um campo só. A cidade da cotação sai do endereço escolhido —
-                    o <select> de "cidade atendida" saiu junto com o fluxo
-                    antigo, porque perguntar a cidade a quem já disse a rua é
-                    passo redundante (e o servidor confere de qualquer jeito). */}
-                <CampoEnderecoEntrega
-                  lojaSlug={lojaSlug}
-                  rotuloVisivel={false}
-                  valor={deEnderecoEstruturado(endereco)}
-                  onChange={(novo) => onEndereco(paraEnderecoEstruturado(novo, {
-                    complemento: endereco.complemento,
-                    referencia: endereco.referencia,
-                  }))}
-                  complemento={endereco.complemento || ''}
-                  onComplemento={(v) => onEndereco({ ...endereco, complemento: v })}
-                  referencia={endereco.referencia || ''}
-                  onReferencia={(v) => onEndereco({ ...endereco, referencia: v })}
-                />
-                {usaCotacaoDinamica ? (
-                  <>
-                    {/* "Salvar endereço" e não "Calcular taxa": calcular rota
-                        é mecânica interna, e só acontece quando a loja cobra
-                        por km. Quem está pedindo quer confirmar onde mora — a
-                        taxa aparece como consequência, não como tarefa dele. */}
-                    <button type="button" className="checkout-calcular" disabled={cotacao.status === 'calculando'} onClick={onCalcularFrete}>{cotacao.status === 'calculando' ? 'Salvando endereço…' : 'Salvar endereço'}</button>
-                    {cotacao.status === 'ok' && <div className="checkout-cotacao"><span>Taxa de entrega</span><strong>{formatBRL(cotacao.taxa)}{cotacao.distanciaKm != null ? ` · ${cotacao.distanciaKm} km` : ''}</strong></div>}
-                    {cotacao.status === 'erro' && <p className="delivery-erro" role="alert">{cotacao.erro}</p>}
-                    <small className="checkout-atribuicao">Rotas por <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a> · © OpenStreetMap contributors</small>
-                  </>
-                ) : (
-                  <div className="checkout-cotacao"><span>Taxa fixa da loja</span><strong>{formatBRL(taxaEstatica)}</strong></div>
-                )}
-              </section>
-            )}
 
             <section className="checkout-bloco">
               <h3>Seus dados</h3>
@@ -388,9 +325,9 @@ export function CheckoutModal({
             </section>
 
             <section className="checkout-bloco">
-              <h3>{modo === 'entrega' ? 'Pagar na entrega' : 'Pagar na retirada'}</h3>
+              <h3>Pagar na retirada</h3>
               <div className="checkout-formas-pagamento" role="radiogroup" aria-label="Forma de pagamento">
-                {formasPagamentoPara(modo === 'entrega' ? 'delivery' : 'retirada').map((forma) => {
+                {formasPagamentoPara('retirada').map((forma) => {
                   const selecionada = formaPagamento === forma;
                   return (
                     <button
@@ -412,9 +349,9 @@ export function CheckoutModal({
             </section>
 
             {erro && <p className="checkout-erro" role="alert">{erro}</p>}
-            <div className="checkout-resumo"><div><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>{modo === 'entrega' && <div><span>Taxa de entrega</span><span>{cotacao.status === 'ok' ? formatBRL(taxa) : 'A calcular'}</span></div>}<div className="checkout-total"><span>Total</span><strong>{formatBRL(total)}</strong></div></div>
+            <div className="checkout-resumo"><div><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div><div className="checkout-total"><span>Total</span><strong>{formatBRL(total)}</strong></div></div>
             <p className="checkout-pagamento"><strong>Pedido e pagamento são separados:</strong> seu pedido entra imediatamente na gestão da loja; o pagamento será confirmado manualmente pelo restaurante.</p>
-            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento || !lojaAberta || (modo === 'entrega' ? !deliveryAtivo : !retiradaAtiva)} onClick={onFinalizar}>{enviando && <span className="btn-spinner" aria-hidden="true" />}{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
+            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento || !lojaAberta || !retiradaAtiva} onClick={onFinalizar}>{enviando && <span className="btn-spinner" aria-hidden="true" />}{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
           </div>
         )}
       </section>

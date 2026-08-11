@@ -19,8 +19,8 @@ const PLANOS = [
     cta: 'btn-ghost',
     itens: [
       'Cardápio: categorias, produtos, complementos e opções',
-      'Gestão de pedidos (delivery, retirada e balcão)',
-      'Links do cardápio de delivery e balcão',
+      'Gestão de pedidos (retirada, balcão e encomendas)',
+      'Links do cardápio e do balcão',
       'Minha empresa: horários e formas de pagamento',
       'Histórico de pedidos com filtros',
       'Avaliações dos clientes',
@@ -29,7 +29,7 @@ const PLANOS = [
   },
   {
     nome: 'Pro',
-    desc: 'Pra quem opera salão, cozinha, caixa e entrega própria.',
+    desc: 'Pra quem opera salão, cozinha e caixa em um só lugar.',
     mensal: 79,
     destaque: true,
     cta: 'btn-primary',
@@ -38,7 +38,7 @@ const PLANOS = [
       'Mesas e comandas com taxa de serviço',
       'KDS — tela da cozinha',
       'Caixa com sangria, suprimento e conferência',
-      'Delivery e cadastro de entregadores',
+      'Pedidos agendados e encomendas',
       'Desempenho e relatórios',
       'Financeiro e emissão de notas (fiscal)',
       'Configurações: impressão, agendamentos e integrações',

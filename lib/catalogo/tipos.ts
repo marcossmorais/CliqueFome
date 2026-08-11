@@ -72,7 +72,6 @@ export const DIAS = [
 ];
 
 export const TIPOS_PEDIDO = [
-  { id: 'delivery', nome: 'Delivery' },
   { id: 'retirada', nome: 'Retirada' },
   { id: 'balcao', nome: 'Balcão' },
   { id: 'mesa', nome: 'Mesa' },

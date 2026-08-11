@@ -23,9 +23,9 @@ function AvaliacaoLoja() {
 
 export function HeroLoja({ loja }: { loja: LojaPublica }) {
   const [infoAberta, setInfoAberta] = useState(false);
-  const aceitando = loja.recebendo_encomendas && (loja.delivery_ativo || loja.retirada_ativa);
-  const tempo = loja.tempo_entrega_min && loja.tempo_entrega_max
-    ? `${loja.tempo_entrega_min}–${loja.tempo_entrega_max} min`
+  const aceitando = loja.recebendo_encomendas && loja.retirada_ativa;
+  const tempo = loja.tempo_preparo_min && loja.tempo_preparo_max
+    ? `${loja.tempo_preparo_min}–${loja.tempo_preparo_max} min`
     : null;
   const perfilDemo = loja.slug === 'pizzaria-teste';
   const numeroWhats = (loja.whatsapp_numero || '').replace(/\D/g, '');
@@ -77,8 +77,7 @@ export function HeroLoja({ loja }: { loja: LojaPublica }) {
             <h2>Informações da loja</h2>
             {loja.sobre && <p>{loja.sobre}</p>}
             {loja.cidade && <p><strong>Local:</strong> {loja.cidade}</p>}
-            {tempo && <p><strong>Tempo estimado:</strong> {tempo}</p>}
-            <p><strong>Taxa:</strong> {Number(loja.taxa_entrega) > 0 ? formatBRL(Number(loja.taxa_entrega)) : 'Entrega grátis'}</p>
+            {tempo && <p><strong>Tempo estimado de preparo:</strong> {tempo}</p>}
             {Number(loja.pedido_minimo) > 0 && <p><strong>Pedido mínimo:</strong> {formatBRL(Number(loja.pedido_minimo))}</p>}
           </section>
 
@@ -92,9 +91,9 @@ export function HeroLoja({ loja }: { loja: LojaPublica }) {
             <h2>Meios de pagamento</h2>
             <ul className="loja-pagamentos">
               <li>Pix direto para a loja</li>
-              <li>Dinheiro na entrega</li>
-              <li>Cartão de crédito na entrega</li>
-              <li>Cartão de débito na entrega</li>
+              <li>Dinheiro na retirada</li>
+              <li>Cartão de crédito na retirada</li>
+              <li>Cartão de débito na retirada</li>
             </ul>
           </section>
 

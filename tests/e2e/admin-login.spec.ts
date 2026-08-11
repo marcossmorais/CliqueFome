@@ -10,7 +10,7 @@ const SENHA = process.env.E2E_ADMIN_PASSWORD;
 
 test.skip(!EMAIL || !SENHA, 'E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD não configurados');
 
-test('login no painel e navegação básica pra Gestão de pedidos', async ({ page }) => {
+test('login abre pedidos, dashboard, configurações e financeiro sem depender de Delivery', async ({ page }) => {
   await page.goto('/entrar', { waitUntil: 'networkidle' });
   await page.fill('input[type=email]', EMAIL!);
   await page.fill('input[type=password]', SENHA!);
@@ -25,6 +25,29 @@ test('login no painel e navegação básica pra Gestão de pedidos', async ({ pa
   const slug = new URL(page.url()).pathname.split('/')[2];
   expect(slug, 'login deveria cair em /painel/<slug>/...').toBeTruthy();
 
-  await page.goto(`/painel/${slug}/pedidos`, { waitUntil: 'networkidle' });
-  await expect(page.locator('.pedidos-topo')).toBeVisible();
+  await test.step('Gestão de pedidos continua acessível', async () => {
+    await page.goto(`/painel/${slug}/pedidos`, { waitUntil: 'networkidle' });
+    await expect(page.locator('.pedidos-topo')).toBeVisible();
+  });
+
+  await test.step('dashboard da loja continua acessível', async () => {
+    await page.goto(`/painel/${slug}/inicio`, { waitUntil: 'networkidle' });
+    await expect(page.locator('#mainTop h1')).toHaveText('Início');
+    await expect(page.locator('#appView')).toBeVisible();
+  });
+
+  await test.step('configurações gerais continuam acessíveis', async () => {
+    await page.goto(`/painel/${slug}/config`, { waitUntil: 'networkidle' });
+    await expect(page.locator('#mainTop h1')).toHaveText('Configurações');
+    await expect(page.getByRole('link', { name: 'Meu perfil' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Minha loja' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Funcionamento' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Plano e assinatura' })).toBeVisible();
+  });
+
+  await test.step('financeiro continua roteável sem Delivery', async () => {
+    await page.goto(`/painel/${slug}/financeiro`, { waitUntil: 'networkidle' });
+    await expect(page.locator('#mainTop h1')).toHaveText('Financeiro');
+    await expect(page.locator('.card.em-breve')).toContainText('Em breve');
+  });
 });

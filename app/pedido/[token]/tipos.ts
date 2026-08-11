@@ -11,7 +11,6 @@ export type PedidoTracking = {
   observacao: string | null;
   forma_pagamento: string | null;
   subtotal: number;
-  taxa_entrega: number;
   total: number;
   data_hora_agendada: string | null;
   origem: string;
@@ -36,7 +35,6 @@ export const NOMES_STATUS: Record<string, string> = {
   confirmado: 'Confirmado',
   em_preparo: 'Em preparo',
   pronto: 'Pronto',
-  saiu_entrega: 'Saiu para entrega',
   concluido: 'Concluído',
   cancelado: 'Cancelado',
 };

@@ -28,7 +28,7 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
       'Se a sua conta ainda não tiver uma loja, o sistema abre a etapa de criação. Depois disso, você entra no painel e já pode configurar a empresa e montar o catálogo.',
     passos: [
       'Informe o nome da loja, o nicho e o WhatsApp solicitado na criação.',
-      'Abra “Minha empresa” para completar a identidade visual e as regras de entrega.',
+      'Abra “Minha empresa” para completar a identidade visual e as regras de funcionamento.',
       'Abra “Cardápio” para cadastrar categorias, produtos e complementos.',
       'Use “Links do cardápio” para copiar e testar o endereço público da sua loja.',
     ],
@@ -107,21 +107,21 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
     categoria: 'pedidos',
     pergunta: 'O que significam os status dos pedidos?',
     resposta:
-      'Os status registram o avanço operacional. Em geral, um pedido passa por Pendente, Confirmado, Em preparo e Pronto. Pedidos de entrega ainda podem seguir para Saiu para entrega; no fim, ficam Concluídos ou Cancelados.',
+      'Os status registram o avanço operacional. Em geral, um pedido passa por Pendente, Confirmado, Em preparo e Pronto; no fim, fica Concluído ou Cancelado.',
     passos: [
       'Abra o pedido para revisar cliente, itens, observações, pagamento e destino.',
       'Use o botão principal para avançar somente quando a etapa real tiver sido cumprida.',
       'Se outra aba já tiver alterado o pedido, o painel atualiza o estado para evitar uma transição desatualizada.',
       'Use o Histórico para consultar pedidos concluídos e cancelados.',
     ],
-    palavrasChave: ['status', 'pendente', 'confirmado', 'preparo', 'pronto', 'entrega', 'concluído'],
+    palavrasChave: ['status', 'pendente', 'confirmado', 'preparo', 'pronto', 'concluído'],
   },
   {
     id: 'dados-loja',
     categoria: 'loja',
-    pergunta: 'Onde altero nome, logo, WhatsApp e regras de entrega?',
+    pergunta: 'Onde altero nome, logo, WhatsApp e funcionamento?',
     resposta:
-      'Abra “Perfil → Configurações”. Em “Minha loja” ficam nome, logo, capa, cor da marca, WhatsApp e cidade; em “Funcionamento” ficam pedido mínimo, tempo de preparo e se a loja aceita retirada e/ou delivery. A taxa de entrega fica em “Delivery”.',
+      'Abra “Perfil → Configurações”. Em “Minha loja” ficam nome, logo, capa, cor da marca, WhatsApp e cidade; em “Funcionamento” ficam pedido mínimo, tempo de preparo e a disponibilidade para retirada.',
     observacao:
       'Salve cada bloco e confira o cardápio público. Use um número de WhatsApp com DDD e revise se o tempo mínimo é menor ou igual ao máximo.',
     palavrasChave: ['logo', 'capa', 'cor', 'whatsapp', 'taxa', 'pedido mínimo', 'tempo', 'empresa', 'loja', 'configurações'],
@@ -188,10 +188,10 @@ export const TUTORIAIS: Tutorial[] = [
       { titulo: 'Abra Configurações', descricao: 'Use o menu lateral para acessar Configurações → Minha loja.', rota: 'config' },
       { titulo: 'Ajuste a aparência', descricao: 'Envie logo e capa, escolha a cor da marca e salve o bloco.' },
       { titulo: 'Revise os dados', descricao: 'Confira nome, nicho e WhatsApp com DDD.' },
-      { titulo: 'Defina as regras', descricao: 'Em Funcionamento, preencha pedido mínimo, tempo de preparo e retirada/delivery.' },
+      { titulo: 'Defina as regras', descricao: 'Em Funcionamento, preencha pedido mínimo, tempo de preparo e disponibilidade para retirada.' },
       { titulo: 'Valide como cliente', descricao: 'Abra o cardápio público e confira texto, imagens e legibilidade no celular.' },
     ],
-    palavrasChave: ['empresa', 'loja', 'configurações', 'logo', 'capa', 'cor', 'whatsapp', 'entrega'],
+    palavrasChave: ['empresa', 'loja', 'configurações', 'logo', 'capa', 'cor', 'whatsapp', 'retirada'],
   },
   {
     id: 'montar-catalogo',
@@ -260,9 +260,9 @@ export const TUTORIAIS: Tutorial[] = [
     duracao: '4 min',
     passos: [
       { titulo: 'Inicie um novo pedido', descricao: 'Na Gestão de pedidos, clique em “+ Novo pedido”.', rota: 'pedidos' },
-      { titulo: 'Identifique o atendimento', descricao: 'Preencha cliente, contato, origem e tipo correto: entrega, retirada, balcão ou encomenda.' },
+      { titulo: 'Identifique o atendimento', descricao: 'Preencha cliente, contato, origem e tipo correto: retirada, balcão, mesa ou encomenda.' },
       { titulo: 'Adicione os itens', descricao: 'Busque os produtos, informe quantidades e revise os valores.' },
-      { titulo: 'Confira antes de salvar', descricao: 'Valide destino, endereço quando necessário, pagamento e observações.' },
+      { titulo: 'Confira antes de salvar', descricao: 'Valide o destino, o pagamento e as observações.' },
       { titulo: 'Abra o detalhe', descricao: 'Depois de salvar, confirme que as informações chegaram completas à fila.' },
     ],
     palavrasChave: ['pedido manual', 'telefone', 'balcão', 'origem', 'novo pedido'],

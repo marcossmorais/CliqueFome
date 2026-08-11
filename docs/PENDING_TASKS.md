@@ -4,6 +4,15 @@ Ordenadas por dependência: o que está em cima destrava o que está embaixo.
 O ledger completo da auditoria está em
 [REMEDIATION_STATUS.md](REMEDIATION_STATUS.md).
 
+## Antes do próximo deploy
+
+Aplicar `supabase/migrations/20260811_remove_legacy_delivery_system.sql` no
+Supabase antes de publicar o código desta limpeza. A aplicação já consulta
+`tempo_preparo_min/max` e chama `criar_pedido_publico_retirada_v1`; publicar
+antes da migration deixa o cardápio público incompatível com o schema antigo.
+Depois da aplicação, `GEOAPIFY_API_KEY` e `DELIVERY_QUOTE_SECRET` podem ser
+removidas dos ambientes da Vercel.
+
 ## Feito em 2026-08-08 (migration + deploy confirmados em produção)
 
 `schema-migracao-checkout-publico.sql` rodou em produção e foi confirmado
@@ -11,8 +20,8 @@ por smoke test real: `POST /api/lojas/hamburgueria-teste/pedidos` respondeu
 `422` (validação de negócio, não `503` de config ausente) — prova que
 `SUPABASE_SERVICE_ROLE_KEY` está setada na Vercel e o caminho completo
 (Route Handler → RPC → banco) funciona em produção, não só localmente.
-`main` está publicado com: Delivery facilitado, persistência do checkout
-público, menu reorganizado com fundo verde, e agora **Cozinha (KDS)**.
+`main` está publicado com persistência do checkout público, menu reorganizado
+com fundo verde e **Cozinha (KDS)**.
 
 ## Cozinha (KDS) — integrada em 2026-08-08
 
@@ -31,10 +40,6 @@ feitos** (não bloqueiam o uso — a tela funciona sem eles):
 - **`pronto_em`** — coluna nova pra ordenar "Prontos para encaminhamento"
   por quando ficou pronto, não por `criado_em`. Hoje a coluna "Prontos"
   ordena por `criado_em` decrescente, que não é a mesma coisa.
-- **`pedidoEhEntrega` centralizado** — a lógica de "isso é uma entrega?"
-  (delivery, ou encomenda com endereço) está reimplementada em mais de um
-  lugar (Cozinha, Gestão). Devia virar uma função só, idealmente espelhada
-  no banco.
 - **Timezone da loja** nas datas exibidas (mesma pendência já registrada
   pro resto do painel — hoje é `America/Sao_Paulo` fixo no código).
 - **Papel próprio de funcionário/cozinheiro.** Hoje quem acessa `/admin/kds`
@@ -53,9 +58,8 @@ Antes de rodar em produção, o checklist era:
    `pedidos` na publicação de realtime).
 2. Testar com `anon`, com o dono da própria loja e com o dono de outra loja
    (RLS + as duas RPCs novas) antes de liberar o Route Handler.
-3. Confirmar `SUPABASE_SERVICE_ROLE_KEY` na Vercel (já deve estar setada
-   pelo Delivery facilitado — é o mesmo client privilegiado, reaproveitado
-   em `lib/pedidos/servidor.ts`). Sem ela, a rota responde 503 em vez de
+3. Confirmar `SUPABASE_SERVICE_ROLE_KEY` na Vercel. É o client privilegiado
+   usado por `lib/pedidos/servidor.ts`; sem ela, a rota responde 503 em vez de
    quebrar.
 4. Fazer deploy do backend com `CHECKOUT_PUBLICO_ATIVO=false` primeiro,
    rodar um smoke test manual direto na rota, e só então tirar a variável
@@ -88,7 +92,7 @@ fingir proteção que não existe):
   índice do Postgres que serializa, não uma variável), mas só dá pra provar
   de verdade com um teste contra um Supabase real, fora do alcance desta
   sessão sem acesso à produção.
-- **E2E de navegador** do checkout completo (retirada, delivery, duplo
+- **E2E de navegador** do checkout completo (retirada, duplo
   clique, mobile). `tests/checkout.test.mjs` cobre a validação de payload e
   o hash de idempotência — lógica pura, sem servidor.
 
@@ -107,40 +111,6 @@ nem antifraude prontos. Quando isso for construído:
   atualizar `pagamento_status` a partir de um redirect do navegador.
 - `status` (operacional) e `pagamento_status` continuam campos separados —
   já é assim hoje.
-
-## Delivery facilitado
-
-**Rodar `schema-migracao-delivery-facilitado.sql`.** Cria
-`configuracoes_delivery`, `configuracoes_delivery_cidades` e as funções de
-cotação/limite. Sem isso, `config_delivery_publica` devolve `PGRST202` e o
-cardápio cai no fallback de `lojas.taxa_entrega` fixo — o que não quebra a
-loja, mas deixa a tela `/admin/delivery` sem ter o que carregar. Preencher
-antes na Vercel: `SUPABASE_SERVICE_ROLE_KEY`, `GEOAPIFY_API_KEY` e
-(recomendado) `DELIVERY_QUOTE_SECRET` — ver `.env.example`.
-
-O que já está pronto e testado (`tests/delivery.test.mjs`, `tsc --noEmit`,
-`eslint`, sem rodar contra produção ainda):
-- `/admin/delivery` — escolha entre setor **facilitado** (taxa única da
-  cidade, fixa ou por km) e **avançado** (mais cidades vizinhas com taxa fixa
-  própria cada).
-- `POST /api/delivery/cotacao` — cotação pública assinada (HMAC), usada pelo
-  carrinho do cardápio (`app/[loja]/Carrinho.tsx`); Geoapify só é chamado no
-  modo por km da cidade principal, nunca em taxa fixa nem cidade vizinha.
-- `taxa_maxima` (default R$ 40) e `distancia_maxima_km` barram cotações fora
-  do razoável antes de chegarem ao cliente — é a proteção contra o bug de
-  "frete de R$ 200" citado na spec.
-- Carrinho público: no modo entrega, se a loja tem delivery facilitado
-  configurado, o cliente precisa clicar em "Calcular frete" (endereço válido,
-  e cidade escolhida no modo avançado) antes de finalizar — qualquer edição
-  no endereço ou na cidade invalida a cotação anterior.
-
-O que ainda falta:
-- **Pedido público não persiste no banco** (segue WhatsApp-only). O token
-  HMAC da cotação é gerado e mostrado, mas nada no servidor valida esse token
-  hoje — ele só existe pronto pra quando `criar_pedido` passar a ser chamado
-  também pelo cardápio público (ver "Pedido público na versão Pro" abaixo).
-- Testar contra produção real com endereço de verdade (a suíte só cobre a
-  matemática pura de `lib/delivery/tipos.ts`).
 
 **Rodar `schema-migracao-seguranca.sql` (versão corrigida).** A primeira
 tentativa passou sem erro e sem efeito — `revoke select (coluna)` é ignorado
@@ -229,20 +199,17 @@ Os 28 pendentes estão detalhados no ledger. Os de maior peso:
 
 Aparecem no menu com bolinha laranja e caem no placeholder "Em breve":
 
-Mesas e comandas · KDS (cozinha) · Caixa · Entregadores ·
+Mesas e comandas · KDS (cozinha) · Caixa ·
 Desempenho · Histórico de pedidos · Financeiro · Fiscal · Configurações ·
 Avaliações
 
-"Ajuda e suporte" e "Áreas de entrega" saíram desta lista: `/admin/suporte` e
-`/admin/delivery` foram construídas — a segunda ainda depende da migração
-rodar em produção (ver "Bloqueando" acima).
+"Ajuda e suporte" saiu desta lista porque `/admin/suporte` foi construída.
 
 ## Cobertura de teste
 
-`tests/ajuda-suporte.test.mjs`, `tests/historico-pedidos.test.mjs`,
-`tests/avaliacoes.test.mjs` e `tests/delivery.test.mjs` (`npm run
-test:delivery`) cobrem lógica pura. Fluxos de UI (catálogo, pedidos,
-carrinho, formulário de delivery) continuam só verificados à mão, no
+`tests/ajuda-suporte.test.mjs`, `tests/historico-pedidos.test.mjs` e
+`tests/avaliacoes.test.mjs` cobrem lógica pura. Fluxos de UI (catálogo,
+pedidos e carrinho) continuam só verificados à mão, no
 navegador — nada disso pega regressão de layout ou de integração amanhã.
 
 ## Observabilidade, qualidade e CI — 2026-08-09

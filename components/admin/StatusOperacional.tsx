@@ -7,7 +7,6 @@ import styles from './statusOperacional.module.css';
 
 type EstadoOperacao = {
   lojaAberta: boolean;
-  delivery: boolean;
   retirada: boolean;
 };
 
@@ -23,7 +22,6 @@ const OperacaoContext = createContext<ContextoOperacao | null>(null);
 
 const COLUNA: Record<CampoOperacao, string> = {
   lojaAberta: 'recebendo_encomendas',
-  delivery: 'delivery_ativo',
   retirada: 'retirada_ativa',
 };
 
@@ -44,15 +42,11 @@ export function OperacaoProvider({
   async function alterar(campo: CampoOperacao, valor: boolean) {
     if (salvando) return;
     const anterior = estado;
-    const fecharLoja = campo === 'lojaAberta' && !valor;
     const proximo = {
       ...estado,
       [campo]: valor,
-      ...(fecharLoja ? { delivery: false } : {}),
     };
-    const alteracoesBanco = fecharLoja
-      ? { recebendo_encomendas: false, delivery_ativo: false }
-      : { [COLUNA[campo]]: valor };
+    const alteracoesBanco = { [COLUNA[campo]]: valor };
 
     setEstado(proximo);
     setSalvando(campo);
@@ -90,19 +84,18 @@ function Controle({ campo, nome, icone }: { campo: CampoOperacao; nome: string; 
   const operacao = useOperacao();
   const ativo = operacao[campo];
   const ocupado = operacao.salvando !== null;
-  const bloqueadoPelaLoja = campo === 'delivery' && !operacao.lojaAberta;
 
   return (
     <label className={styles.controle}>
       <span className={styles.controleTexto}>
         <span aria-hidden="true">{icone}</span>
-        <span><strong>{nome}</strong><small>{bloqueadoPelaLoja ? 'Loja fechada' : ativo ? 'Ativo' : 'Pausado'}</small></span>
+        <span><strong>{nome}</strong><small>{ativo ? 'Ativo' : 'Pausado'}</small></span>
       </span>
       <span className={styles.switch}>
         <input
           type="checkbox"
           checked={ativo}
-          disabled={ocupado || bloqueadoPelaLoja}
+          disabled={ocupado}
           onChange={(evento) => void operacao.alterar(campo, evento.target.checked)}
           aria-label={`${ativo ? 'Desativar' : 'Ativar'} ${nome.toLowerCase()}`}
         />
@@ -117,7 +110,6 @@ function ResumoStatus() {
   return (
     <span className={styles.resumo}>
       <span className={operacao.lojaAberta ? styles.online : styles.offline}>● <b>{operacao.lojaAberta ? 'Aberta' : 'Pausada'}</b></span>
-      <span>🛵 <b>{operacao.delivery ? 'ON' : 'OFF'}</b></span>
       <span>🛍 <b>{operacao.retirada ? 'ON' : 'OFF'}</b></span>
     </span>
   );
@@ -139,7 +131,6 @@ export function StatusOperacional({ variante = 'compacto' }: { variante?: 'compa
         </div>
         <div className={styles.gradeControles}>
           <Controle campo="lojaAberta" nome="Loja aberta" icone="●" />
-          <Controle campo="delivery" nome="Delivery" icone="🛵" />
           <Controle campo="retirada" nome="Retirada" icone="🛍" />
         </div>
         {operacao.erro && <p className={styles.erro} role="alert">{operacao.erro}</p>}
@@ -166,7 +157,6 @@ export function StatusOperacional({ variante = 'compacto' }: { variante?: 'compa
             <button type="button" onClick={() => setAberto(false)} aria-label="Fechar status">×</button>
           </div>
           <Controle campo="lojaAberta" nome="Loja aberta" icone="●" />
-          <Controle campo="delivery" nome="Delivery" icone="🛵" />
           <Controle campo="retirada" nome="Retirada" icone="🛍" />
           {operacao.erro && <p className={styles.erro} role="alert">{operacao.erro}</p>}
         </div>

@@ -7,13 +7,6 @@ import {
   validarRespostaTransicaoCozinha,
 } from '../../lib/cozinha/tipos.ts';
 
-test('encaminha delivery para entrega independentemente do canal', () => {
-  assert.equal(
-    destinoDoPedido({ tipo: 'delivery', endereco: null }).id,
-    'entrega'
-  );
-});
-
 test('encaminha retirada para retirada local', () => {
   assert.equal(
     destinoDoPedido({ tipo: 'retirada', endereco: null }).id,
@@ -32,10 +25,10 @@ test('encaminha balcão e mesa para seus pontos operacionais', () => {
   );
 });
 
-test('usa o endereço para decidir o destino da encomenda', () => {
+test('encomenda permanece retirada local mesmo quando preserva endereço', () => {
   assert.equal(
     destinoDoPedido({ tipo: 'encomenda', endereco: 'Rua A, 10' }).id,
-    'entrega'
+    'retirada'
   );
   assert.equal(
     destinoDoPedido({ tipo: 'encomenda', endereco: '   ' }).id,
@@ -66,13 +59,13 @@ test('pedido em preparo fica pronto com rótulo do destino', () => {
   assert.deepEqual(
     acaoDisponivelNaCozinha({
       status: 'em_preparo',
-      tipo: 'delivery',
-      endereco: null,
+      tipo: 'encomenda',
+      endereco: 'Rua A, 10',
     }),
     {
       statusEsperado: 'em_preparo',
       novoStatus: 'pronto',
-      rotulo: 'Pedido pronto — enviar para entrega',
+      rotulo: 'Pedido pronto — retirada local',
     }
   );
 });
@@ -130,8 +123,8 @@ test('encomenda futura não passa à frente de pedido imediato', () => {
       criado_em: '2026-08-08T08:00:00-03:00',
     },
     {
-      id: 'delivery-agora',
-      tipo: 'delivery',
+      id: 'retirada-agora',
+      tipo: 'retirada',
       data_hora_agendada: null,
       criado_em: '2026-08-08T09:00:00-03:00',
     },
@@ -139,7 +132,7 @@ test('encomenda futura não passa à frente de pedido imediato', () => {
 
   assert.deepEqual(
     ordenados.map((pedido) => pedido.id),
-    ['delivery-agora', 'encomenda-futura']
+    ['retirada-agora', 'encomenda-futura']
   );
 });
 

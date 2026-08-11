@@ -3,12 +3,11 @@ export type StatusPedido =
   | 'confirmado'
   | 'em_preparo'
   | 'pronto'
-  | 'saiu_entrega'
   | 'concluido'
   | 'cancelado';
 
 export type PagamentoStatus = 'pendente' | 'confirmado' | 'estornado';
-export type TipoPedido = 'delivery' | 'retirada' | 'balcao' | 'mesa' | 'encomenda';
+export type TipoPedido = 'retirada' | 'balcao' | 'mesa' | 'encomenda';
 export type OrigemPedido = 'site' | 'instagram' | 'telefone' | 'outro';
 
 export type PedidoItemOpcao = {
@@ -42,12 +41,6 @@ export type PedidoResumo = {
   status: StatusPedido;
   pagamento_status: PagamentoStatus;
   subtotal: number;
-  /** Mantida porque a cadeia de RPCs que cria o pedido ainda escreve nela.
-   *  Para EXIBIR, use `taxa_entrega_cents`. */
-  taxa_entrega: number;
-  /** Derivada por trigger a partir de `taxa_entrega` — sempre exatamente
-   *  `round(taxa_entrega * 100)`, nunca uma aproximação. */
-  taxa_entrega_cents: number;
   total: number;
   data_hora_agendada: string | null;
   origem: OrigemPedido;
@@ -65,7 +58,6 @@ export const ICONE_STATUS: Record<StatusPedido, string> = {
   confirmado: 'M12 21a9 9 0 110-18 9 9 0 010 18zM8 12.5l2.5 2.5L16 9',
   em_preparo: 'M12 2C9 6 6 9 6 13a6 6 0 0012 0c0-2.5-1.5-4-1.5-4s0 2.5-1.5 2.5S13 9 13 7c0-2 1-3-1-5z',
   pronto: 'M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2M9.5 13.5l2 2 3-4',
-  saiu_entrega: 'M8.5 18h7M13 18V7h3l3 5v6M4 8h6M8.5 18a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM20.5 18a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z',
   concluido: 'M5 13l4 4L19 7',
   cancelado: 'M12 21a9 9 0 110-18 9 9 0 010 18zM9 9l6 6M15 9l-6 6',
 };
@@ -75,7 +67,6 @@ export const COR_STATUS: Record<StatusPedido, string> = {
   confirmado: '#2F6FE0',
   em_preparo: '#F28C28',
   pronto: '#2FA968',
-  saiu_entrega: '#0E9488',
   concluido: '#0F3D2E',
   cancelado: '#B23B3B',
 };
@@ -85,13 +76,11 @@ export const NOMES_STATUS: Record<StatusPedido, string> = {
   confirmado: 'Confirmado',
   em_preparo: 'Em preparo',
   pronto: 'Pronto',
-  saiu_entrega: 'Saiu p/ entrega',
   concluido: 'Concluído',
   cancelado: 'Cancelado',
 };
 
 export const NOMES_TIPO: Record<TipoPedido, string> = {
-  delivery: 'Delivery',
   retirada: 'Retirada',
   balcao: 'Balcão',
   mesa: 'Mesa',
@@ -111,43 +100,24 @@ export const PROXIMO_STATUS: Partial<Record<StatusPedido, StatusPedido>> = {
   pendente: 'confirmado',
   confirmado: 'em_preparo',
   em_preparo: 'pronto',
-  // "pronto" avança pra "saiu_entrega" só quando é delivery; pra
-  // retirada/balcão/mesa/encomenda-retirada, o botão pula direto pra
-  // concluído. Essa ramificação fica no componente, não aqui.
-  saiu_entrega: 'concluido',
+  pronto: 'concluido',
 };
 
 export const ROTULO_AVANCAR: Partial<Record<StatusPedido, string>> = {
   pendente: 'Confirmar pedido',
   confirmado: 'Iniciar preparo',
   em_preparo: 'Marcar como pronto',
-  pronto: 'Saiu p/ entrega',
-  saiu_entrega: 'Marcar como entregue',
+  pronto: 'Marcar como concluído/retirado',
 };
-
-/** Mesma regra do formatador de centavos do cardápio, disponível aqui pra
- *  as telas de pedido não precisarem importar de dois módulos. */
-export function formatBRLCentavos(cents: number) {
-  const inteiro = Math.trunc(Math.abs(cents));
-  const sinal = cents < 0 ? '-' : '';
-  return `${sinal}R$ ${Math.floor(inteiro / 100)},${String(inteiro % 100).padStart(2, '0')}`;
-}
 
 export function formatBRL(v: number | string) {
   return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 }
 
-/** Próximo status, com a única ramificação do fluxo: "pronto" avança pra
- * "saiu p/ entrega" só quando é delivery — pra retirada, balcão, mesa e
- * encomenda-sem-endereço, vai direto pra concluído. */
 export function proximoStatus(p: { status: StatusPedido; tipo: TipoPedido }): StatusPedido | null {
-  if (p.status === 'pronto') return p.tipo === 'delivery' ? 'saiu_entrega' : 'concluido';
   return PROXIMO_STATUS[p.status] ?? null;
 }
 
 export function rotuloAvancar(p: { status: StatusPedido; tipo: TipoPedido }): string | null {
-  if (p.status === 'pronto') {
-    return p.tipo === 'delivery' ? 'Saiu p/ entrega' : 'Marcar como entregue/retirado';
-  }
   return ROTULO_AVANCAR[p.status] ?? null;
 }

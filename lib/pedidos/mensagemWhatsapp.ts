@@ -18,16 +18,12 @@ export type ItemMensagem = {
 export function montarMensagemPedido(params: {
   numero: number;
   clienteNome: string;
-  tipo: 'delivery' | 'retirada';
-  endereco: string | null;
   itens: ItemMensagem[];
-  subtotal: number;
-  taxaEntrega: number;
   total: number;
   trackingUrl: string;
   formaPagamento: FormaPagamentoOffline;
 }) {
-  const { numero, clienteNome, tipo, endereco, itens, taxaEntrega, total, trackingUrl, formaPagamento } = params;
+  const { numero, clienteNome, itens, total, trackingUrl, formaPagamento } = params;
 
   return [
     `Olá! Meu pedido #${numero} já está registrado no sistema.`,
@@ -44,9 +40,7 @@ export function montarMensagemPedido(params: {
       ...(item.observacao ? [`   Obs: ${item.observacao}`] : []),
     ]),
     '',
-    ...(tipo === 'delivery' && endereco
-      ? [`Entrega no endereço: ${endereco}`, `Taxa de entrega: ${formatBRL(taxaEntrega)}`]
-      : ['Retirada no local']),
+    'Retirada no local',
     `Total: ${formatBRL(total)}`,
     `Forma de pagamento: ${nomeFormaPagamento(formaPagamento)}`,
     '',

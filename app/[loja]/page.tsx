@@ -5,7 +5,6 @@ import './cardapio.css';
 import './vitrine.css';
 import { CardapioClient } from './CardapioClient';
 import type { CategoriaPublica, GrupoPublico, LojaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
-import { normalizarSetor, normalizarTipoTaxa, type ConfigDeliveryPublica } from '@/lib/delivery/tipos';
 
 /**
  * Cardápio público de uma loja: /oh-taal
@@ -68,7 +67,7 @@ async function carregar(slug: string) {
       // não concede essa coluna ao anon (é metadado de catálogo/preset, não
       // usado por CardapioClient.tsx) — incluir aqui derruba a consulta
       // inteira com "permission denied for table lojas".
-      'id, slug, nome, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_entrega_min, tempo_entrega_max, taxa_entrega, pedido_minimo, delivery_ativo, recebendo_encomendas, retirada_ativa'
+      'id, slug, nome, logo_url, banner_url, cor_marca, cidade, sobre, whatsapp_numero, tempo_preparo_min, tempo_preparo_max, pedido_minimo, recebendo_encomendas, retirada_ativa'
     )
     .eq('slug', slug)
     .maybeSingle();
@@ -78,7 +77,6 @@ async function carregar(slug: string) {
   const [
     { data: categorias, error: erroCategorias },
     { data: produtos, error: erroProdutos },
-    { data: deliveryBruto },
   ] = await Promise.all([
     sb.from('categorias').select('id, nome, emoji, icone, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
     sb
@@ -98,32 +96,9 @@ async function carregar(slug: string) {
       // Traz também os inativos: viram card "Esgotado" em vez de sumir, pra
       // o cliente ver que o item existe.
       .order('ordem'),
-    // RPC pública (SECURITY DEFINER): nunca falha por RLS, só devolve
-    // "configurada: false" quando a loja não tem delivery facilitado.
-    // Erro aqui não é fatal pro cardápio — cai no fallback de taxa_entrega.
-    sb.rpc('config_delivery_publica', { p_loja_id: loja.id }),
   ]);
   if (erroCategorias) throw new FalhaAoCarregar(erroCategorias.message);
   if (erroProdutos) throw new FalhaAoCarregar(erroProdutos.message);
-
-  const bruto = deliveryBruto as {
-    configurada: boolean;
-    tipo_taxa: string;
-    setor: string;
-    cidade: string | null;
-    endereco_retirada: string | null;
-    cidades: { cidade: string; taxa: number }[];
-  } | null;
-  const deliveryConfig: ConfigDeliveryPublica | null = bruto
-    ? {
-        configurada: bruto.configurada,
-        tipoTaxa: normalizarTipoTaxa(bruto.tipo_taxa),
-        setor: normalizarSetor(bruto.setor),
-        cidade: bruto.cidade,
-        enderecoRetirada: bruto.endereco_retirada,
-        cidades: bruto.cidades || [],
-      }
-    : null;
 
   const hoje = diaDaSemanaNaLoja();
   const listaCategorias = (categorias as CategoriaPublica[]) || [];
@@ -159,7 +134,6 @@ async function carregar(slug: string) {
     loja: loja as LojaPublica,
     categorias: listaCategorias,
     produtos: produtosTratados,
-    deliveryConfig,
   };
 }
 
@@ -189,7 +163,6 @@ export default async function CardapioPage({ params }: { params: Promise<{ loja:
       loja={dados.loja}
       categorias={dados.categorias}
       produtos={dados.produtos}
-      deliveryConfig={dados.deliveryConfig}
     />
   );
 }

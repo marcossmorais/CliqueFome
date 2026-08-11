@@ -7,9 +7,6 @@ import {
 } from '@/lib/pedidos/checkout';
 import { montarMensagemPedido } from '@/lib/pedidos/mensagemWhatsapp';
 import { criarClientPrivilegiado, hashLimite, hashPayload } from '@/lib/pedidos/servidor';
-import { MENSAGEM_RECUSA_COTACAO, validarCotacaoParaPedido } from '@/lib/delivery/cotacao';
-import { hashEndereco } from '@/lib/delivery/servidor';
-import { normalizarTexto } from '@/lib/delivery/tipos';
 import { logger } from '@/lib/observabilidade/logger';
 
 export const runtime = 'nodejs';
@@ -46,8 +43,7 @@ async function captchaValido(token: string | undefined) {
 }
 
 function ipDoCliente(request: NextRequest) {
-  // Mesma leitura de x-forwarded-for já usada em app/api/delivery/cotacao —
-  // a Vercel é o único proxy confiável na frente desta rota.
+  // A Vercel é o único proxy confiável na frente desta rota.
   return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'desconhecido';
 }
 
@@ -106,7 +102,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   // estado operacional de novo para impedir POST manual em loja fechada.
   const { data: lojaOperacao, error: erroLojaOperacao } = await sb
     .from('lojas')
-    .select('id, whatsapp_numero, recebendo_encomendas, delivery_ativo, retirada_ativa')
+    .select('whatsapp_numero, recebendo_encomendas, retirada_ativa')
     .eq('slug', slug)
     .maybeSingle();
   if (erroLojaOperacao) {
@@ -117,10 +113,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!lojaOperacao.recebendo_encomendas) {
     return respostaErro('A loja está fechada e não está recebendo pedidos no momento.', 409);
   }
-  if (entrada.tipo === 'delivery' && !lojaOperacao.delivery_ativo) {
-    return respostaErro('A loja não está aceitando entregas no momento.', 409);
-  }
-  if (entrada.tipo === 'retirada' && !lojaOperacao.retirada_ativa) {
+  if (!lojaOperacao.retirada_ativa) {
     return respostaErro('A retirada está indisponível no momento.', 409);
   }
 
@@ -135,75 +128,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
   }
 
-  let taxaEntregaValidada: number | null = null;
-  let snapshotEntrega: Record<string, unknown> | null = null;
-  if (entrada.tipo === 'delivery') {
-    const { data: configAtual } = await sb
-      .from('store_delivery_settings')
-      .select('store_id,updated_at')
-      .eq('store_id', lojaOperacao.id)
-      .maybeSingle();
-
-    // Loja ainda não migrada preserva a taxa fixa legada; migrada, nenhuma
-    // taxa vinda do navegador é aceita solta.
-    if (configAtual) {
-      if (!entrada.cotacaoToken || !entrada.enderecoCotacao) {
-        return respostaErro('Calcule novamente a taxa de entrega.', 422, { codigo: 'COTACAO_NECESSARIA' });
-      }
-      let validacao;
-      try {
-        validacao = validarCotacaoParaPedido({
-          token: entrada.cotacaoToken,
-          lojaId: lojaOperacao.id,
-          enderecoHash: hashEndereco(normalizarTexto(entrada.enderecoCotacao)),
-          configVersaoAtual: (configAtual as { updated_at: string }).updated_at,
-        });
-      } catch (erro) {
-        logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha ao verificar token de cotação de entrega');
-        return respostaErro('Não foi possível validar a cotação de entrega.', 503);
-      }
-      if (!validacao.ok) {
-        // A loja mexeu no preço enquanto o checkout estava aberto: não dá pra
-        // cobrar silenciosamente outro valor, nem seguir com o valor velho.
-        // O cliente vê o motivo e recalcula.
-        return respostaErro(MENSAGEM_RECUSA_COTACAO[validacao.motivo], 409, {
-          codigo: validacao.motivo === 'CONFIG_MUDOU' ? 'COTACAO_DESATUALIZADA' : 'COTACAO_INVALIDA',
-        });
-      }
-
-      const cotacao = validacao.cotacao;
-      taxaEntregaValidada = cotacao.taxaCentavos / 100;
-
-      const d = entrada.enderecoDetalhado;
-      snapshotEntrega = {
-        endereco_formatado: entrada.endereco ?? entrada.enderecoCotacao,
-        logradouro: d?.logradouro ?? null,
-        numero: d?.numero ?? null,
-        bairro: d?.bairro ?? null,
-        cidade: d?.cidade ?? null,
-        cidade_normalizada: d?.cidade ? normalizarTexto(d.cidade) : null,
-        uf: d?.uf ?? null,
-        cep: d?.cep ?? null,
-        complemento: d?.complemento || null,
-        referencia: d?.referencia || null,
-        // Taxa, distância e regra saem do TOKEN, nunca do corpo da request.
-        distancia_metros: cotacao.distanciaMetros,
-        taxa_cents: cotacao.taxaCentavos,
-        regra_aplicada: cotacao.regra,
-        override_id: cotacao.overrideId,
-        config_versao: cotacao.configVersao,
-      };
-    }
-  }
-
-  const payloadHash = hashPayload(`${payloadCanonico(entrada)}|taxa:${taxaEntregaValidada ?? 'legada'}`);
+  const payloadHash = hashPayload(payloadCanonico(entrada));
 
   const parametros = {
     p_loja_slug: slug,
     p_cliente_nome: entrada.clienteNome,
     p_cliente_telefone: entrada.clienteTelefone,
-    p_tipo: entrada.tipo,
-    p_endereco: entrada.endereco ?? null,
     p_observacao: entrada.observacao ?? null,
     p_forma_pagamento: entrada.formaPagamento,
     p_itens: itensParaRpc(entrada.itens),
@@ -212,13 +142,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     p_total_esperado_centavos: entrada.totalEsperadoCentavos,
     p_chave_ip: chaveIp,
     p_chave_telefone: chaveTelefone,
-    p_taxa_entrega_validada: taxaEntregaValidada,
-    // Snapshot da entrega gravado na MESMA transação do pedido: se ele
-    // falhar, o pedido inteiro volta atrás em vez de ficar sem o registro
-    // que explica a cobrança.
-    p_entrega: snapshotEntrega,
   };
-  const { data, error } = await sb.rpc('criar_pedido_publico_offline_v2', parametros);
+  const { data, error } = await sb.rpc('criar_pedido_publico_retirada_v1', parametros);
 
   if (error) {
     // Nunca repassar error.message inteiro sem checar: pode conter detalhe
@@ -228,7 +153,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // que é segura porque criar_pedido() só levanta RAISE EXCEPTION com
     // texto pensado pra o cliente ler (mesma convenção do pedido manual).
     const msg = error.message || '';
-    if (error.code === 'PGRST202' || msg.includes('criar_pedido_publico_offline_v')) {
+    if (error.code === 'PGRST202' || msg.includes('criar_pedido_publico_retirada_v1')) {
       return respostaErro('O checkout está sendo atualizado. Tente novamente em alguns minutos.', 503);
     }
     if (msg.includes('CART_CHANGED')) {
@@ -251,7 +176,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
     }
     // Mensagens de validação de negócio (nome, telefone, item esgotado,
-    // pedido mínimo, delivery desligado etc.) — já pensadas pra tela.
+    // pedido mínimo etc.) — já pensadas pra tela.
     return respostaErro(msg || 'Não foi possível registrar o pedido.', 422);
   }
 
@@ -260,7 +185,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     numero: number;
     token: string;
     subtotal: number;
-    taxa_entrega: number;
     total: number;
     replay: boolean;
     forma_pagamento: string;
@@ -289,11 +213,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const mensagem = montarMensagemPedido({
     numero: resultado.numero,
     clienteNome: entrada.clienteNome,
-    tipo: entrada.tipo,
-    endereco: entrada.endereco ?? null,
     itens: itensMensagem,
-    subtotal: Number(resultado.subtotal),
-    taxaEntrega: Number(resultado.taxa_entrega),
     total: Number(resultado.total),
     trackingUrl,
     formaPagamento: entrada.formaPagamento,
@@ -311,7 +231,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         pagamento_status: resultado.pagamento_status,
         forma_pagamento: resultado.forma_pagamento,
         subtotal: Number(resultado.subtotal),
-        taxa_entrega: Number(resultado.taxa_entrega),
         total: Number(resultado.total),
         tracking_url: trackingUrl,
       },

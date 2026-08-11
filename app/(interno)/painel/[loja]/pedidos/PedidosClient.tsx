@@ -20,7 +20,7 @@ import type { CategoriaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
  */
 const COLUNAS: { id: string; titulo: string; statuses: StatusPedido[] }[] = [
   { id: 'andamento', titulo: 'Em andamento', statuses: ['pendente', 'confirmado', 'em_preparo'] },
-  { id: 'prontos', titulo: 'Prontos / saindo', statuses: ['pronto', 'saiu_entrega'] },
+  { id: 'prontos', titulo: 'Prontos', statuses: ['pronto'] },
 ];
 
 // Aba separada pro histórico: concluído e cancelado não disputam espaço com

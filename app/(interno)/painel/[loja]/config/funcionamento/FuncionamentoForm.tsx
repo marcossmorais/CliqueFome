@@ -8,10 +8,9 @@ import type { Loja } from '@/lib/loja';
 export function FuncionamentoForm({ loja }: { loja: Loja }) {
   const router = useRouter();
 
-  const [tempoMin, setTempoMin] = useState(loja.tempo_entrega_min?.toString() ?? '');
-  const [tempoMax, setTempoMax] = useState(loja.tempo_entrega_max?.toString() ?? '');
+  const [tempoMin, setTempoMin] = useState(loja.tempo_preparo_min?.toString() ?? '');
+  const [tempoMax, setTempoMax] = useState(loja.tempo_preparo_max?.toString() ?? '');
   const [retirada, setRetirada] = useState(loja.retirada_ativa);
-  const [delivery, setDelivery] = useState(loja.delivery_ativo);
   const [pedidoMinimo, setPedidoMinimo] = useState(String(loja.pedido_minimo ?? 0));
 
   const [salvando, setSalvando] = useState(false);
@@ -24,10 +23,9 @@ export function FuncionamentoForm({ loja }: { loja: Loja }) {
 
     const sb = criarClientNavegador();
     const dados = {
-      tempo_entrega_min: tempoMin ? parseInt(tempoMin, 10) : null,
-      tempo_entrega_max: tempoMax ? parseInt(tempoMax, 10) : null,
+      tempo_preparo_min: tempoMin ? parseInt(tempoMin, 10) : null,
+      tempo_preparo_max: tempoMax ? parseInt(tempoMax, 10) : null,
       retirada_ativa: retirada,
-      delivery_ativo: delivery,
       pedido_minimo: parseFloat(pedidoMinimo) || 0,
     };
     const { error } = await sb.from('lojas').update(dados).eq('id', loja.id);
@@ -97,13 +95,6 @@ export function FuncionamentoForm({ loja }: { loja: Loja }) {
           <label style={{ margin: 0 }}>Permitir retirada</label>
         </div>
 
-        <div className="switch-row">
-          <label className="switch">
-            <input type="checkbox" checked={delivery} onChange={(e) => setDelivery(e.target.checked)} />
-            <span className="switch-track"></span>
-          </label>
-          <label style={{ margin: 0 }}>Permitir Delivery</label>
-        </div>
 
         <button type="submit" className="btn-primary btn-small" disabled={salvando}>
           {salvando && <span className="btn-spinner" aria-hidden="true" />}

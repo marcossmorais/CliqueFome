@@ -8,11 +8,9 @@ export type LojaPublica = {
   cidade: string | null;
   sobre: string | null;
   whatsapp_numero: string | null;
-  tempo_entrega_min: number | null;
-  tempo_entrega_max: number | null;
-  taxa_entrega: number;
+  tempo_preparo_min: number | null;
+  tempo_preparo_max: number | null;
   pedido_minimo: number;
-  delivery_ativo: boolean;
   recebendo_encomendas: boolean;
   retirada_ativa: boolean;
   nicho: string | null;
@@ -105,17 +103,6 @@ export function formatBRL(v: number) {
   return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
 }
 
-/** Formata a partir de centavos inteiros, sem passar por reais em float.
- *  É o formatador certo pra tudo que o Delivery grava — taxa de entrega,
- *  taxa específica, snapshot do pedido — porque lá o dado JÁ é inteiro e
- *  dividir por 100 antes de formatar só reintroduziria a fração que os
- *  centavos existem pra evitar. */
-export function formatBRLCentavos(cents: number) {
-  const inteiro = Math.trunc(Math.abs(cents));
-  const sinal = cents < 0 ? '-' : '';
-  return `${sinal}R$ ${Math.floor(inteiro / 100)},${String(inteiro % 100).padStart(2, '0')}`;
-}
-
 export function formatarTelefone(valor: string) {
   const digitos = valor.replace(/\D/g, '').slice(0, 11);
   if (digitos.length <= 2) return digitos;
@@ -125,9 +112,8 @@ export function formatarTelefone(valor: string) {
 
 /**
  * O produto/lista aparece neste tipo de pedido? Array vazio = sem
- * restrição, que é o padrão do banco. O painel já salvava `tipos_pedido`,
- * mas o cardápio nunca lia: o dono restringia um item a delivery e ele
- * continuava aparecendo na retirada.
+ * restrição, que é o padrão do banco. O cardápio respeita a restrição ao
+ * canal de retirada.
  */
 export function apareceNoTipo(tipos: string[] | null | undefined, tipoPedido: string) {
   return !tipos || tipos.length === 0 || tipos.includes(tipoPedido);

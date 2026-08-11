@@ -20,7 +20,7 @@ const GRUPOS: { titulo: string; funcs: Func[] }[] = [
   {
     titulo: 'Operação do dia a dia',
     funcs: [
-      { titulo: 'Gestão de pedidos', texto: 'Pedidos de delivery, retirada e balcão numa tela só, avançando por status até a conclusão.', icone: svg(<><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>) },
+      { titulo: 'Gestão de pedidos', texto: 'Pedidos de retirada, balcão, mesa e encomendas numa tela só, avançando por status até a conclusão.', icone: svg(<><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>) },
       { titulo: 'Mesas e comandas', texto: 'Abra a mesa, lance os itens durante o consumo e feche a conta com taxa de serviço.', icone: svg(<><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 6V4M17 6V4M3 11h18" /></>) },
       { titulo: 'KDS — tela da cozinha', texto: 'A cozinha vê o que preparar e marca item por item como pronto.', icone: svg(<><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4M8 9l2 2 4-4" /></>) },
       { titulo: 'Caixa', texto: 'Abertura e fechamento com conferência, sangria, suprimento e resumo do movimento do dia.', icone: svg(<><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M3 11h18M7 15h3" /><path d="M7 7V5h10v2" /></>) },
@@ -30,9 +30,9 @@ const GRUPOS: { titulo: string; funcs: Func[] }[] = [
     titulo: 'Cardápio e vendas',
     funcs: [
       { titulo: 'Cardápio', texto: 'Categorias, produtos, listas de complementos e opções — com foto, preço e disponibilidade.', icone: svg(<><path d="M5 4h14v16H5z" /><path d="M9 8h6M9 12h6M9 16h3" /></>) },
-      { titulo: 'Links do cardápio', texto: 'Link próprio de delivery e de balcão pra divulgar onde quiser.', icone: svg(<><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1" /><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1" /></>) },
-      { titulo: 'Delivery e áreas de entrega', texto: 'Áreas por raio, polígono ou bairro, cada uma com taxa e tempo de entrega próprios.', icone: svg(<><path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></>) },
-      { titulo: 'Entregadores', texto: 'Cadastre seus motoboys pra vincular ao pedido na hora da entrega.', icone: svg(<><circle cx="6" cy="18" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.5 18h7M13 18V7h3l3 5v6M4 8h6" /></>) },
+      { titulo: 'Links do cardápio', texto: 'Link próprio do cardápio e do balcão pra divulgar onde quiser.', icone: svg(<><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1" /><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1" /></>) },
+      { titulo: 'Retirada no local', texto: 'O cliente monta o carrinho, escolhe o pagamento e retira o pedido no estabelecimento.', icone: svg(<><path d="M4 8h16l-1 12H5L4 8z" /><path d="M8 8V6a4 4 0 018 0v2" /></>) },
+      { titulo: 'Pedidos agendados', texto: 'Registre encomendas com data e horário combinados sem perder o controle da operação.', icone: svg(<><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18M8 14h3" /></>) },
     ],
   },
   {
@@ -89,7 +89,7 @@ export default function Home() {
           Seu cardápio online e os pedidos organizados em um <span className="fome">clique</span>
         </h1>
         <p>
-          Cardápio digital, gestão de pedidos, mesas, cozinha, caixa e entrega num painel só — pra
+          Cardápio digital, gestão de pedidos, mesas, cozinha e caixa num painel só — pra
           lanchonetes, hamburguerias, pizzarias e açaiterias.
         </p>
         <div className="ctas">
@@ -125,7 +125,7 @@ export default function Home() {
           <span className="eyebrow">Funcionalidades</span>
           <h2>Tudo o que sua operação precisa, num painel só</h2>
           <p>
-            Do cardápio ao fechamento do caixa — pedidos, salão, cozinha, entrega e gestão sem pular
+            Do cardápio ao fechamento do caixa — pedidos, salão, cozinha e gestão sem pular
             de sistema.
           </p>
         </div>

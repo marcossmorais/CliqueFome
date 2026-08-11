@@ -12,7 +12,6 @@ const MAXIMO_PEDIDOS_OPERACIONAIS = 1_000;
 const PEDIDOS_POR_LOTE_DE_ITENS = 50;
 const MAXIMO_ITENS_POR_LOTE = 5_000;
 const TIPOS_PEDIDO = new Set([
-  'delivery',
   'retirada',
   'balcao',
   'mesa',

@@ -4,8 +4,8 @@
  * Agrupamento por PRONTIDÃO, não por tipo de funcionalidade: as telas que
  * já funcionam hoje ficam nos grupos de cima ("Essenciais" e "Sua loja"),
  * e tudo que ainda é placeholder cai junto no grupo "Em breve", no fim do
- * menu. O agrupamento antigo (Operação/Cardápio/Entrega/Gestão/Config)
- * misturava pronto com placeholder dentro do mesmo grupo — quem abria o
+ * menu. O agrupamento antigo misturava pronto com placeholder dentro do
+ * mesmo grupo — quem abria o
  * painel via "Mesas e comandas" antes de "Cardápio" só descobria que a
  * tela estava vazia depois de clicar.
  *
@@ -29,8 +29,6 @@ export const ICONES: Record<string, string> = {
   estoque: 'M4 7l8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10',
   catalogo: 'M5 4h14v16H5zM9 8h6M9 12h6M9 16h3',
   links: 'M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1',
-  delivery: 'M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11zM12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
-  entregadores: 'M8.5 18h7M13 18V7h3l3 5v6M4 8h6M8.5 18a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM20.5 18a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z',
   desempenho: 'M3 17l6-6 4 4 8-8M15 7h6v6',
   historico: 'M12 21a9 9 0 110-18 9 9 0 010 18zM12 7v5l3 3',
   financeiro: 'M12 21a9 9 0 110-18 9 9 0 010 18zM15 9.5c-.6-1-1.7-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 2 3 2 3 .9 3 2-1.3 2-3 2c-1.3 0-2.4-.5-3-1.5M12 6v12',
@@ -54,13 +52,6 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
       { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', pronta: true },
       { id: 'kds', nome: 'Cozinha', icone: 'kds', pronta: true },
       { id: 'cardapio', nome: 'Cardápio', icone: 'catalogo', pronta: true },
-      {
-        id: 'delivery',
-        nome: 'Delivery',
-        icone: 'delivery',
-        pronta: true,
-        desc: 'Configuração das entregas e gestão dos entregadores.',
-      },
       { id: 'pdv', nome: 'PDV', icone: 'pdv', pronta: true, desc: 'Caixa, estoque e nota fiscal em um só lugar.' },
     ],
   },

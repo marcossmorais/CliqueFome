@@ -16,7 +16,7 @@ com painel de administrador. Front-end estático (HTML/CSS/JS puro) + Supabase
   loja, nunca a marca CliqueFome.
 - `admin.html` — painel do dono da loja: login, criação da loja, categorias,
   produtos, grupos de complemento (ex: "escolha o tamanho", "adicionais") e
-  status de delivery/encomendas.
+  status de retirada, balcão e encomendas.
 - `schema.sql` — schema do banco (tabelas, RLS, bucket de imagens). Um único
   projeto Supabase serve todas as lojas; cada dono só vê/edita a própria loja.
 - `schema-migracao-catalogo.sql` — **rode se seu banco já existia antes do

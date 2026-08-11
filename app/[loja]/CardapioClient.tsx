@@ -6,7 +6,7 @@ import { usePedidoAcompanhado } from '@/hooks/usePedidoAcompanhado';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
 import { CartaoProduto } from './CartaoProduto';
-import { CheckoutModal, type CotacaoEstado, type ModoEntrega, type PedidoRegistrado, type SugestaoComplementoCarrinho } from './CheckoutModal';
+import { CheckoutModal, type PedidoRegistrado, type SugestaoComplementoCarrinho } from './CheckoutModal';
 import {
   apareceNoTipo,
   produtoApareceNoTipo,
@@ -21,8 +21,6 @@ import {
   type LojaPublica,
   type ProdutoPublico,
 } from '@/lib/cardapio/tipos';
-import type { ConfigDeliveryPublica } from '@/lib/delivery/tipos';
-import { ENDERECO_VAZIO, enderecoEmLinha, enderecoEstruturadoValido, type EnderecoEstruturado } from '@/lib/delivery/tipos';
 import { formaPagamentoPermitida, type FormaPagamentoOffline } from '@/lib/pedidos/pagamento';
 import { IconeCategoria } from '@/components/cardapio/IconeCategoria';
 
@@ -43,18 +41,14 @@ const CHAVE_TELEFONE = 'cf_telefone_cliente';
 // servidor mudar de identidade a cada render.
 const VAZIO: LinhaCarrinho[] = [];
 
-const COTACAO_INICIAL: CotacaoEstado = { status: 'idle' };
-
 export function CardapioClient({
   loja,
   categorias,
   produtos,
-  deliveryConfig,
 }: {
   loja: LojaPublica;
   categorias: CategoriaPublica[];
   produtos: ProdutoPublico[];
-  deliveryConfig: ConfigDeliveryPublica | null;
 }) {
   const [linhasSalvas, setLinhas] = useLocalStorage<LinhaCarrinho[]>(
     chaveCarrinho(loja.slug),
@@ -68,12 +62,6 @@ export function CardapioClient({
   const [modalAberto, setModalAberto] = useState(false);
   const [nome, setNome] = useLocalStorage<string>(CHAVE_NOME, '');
   const [telefone, setTelefone] = useLocalStorage<string>(CHAVE_TELEFONE, '');
-  const [endereco, setEndereco] = useState('');
-  const [enderecoDetalhado, setEnderecoDetalhado] = useState<EnderecoEstruturado>({
-    ...ENDERECO_VAZIO,
-    cidade: deliveryConfig?.cidade || '',
-  });
-  const [modo, setModo] = useState<ModoEntrega>(() => loja.retirada_ativa ? 'retirada' : 'entrega');
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoOffline | ''>('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -84,69 +72,7 @@ export function CardapioClient({
   // viram dois pedidos (a garantia real é o índice único no banco; isto
   // aqui só evita gerar chave nova a cada tentativa da mesma compra).
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
-  const usaCotacaoDinamica = !!deliveryConfig?.configurada;
-  const [cidadeEscolhida, setCidadeEscolhida] = useState(deliveryConfig?.cidade || '');
-  const [cotacao, setCotacao] = useState<CotacaoEstado>(COTACAO_INICIAL);
   const { ativo: pedidoAcompanhado, registrar: registrarAcompanhamento } = usePedidoAcompanhado(loja.slug);
-
-  function mudarEndereco(v: string) {
-    setEndereco(v);
-    // Qualquer edição no endereço invalida a cotação anterior: usar a taxa
-    // velha pra um endereço novo é exatamente o bug de "frete errado" que
-    // a spec pediu pra evitar.
-    if (cotacao.status !== 'idle') setCotacao(COTACAO_INICIAL);
-  }
-
-  function mudarEnderecoDetalhado(valor: EnderecoEstruturado) {
-    setEnderecoDetalhado(valor);
-    mudarEndereco(enderecoEmLinha(valor));
-    // Modo avançado: a cidade da cotação passa a vir do endereço que o
-    // cliente escolheu, no lugar do <select> que existia aqui. É conveniência
-    // de tela e nada mais — quem decide se a loja atende essa cidade (e por
-    // qual taxa) continua sendo o servidor, na cotação.
-    if (deliveryConfig?.setor === 'avancado' && valor.cidade.trim()) {
-      setCidadeEscolhida(valor.cidade.trim());
-    }
-  }
-
-  async function calcularFrete() {
-    setErro(null);
-    if (!enderecoEstruturadoValido(enderecoDetalhado)) {
-      setErro('Preencha CEP, logradouro, número, bairro, cidade e UF para calcular o frete.');
-      return;
-    }
-    if (deliveryConfig?.setor === 'avancado' && !cidadeEscolhida) {
-      setErro('Escolha a cidade da entrega.');
-      return;
-    }
-    setCotacao({ status: 'calculando' });
-    try {
-      const resposta = await fetch('/api/delivery/cotacao', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lojaSlug: loja.slug,
-          endereco: enderecoDetalhado,
-          cidade: deliveryConfig?.setor === 'avancado' ? cidadeEscolhida : undefined,
-        }),
-      });
-      const corpo = await resposta.json();
-      if (!resposta.ok) {
-        setCotacao({ status: 'erro', erro: corpo.erro || 'Não foi possível calcular o frete.' });
-        return;
-      }
-      setCotacao({
-        status: 'ok',
-        taxa: Number(corpo.taxa),
-        distanciaKm: corpo.distanciaKm ?? null,
-        enderecoFormatado: corpo.enderecoFormatado,
-        token: corpo.token,
-        expiraEm: corpo.expiraEm,
-      });
-    } catch {
-      setCotacao({ status: 'erro', erro: 'Falha de conexão ao calcular o frete. Tente novamente.' });
-    }
-  }
 
   // O carrinho exibido é sempre o conferido contra o catálogo que acabou de
   // chegar do servidor — nunca o retrato salvo no navegador.
@@ -161,8 +87,7 @@ export function CardapioClient({
     setLinhas(fn(linhas));
   }
 
-  // Vocabulário do banco (pedidos.tipo), não o rótulo da tela.
-  const tipoPedido = modo === 'entrega' ? 'delivery' : 'retirada';
+  const tipoPedido = 'retirada';
 
   // A vitrine nasce de uma lista única. Isso evita o mesmo produto aparecer
   // em Destaques, Mais pedidos e novamente na categoria, que era uma das
@@ -246,12 +171,7 @@ export function CardapioClient({
 
   const totalItens = linhas.reduce((s, l) => s + l.qty, 0);
   const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
-  // Loja sem delivery facilitado configurado cai na taxa fixa antiga, que
-  // já existia antes desta funcionalidade — nenhuma loja fica sem taxa por
-  // não ter migrado ainda.
-  const taxaEstatica = Number(loja.taxa_entrega) || 0;
-  const taxa = usaCotacaoDinamica ? (cotacao.status === 'ok' ? cotacao.taxa : 0) : taxaEstatica;
-  const totalGeral = subtotal + (modo === 'entrega' && linhas.length > 0 ? taxa : 0);
+  const totalGeral = subtotal;
 
   function idDaLinha(produtoId: string, escolhas: EscolhaComplemento[], obs: string) {
     // A quantidade entra na chave: 2x bacon é uma linha diferente de 1x
@@ -385,34 +305,19 @@ export function CardapioClient({
       setErro('Informe um telefone válido com DDD.');
       return;
     }
-    if (modo === 'entrega' && !endereco.trim()) {
-      setErro('Informe o endereço de entrega.');
-      return;
-    }
-    const minimo = Number(loja.pedido_minimo) || 0;
-    if (modo === 'entrega' && minimo > 0 && subtotal < minimo) {
-      setErro(`Pedido mínimo pra entrega é ${formatBRL(minimo)}.`);
-      return;
-    }
-    if (modo === 'entrega' && !loja.delivery_ativo) {
-      setErro('A loja não está aceitando entregas no momento.');
-      return;
-    }
-    if (modo === 'retirada' && !loja.retirada_ativa) {
+    if (!loja.retirada_ativa) {
       setErro('A retirada está indisponível no momento.');
       return;
     }
-    if (modo === 'entrega' && usaCotacaoDinamica && cotacao.status !== 'ok') {
-      setErro('Calcule o frete antes de finalizar o pedido.');
+    const minimo = Number(loja.pedido_minimo) || 0;
+    if (minimo > 0 && subtotal < minimo) {
+      setErro(`O pedido mínimo é de ${formatBRL(minimo)}.`);
       return;
     }
     if (!formaPagamentoPermitida(tipoPedido, formaPagamento)) {
       setErro('Escolha como deseja pagar.');
       return;
     }
-
-    const enderecoFinal =
-      modo === 'entrega' && cotacao.status === 'ok' ? cotacao.enderecoFormatado : endereco.trim();
 
     setEnviando(true);
     try {
@@ -423,12 +328,8 @@ export function CardapioClient({
           idempotencyKey,
           clienteNome: nome.trim(),
           clienteTelefone: telefone,
-          tipo: modo === 'entrega' ? 'delivery' : 'retirada',
+          tipo: 'retirada',
           formaPagamento,
-          endereco: modo === 'entrega' ? enderecoFinal : undefined,
-          enderecoCotacao: modo === 'entrega' ? enderecoEmLinha(enderecoDetalhado) : undefined,
-          enderecoDetalhado: modo === 'entrega' ? enderecoDetalhado : undefined,
-          cotacaoToken: modo === 'entrega' && cotacao.status === 'ok' ? cotacao.token : undefined,
           totalEsperadoCentavos: Math.round(totalGeral * 100),
           itens: linhas.map((l) => ({
             produtoId: l.produtoId,
@@ -445,14 +346,6 @@ export function CardapioClient({
 
       if (!resposta.ok) {
         setErro(corpo.erro || 'Não foi possível registrar seu pedido. Tente novamente.');
-        // A loja mexeu na taxa (ou a cotação envelheceu) enquanto o checkout
-        // estava aberto. Derrubar a cotação obriga a recalcular antes de
-        // confirmar de novo — é o que impede cobrar um valor diferente do
-        // que a pessoa viu. O CARRINHO fica intacto: falha de cotação não é
-        // motivo pra alguém perder o pedido que montou.
-        if (corpo.codigo === 'COTACAO_DESATUALIZADA' || corpo.codigo === 'COTACAO_INVALIDA' || corpo.codigo === 'COTACAO_NECESSARIA') {
-          setCotacao(COTACAO_INICIAL);
-        }
         setEnviando(false);
         return;
       }
@@ -515,13 +408,12 @@ export function CardapioClient({
         </nav>
 
         <div id="info-loja" className="sidebar-info">
-          <strong className={loja.recebendo_encomendas && (loja.delivery_ativo || loja.retirada_ativa) ? 'aberto' : 'fechado'}>
-            <i /> {loja.recebendo_encomendas && (loja.delivery_ativo || loja.retirada_ativa) ? 'Aceitando pedidos' : 'Loja fechada'}
+          <strong className={loja.recebendo_encomendas && loja.retirada_ativa ? 'aberto' : 'fechado'}>
+            <i /> {loja.recebendo_encomendas && loja.retirada_ativa ? 'Aceitando pedidos' : 'Loja fechada'}
           </strong>
-          {loja.tempo_entrega_min && loja.tempo_entrega_max && (
-            <p><span>Tempo de entrega</span>{loja.tempo_entrega_min}–{loja.tempo_entrega_max} min</p>
+          {loja.tempo_preparo_min && loja.tempo_preparo_max && (
+            <p><span>Tempo de preparo</span>{loja.tempo_preparo_min}–{loja.tempo_preparo_max} min</p>
           )}
-          <p><span>Taxa de entrega</span>{Number(loja.taxa_entrega) > 0 ? formatBRL(Number(loja.taxa_entrega)) : 'Grátis'}</p>
         </div>
 
         {numeroWhats && (
@@ -628,22 +520,15 @@ export function CardapioClient({
 
       <CheckoutModal
         aberto={modalAberto}
-        lojaSlug={loja.slug}
         linhas={linhas}
         nome={nome}
         telefone={telefone}
-        endereco={enderecoDetalhado}
-        modo={modo}
         formaPagamento={formaPagamento}
         erro={erro}
         enviando={enviando}
         pedidoRegistrado={pedidoRegistrado}
-        deliveryConfig={deliveryConfig}
         lojaAberta={loja.recebendo_encomendas}
-        deliveryAtivo={loja.delivery_ativo}
         retiradaAtiva={loja.retirada_ativa}
-        taxaEstatica={taxaEstatica}
-        cotacao={cotacao}
         sugestoes={sugestoesCarrinho}
         sugestoesComplementos={sugestoesComplementos}
         onAdicionarSugestao={adicionarSugestao}
@@ -653,13 +538,6 @@ export function CardapioClient({
         onRemover={(lineId) => atualizar((a) => a.filter((l) => l.lineId !== lineId))}
         onNome={setNome}
         onTelefone={setTelefone}
-        onEndereco={mudarEnderecoDetalhado}
-        onCalcularFrete={calcularFrete}
-        onModo={(m) => {
-          setModo(m);
-          setFormaPagamento((atual) => formaPagamentoPermitida(m === 'entrega' ? 'delivery' : 'retirada', atual) ? atual : '');
-          setErro(null);
-        }}
         onFormaPagamento={(forma) => { setFormaPagamento(forma); setErro(null); }}
         onFinalizar={finalizar}
         onNovoPedido={() => {

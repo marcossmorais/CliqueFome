@@ -111,7 +111,7 @@ export function montarResumoDashboard(
   const total = (lista: PedidoDashboard[]) => lista.reduce((soma, p) => soma + Number(p.total), 0);
   const vendasHoje = total(validosHoje);
   const vendasOntem = total(validosOntem);
-  const emAndamento = pedidosHoje.filter((p) => ['confirmado', 'em_preparo', 'pronto', 'saiu_entrega'].includes(p.status)).length;
+  const emAndamento = pedidosHoje.filter((p) => ['confirmado', 'em_preparo', 'pronto'].includes(p.status)).length;
   const aguardando = pedidosHoje.filter((p) => p.status === 'pendente').length;
   const concluidos = pedidosHoje.filter((p) => p.status === 'concluido').length;
   const cancelados = pedidosHoje.filter((p) => p.status === 'cancelado').length;

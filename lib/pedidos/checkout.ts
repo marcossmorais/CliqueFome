@@ -4,11 +4,16 @@
 
 import type { FormaPagamentoOffline } from './pagamento';
 
-const FORMAS_DELIVERY = new Set(['dinheiro_entrega', 'cartao_credito_entrega', 'cartao_debito_entrega', 'pix_manual']);
-const FORMAS_RETIRADA = new Set(['pagamento_retirada', 'pix_manual']);
+const FORMAS_RETIRADA = new Set([
+  'dinheiro',
+  'cartao_credito',
+  'cartao_debito',
+  'pix_manual',
+  'pagamento_retirada',
+]);
 
-function formaPagamentoPermitida(tipo: 'delivery' | 'retirada', forma: unknown): forma is FormaPagamentoOffline {
-  return typeof forma === 'string' && (tipo === 'delivery' ? FORMAS_DELIVERY : FORMAS_RETIRADA).has(forma);
+function formaPagamentoPermitida(forma: unknown): forma is FormaPagamentoOffline {
+  return typeof forma === 'string' && FORMAS_RETIRADA.has(forma);
 }
 
 export type ItemCheckoutEntrada = {
@@ -22,25 +27,8 @@ export type PedidoCheckoutEntrada = {
   idempotencyKey: string;
   clienteNome: string;
   clienteTelefone: string;
-  tipo: 'delivery' | 'retirada';
+  tipo: 'retirada';
   formaPagamento: FormaPagamentoOffline;
-  endereco?: string;
-  enderecoCotacao?: string;
-  cotacaoToken?: string;
-  /**
-   * Endereço em campos separados, só para o SNAPSHOT do pedido.
-   *
-   * Não é autoridade sobre nada: taxa, distância e regra aplicada vêm do
-   * token assinado pelo servidor. Aceitar isto do navegador não amplia a
-   * confiança — `endereco` (texto livre) já vem daqui desde sempre; a
-   * diferença é poder gravar bairro e cidade em colunas próprias em vez de
-   * tentar adivinhá-los de volta a partir de uma string.
-   */
-  enderecoDetalhado?: {
-    logradouro: string; numero: string; bairro: string;
-    cidade: string; uf: string; cep: string;
-    complemento?: string; referencia?: string;
-  };
   observacao?: string;
   itens: ItemCheckoutEntrada[];
   totalEsperadoCentavos: number;
@@ -103,40 +91,13 @@ export function validarEntradaCheckout(corpo: unknown): PedidoCheckoutEntrada {
   const clienteNome = texto(c.clienteNome, 2, 80, 'nome');
   const clienteTelefone = normalizarTelefone(c.clienteTelefone);
 
-  const tipo = c.tipo === 'delivery' ? 'delivery' : c.tipo === 'retirada' ? 'retirada' : null;
+  const tipo = c.tipo === 'retirada' ? 'retirada' : null;
   if (!tipo) throw new ErroValidacaoCheckout('Tipo de pedido inválido.');
 
   const formaPagamento = c.formaPagamento;
-  if (!formaPagamentoPermitida(tipo, formaPagamento)) {
+  if (!formaPagamentoPermitida(formaPagamento)) {
     throw new ErroValidacaoCheckout('Escolha uma forma de pagamento válida para este pedido.');
   }
-
-  const endereco = tipo === 'delivery' ? texto(c.endereco, 5, 300, 'endereço') : undefined;
-  const enderecoCotacao =
-    tipo === 'delivery' && typeof c.enderecoCotacao === 'string'
-      ? texto(c.enderecoCotacao, 5, 400, 'endereço da cotação')
-      : undefined;
-  const cotacaoToken =
-    tipo === 'delivery' && typeof c.cotacaoToken === 'string' && c.cotacaoToken.length <= 2000
-      ? c.cotacaoToken
-      : undefined;
-  // Corta em vez de rejeitar: um campo do snapshot fora do tamanho não é
-  // motivo pra recusar um pedido legítimo — o que precisa estar certo (taxa,
-  // distância, regra) vem do token assinado, não daqui.
-  const pedaco = (valor: unknown, max: number) => String(valor ?? '').trim().slice(0, max);
-  const detalhado = c.enderecoDetalhado;
-  const enderecoDetalhado =
-    tipo === 'delivery' && detalhado && typeof detalhado === 'object'
-      ? (() => {
-          const d = detalhado as Record<string, unknown>;
-          return {
-            logradouro: pedaco(d.logradouro, 120), numero: pedaco(d.numero, 20),
-            bairro: pedaco(d.bairro, 80), cidade: pedaco(d.cidade, 100),
-            uf: pedaco(d.uf, 2).toUpperCase(), cep: pedaco(d.cep, 9).replace(/\D/g, ''),
-            complemento: pedaco(d.complemento, 100), referencia: pedaco(d.referencia, 120),
-          };
-        })()
-      : undefined;
 
   const observacao =
     c.observacao != null && String(c.observacao).trim() ? texto(c.observacao, 1, 500, 'observação') : undefined;
@@ -173,8 +134,8 @@ export function validarEntradaCheckout(corpo: unknown): PedidoCheckoutEntrada {
   const captchaToken = typeof c.captchaToken === 'string' ? c.captchaToken.slice(0, 4000) : undefined;
 
   return {
-    idempotencyKey, clienteNome, clienteTelefone, tipo, formaPagamento, endereco, enderecoCotacao,
-    cotacaoToken, enderecoDetalhado, observacao, itens, totalEsperadoCentavos, captchaToken,
+    idempotencyKey, clienteNome, clienteTelefone, tipo, formaPagamento,
+    observacao, itens, totalEsperadoCentavos, captchaToken,
   };
 }
 
@@ -201,7 +162,6 @@ export function payloadCanonico(entrada: PedidoCheckoutEntrada): string {
     clienteTelefone: entrada.clienteTelefone,
     tipo: entrada.tipo,
     formaPagamento: entrada.formaPagamento,
-    endereco: entrada.endereco ?? null,
     observacao: entrada.observacao ?? null,
     itens: itensOrdenados,
     totalEsperadoCentavos: entrada.totalEsperadoCentavos,

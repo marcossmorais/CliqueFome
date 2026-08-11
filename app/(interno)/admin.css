@@ -176,7 +176,7 @@
        sempre: no mobile a sidebar vira drawer por cima do conteúdo, e um
        fundo translúcido deixava o formulário de baixo aparecendo atrás.
        O verde é a identidade visual da plataforma — mesmo gradiente usado
-       nos cabeçalhos de Avaliações e Delivery facilitado. */
+       nos cabeçalhos das áreas administrativas. */
     background: linear-gradient(165deg, var(--verde-escuro), var(--verde));
     padding: 22px 14px;
     display:flex; flex-direction:column;

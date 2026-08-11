@@ -15,7 +15,7 @@ import type { PedidoResumo } from './tipos';
  *     antes da hora.
  *
  * O SLA de pronta-entrega é o único número "mágico" aqui — 30 min é uma
- * estimativa razoável de tempo de preparo+entrega pra delivery/lanchonete;
+ * estimativa razoável de tempo de preparo e atendimento pra lanchonete;
  * ajuste SLA_PRONTA_ENTREGA_MIN pro seu tipo de negócio.
  */
 export const SLA_PRONTA_ENTREGA_MIN = 30;

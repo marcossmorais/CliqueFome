@@ -197,7 +197,7 @@ export default async function InicioPage({
               </article>
               <article className={styles.kpi}>
                 <span>Em andamento</span><strong>{resumo.emAndamento}</strong>
-                <small>Confirmados até a entrega</small>
+                <small>Confirmados até a conclusão</small>
               </article>
             </section>
 

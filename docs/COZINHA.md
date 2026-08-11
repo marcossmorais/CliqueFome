@@ -18,21 +18,18 @@ complementos e observações. Preço, pagamento e cancelamento permanecem fora d
     confirmado -- Receber pedido --> em_preparo
     em_preparo -- Pedido pronto --> pronto
 
-Marcar como pronto não grava **saiu_entrega** nem **concluido**. A expedição ou
-o atendimento ainda precisa confirmar que o pedido efetivamente saiu, foi
-retirado ou foi servido.
+Marcar como pronto não grava **concluido**. O atendimento ainda precisa
+confirmar que o pedido foi retirado ou servido.
 
 ## Destino operacional
 
 **origem** é apenas o canal de venda (site, Instagram, telefone, outro).
-O destino é derivado de **tipo** e, para encomendas, do endereço:
+O destino é derivado de **tipo**:
 
-- delivery: entrega;
 - retirada: retirada local;
 - balcão: balcão;
 - mesa: salão/mesa;
-- encomenda com endereço: entrega;
-- encomenda sem endereço: retirada local.
+- encomenda: retirada local enquanto o módulo de entrega não existe.
 
 ## Dependência de integração
 

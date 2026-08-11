@@ -16,8 +16,7 @@ function pimenta() {
   return segredo;
 }
 
-/** Chave de rate limit (IP ou telefone) sem guardar o valor cru — hash com
- * pepper do servidor, igual a lib/delivery/servidor.ts. */
+/** Chave de rate limit (IP ou telefone) sem guardar o valor cru. */
 export function hashLimite(valor: string) {
   return createHmac('sha256', pimenta()).update(valor).digest('hex');
 }

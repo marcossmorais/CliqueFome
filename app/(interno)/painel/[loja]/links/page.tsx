@@ -17,7 +17,7 @@ export default async function LinksPage({
   const h = await headers();
   const host = h.get('host') ?? 'localhost:3000';
   const protocolo = host.startsWith('localhost') ? 'http' : 'https';
-  const linkDelivery = `${protocolo}://${host}/${loja.slug}`;
+  const linkCardapio = `${protocolo}://${host}/${loja.slug}`;
 
   return (
     <ShellPainel
@@ -32,8 +32,8 @@ export default async function LinksPage({
           <p className="sub">
             Compartilhe com seus clientes. O link muda junto se você trocar o endereço da loja.
           </p>
-          <label>Cardápio de delivery</label>
-          <CaixaLink url={linkDelivery} />
+          <label>Cardápio público</label>
+          <CaixaLink url={linkCardapio} />
         </div>
       </div>
     </ShellPainel>

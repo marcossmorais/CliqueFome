@@ -70,13 +70,7 @@
   .btn-primary:hover{ transform: translateY(-2px); }
   .btn-primary:disabled{ opacity: 0.5; cursor: not-allowed; transform: none; }
 
-  /* As faixas de status da loja (Delivery ON/OFF e Recebendo encomendas)
-     foram removidas do cardápio a pedido do dono, junto com o resto do
-     TopoCardapio. O estado de aberto/fechado continua no HeroLoja, e a
-     recusa de pedido com delivery desligado continua no banco, dentro de
-     criar_pedido() — nunca dependeu desses selos. */
-
-  /* Linha de infos da loja (taxa de entrega / pedido mínimo / tempo) */
+  /* Linha de informações gerais da loja. */
   .loja-info-line{
     text-align: center;
     font-size: 12.5px;
@@ -609,9 +603,6 @@
     .menu-card{ padding: 14px; gap: 18px; }
   }
 
-  /* Vermelho de erro é convenção universal de UI, não é cor da marca — mantido de propósito. */
-  .delivery-erro{ color: #B23B3B; font-size: 12px; margin-top: 6px; }
-
   .btn-continue{
     width: 100%;
     min-height: 44px;
@@ -814,7 +805,7 @@
 
   .produto-modal-add{ flex: 1; }
 
-  /* CHECKOUT MODAL — um modal só (carrinho + entrega + confirmação), na cor
+  /* CHECKOUT MODAL — um modal só (carrinho + retirada + confirmação), na cor
      da loja (--marca, whitelabel). Nenhuma cor de ação aqui é fixa de
      propósito: o cardápio de cada loja usa a cor que o dono cadastrou. */
   .checkout-modal{ position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 18px; }
@@ -833,10 +824,9 @@
   .checkout-bloco{ margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid #e8ecea; }
   .checkout-bloco h3{ margin: 0 0 12px; color: #203c30; font-size: 14px; }
   .checkout-opcoes{ display: grid; gap: 9px; }
-  .checkout-opcoes button{ display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; border: 1px solid #d5deda; border-radius: 12px; color: #293c34; background: #fff; text-align: left; cursor: pointer; }
-  .checkout-opcoes button.selecionada{ border-color: var(--marca); background: #f1f8f4; box-shadow: inset 0 0 0 1px var(--marca); }
-  .checkout-opcoes button>span{ font-size: 20px; }.checkout-opcoes button>div{ display:grid; gap:3px; flex:1; }.checkout-opcoes strong{ font-size:13px; }.checkout-opcoes small{ color:#718078; font-size:11px; line-height:1.35; }
-  .checkout-opcoes button>b{ width:18px; height:18px; border:2px solid #b4beb9; border-radius:50%; }.checkout-opcoes button.selecionada>b{ border:5px solid var(--marca); }
+  .checkout-retirada{ display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; border: 1px solid var(--marca); border-radius: 12px; color: #293c34; background: #f1f8f4; box-shadow: inset 0 0 0 1px var(--marca); text-align: left; }
+  .checkout-retirada>span{ font-size: 20px; }.checkout-retirada>div{ display:grid; gap:3px; flex:1; }.checkout-retirada strong{ font-size:13px; }.checkout-retirada small{ color:#718078; font-size:11px; line-height:1.35; }
+  .checkout-retirada>b{ width:18px; height:18px; border:5px solid var(--marca); border-radius:50%; }
 
   .checkout-formas-pagamento{ display:grid; gap:8px; }
   .checkout-formas-pagamento button{
@@ -864,33 +854,10 @@
   .checkout-forma-marcador{ width:18px; height:18px; flex:0 0 18px; border:2px solid #aeb7b2; border-radius:50%; background:#fff; }
   .checkout-formas-pagamento button.selecionada .checkout-forma-marcador{ border:5px solid var(--marca); }
 
-  /* Grid do endereço com posição EXPLÍCITA por campo, não auto-flow com
-     span solto: com 3 colunas e spans desencontrados, "Referência" sobrava
-     numa linha com uma célula vazia do lado, e UF ficava um campo estreito
-     boiando ao lado de Complemento em largura cheia — o "desalinhado"
-     relatado. Duas colunas fixas, cada campo com a coluna que é dele, em
-     qualquer largura de tela: nunca sobra célula nem gruda torto. */
-  .checkout-endereco-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:11px; }
-  .campo-cep{ grid-column: 1 / 2; }
-  .campo-logradouro{ grid-column: 1 / -1; }
-  .campo-numero{ grid-column: 1 / 2; }
-  .campo-bairro{ grid-column: 2 / 3; }
-  .campo-cidade{ grid-column: 1 / 2; }
-  .campo-uf{ grid-column: 2 / 3; }
-  .campo-complemento{ grid-column: 1 / -1; }
-  .campo-referencia{ grid-column: 1 / -1; }
-
   .checkout-dados-grid{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
   .checkout-campo{ display:grid; gap:5px; color:#52625b; font-size:11px; font-weight:700; }
   .checkout-campo input,.checkout-campo select{ width:100%; min-width:0; min-height:43px; margin:0; padding:9px 11px; border:1px solid #cbd5d0; border-radius:9px; color:#17261f; background:#fff; font:500 13px inherit; }
   .checkout-campo input:focus,.checkout-campo select:focus{ outline:3px solid color-mix(in srgb, var(--marca) 16%, transparent); border-color: var(--marca); }
-  .checkout-campo input[readonly]{ color:#52625b; background:#f3f6f4; }
-  .checkout-cep-status{ color: var(--marca); font-size:10.5px; font-weight:650; line-height:1.35; }.checkout-cep-status.erro{ color:#a32e26; }
-  .checkout-largo{ grid-column:1 / -1; }
-  .checkout-calcular{ width:100%; min-height:43px; margin-top:13px; border:0; border-radius:10px; color:#fff; background: var(--marca); font-weight:800; cursor:pointer; }
-  .checkout-calcular:disabled{ opacity:.6; cursor:wait; }
-  .checkout-cotacao{ display:flex; justify-content:space-between; gap:15px; margin-top:10px; padding:11px 13px; border-radius:10px; color:#15583b; background:#e9f6ef; font-size:12px; }
-  .checkout-atribuicao{ display:block; margin-top:9px; color:#7a8781; font-size:9.5px; text-align:right; }.checkout-atribuicao a{ color:inherit; text-decoration:underline; }
 
   /* Etapa 1: itens do carrinho, dentro do mesmo modal. */
   .checkout-carrinho-vazio{ padding: 40px 0; color: #718078; text-align: center; font-size: 13px; }

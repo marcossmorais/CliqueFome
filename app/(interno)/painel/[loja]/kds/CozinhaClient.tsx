@@ -266,8 +266,8 @@ export function CozinhaClient({
         />
         <FilaCozinha
           id="cozinha-prontos"
-          titulo="Prontos para encaminhamento"
-          descricao="Pedidos prontos aguardando o próximo destino."
+          titulo="Prontos"
+          descricao="Pedidos prontos aguardando encaminhamento local."
           vazio="Nenhum pedido pronto no momento."
           pedidos={filas.prontos}
           agora={agora}

@@ -23,8 +23,8 @@ export function CardPedidoCozinha({
   outraAcaoEmCurso: boolean;
   onAcao: () => void;
 }) {
-  const destino = destinoDoPedido(pedido);
   const acao = acaoDisponivelNaCozinha(pedido);
+  const destino = destinoDoPedido(pedido);
   const tituloId = 'pedido-cozinha-' + pedido.id;
 
   return (

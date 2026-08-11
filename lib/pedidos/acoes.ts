@@ -118,7 +118,7 @@ export async function criarPedidoManual(
     lojaSlug: string;
     clienteNome: string;
     clienteTelefone: string;
-    tipo: 'delivery' | 'retirada' | 'balcao' | 'mesa' | 'encomenda';
+    tipo: 'retirada' | 'balcao' | 'mesa' | 'encomenda';
     endereco?: string;
     observacao?: string;
     formaPagamento?: string;

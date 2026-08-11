@@ -42,7 +42,6 @@ export type PedidoCozinha = {
 };
 
 export type DestinoCozinha =
-  | 'entrega'
   | 'retirada'
   | 'balcao'
   | 'salao';
@@ -55,12 +54,6 @@ export type InstrucaoDestino = {
 };
 
 const DESTINOS: Record<DestinoCozinha, InstrucaoDestino> = {
-  entrega: {
-    id: 'entrega',
-    rotulo: 'Entrega',
-    acaoAoFicarPronto: 'Pedido pronto — enviar para entrega',
-    instrucao: 'Encaminhar para a expedição de entrega.',
-  },
   retirada: {
     id: 'retirada',
     rotulo: 'Retirada local',
@@ -83,19 +76,12 @@ const DESTINOS: Record<DestinoCozinha, InstrucaoDestino> = {
 
 /**
  * O canal que originou o pedido (site, Instagram, telefone) não define
- * onde ele será entregue. O encaminhamento da cozinha depende do tipo de
- * atendimento e, no caso de encomenda, da presença de endereço.
+ * qual é seu destino operacional. Encomendas também seguem para retirada
+ * local, mesmo que preservem um endereço legado por compatibilidade.
  */
 export function destinoDoPedido(
-  pedido: Pick<PedidoCozinha, 'tipo' | 'endereco'>
+  pedido: Pick<PedidoCozinha, 'tipo'>
 ): InstrucaoDestino {
-  if (
-    pedido.tipo === 'delivery' ||
-    (pedido.tipo === 'encomenda' && Boolean(pedido.endereco?.trim()))
-  ) {
-    return DESTINOS.entrega;
-  }
-
   if (pedido.tipo === 'balcao') return DESTINOS.balcao;
   if (pedido.tipo === 'mesa') return DESTINOS.salao;
   return DESTINOS.retirada;
@@ -109,9 +95,8 @@ export type AcaoCozinha = {
 
 /**
  * A Gestão confirma o pedido antes de enviá-lo à cozinha. Nesta tela,
- * receber significa começar o preparo. Marcar pronto não significa que o
- * entregador saiu ou que o cliente retirou; essas confirmações pertencem
- * às áreas de expedição/atendimento.
+ * receber significa começar o preparo. Marcar pronto não conclui o pedido;
+ * essa confirmação pertence às áreas de expedição/atendimento.
  */
 export function acaoDisponivelNaCozinha(
   pedido: Pick<PedidoCozinha, 'status' | 'tipo' | 'endereco'>

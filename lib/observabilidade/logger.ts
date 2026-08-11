@@ -13,10 +13,9 @@ import pino from 'pino';
  *     específico (ex: valor intermediário de um cálculo). Não roda por
  *     padrão em produção (level padrão ali é "info").
  *   - info: um evento de negócio que vale ficar registrado mesmo sem
- *     nada dar errado (ex: "pedido criado", "cotação calculada").
+ *     nada dar errado (ex: "pedido criado").
  *   - warn: algo saiu do caminho normal mas foi contornado — a request
- *     terminou bem mesmo assim (ex: "sem coordenadas, usando taxa fixa
- *     como fallback").
+ *     terminou bem mesmo assim (ex: "resposta repetida por idempotência").
  *   - error: a request falhou e o cliente recebeu um erro por causa
  *     disso. É o nível mais usado hoje — nos `catch` que antes só
  *     devolviam uma mensagem genérica sem deixar rastro nenhum.
@@ -29,11 +28,11 @@ import pino from 'pino';
  *   import { logger } from '@/lib/observabilidade/logger';
  *
  *   try {
- *     await calcularCotacao(...);
+ *     await registrarPedido(...);
  *   } catch (erro) {
- *     logger.error({ err: erro, rota: '/api/delivery/cotacao', lojaSlug: slug },
- *       'Falha ao calcular cotação de entrega');
- *     return erro('Cálculo de entrega ainda não configurado.', 503);
+ *     logger.error({ err: erro, rota: '/api/lojas/[slug]/pedidos', lojaSlug: slug },
+ *       'Falha ao registrar pedido');
+ *     return respostaErro('Não foi possível registrar o pedido.', 503);
  *   }
  */
 export const logger = pino({

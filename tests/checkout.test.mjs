@@ -7,6 +7,11 @@ import {
   payloadCanonico,
   validarEntradaCheckout,
 } from '../lib/pedidos/checkout.ts';
+import {
+  formasPagamentoPara,
+  instrucaoPagamento,
+  nomeFormaPagamento,
+} from '../lib/pedidos/pagamento.ts';
 
 const ITEM_ID = '11111111-1111-1111-1111-111111111111';
 const COMPLEMENTO_ID = '22222222-2222-2222-2222-222222222222';
@@ -38,16 +43,18 @@ test('validarEntradaCheckout aceita um pedido de retirada válido', () => {
   assert.equal(entrada.clienteTelefone, '11912345678');
   assert.equal(entrada.tipo, 'retirada');
   assert.equal(entrada.itens.length, 1);
-  assert.equal(entrada.endereco, undefined);
 });
 
-test('validarEntradaCheckout exige endereço só quando tipo é delivery', () => {
+test('validarEntradaCheckout rejeita o tipo delivery mesmo com dados legados completos', () => {
   assert.throws(
-    () => validarEntradaCheckout(entradaBase({ tipo: 'delivery', formaPagamento: 'dinheiro_entrega' })),
-    ErroValidacaoCheckout
+    () => validarEntradaCheckout(entradaBase({
+      tipo: 'delivery',
+      formaPagamento: 'dinheiro',
+      endereco: 'Rua Um, 123, Centro',
+      cotacaoToken: 'payload.assinatura',
+    })),
+    ErroValidacaoCheckout,
   );
-  const entrada = validarEntradaCheckout(entradaBase({ tipo: 'delivery', formaPagamento: 'dinheiro_entrega', endereco: 'Rua Um, 123, Centro' }));
-  assert.equal(entrada.endereco, 'Rua Um, 123, Centro');
 });
 
 test('validarEntradaCheckout rejeita idempotencyKey que não é UUID', () => {
@@ -129,7 +136,23 @@ test('payloadCanonico muda quando o total esperado muda (protege contra reuso in
   assert.notEqual(payloadCanonico(entrada1), payloadCanonico(entrada2));
 });
 
-test('checkout exige uma forma offline compatível com entrega ou retirada', () => {
+test('checkout aceita apenas as formas offline disponíveis para retirada', () => {
+  const formasValidas = [
+    'dinheiro',
+    'cartao_credito',
+    'cartao_debito',
+    'pix_manual',
+    'pagamento_retirada',
+  ];
+
+  assert.deepEqual(formasPagamentoPara('retirada'), formasValidas);
+  for (const formaPagamento of formasValidas) {
+    assert.equal(
+      validarEntradaCheckout(entradaBase({ formaPagamento })).formaPagamento,
+      formaPagamento,
+    );
+  }
+
   assert.throws(
     () => validarEntradaCheckout(entradaBase({ formaPagamento: undefined })),
     ErroValidacaoCheckout
@@ -138,18 +161,15 @@ test('checkout exige uma forma offline compatível com entrega ou retirada', () 
     () => validarEntradaCheckout(entradaBase({ formaPagamento: 'cartao_online' })),
     ErroValidacaoCheckout
   );
-  assert.throws(
-    () => validarEntradaCheckout(entradaBase({
-      tipo: 'delivery', endereco: 'Rua Um, 123', formaPagamento: 'pagamento_retirada',
-    })),
-    ErroValidacaoCheckout
-  );
-  assert.equal(
-    validarEntradaCheckout(entradaBase({
-      tipo: 'delivery', endereco: 'Rua Um, 123', formaPagamento: 'pix_manual',
-    })).formaPagamento,
-    'pix_manual'
-  );
+});
+
+test('formas genéricas de pagamento têm nomes e instruções para retirada local', () => {
+  assert.equal(nomeFormaPagamento('dinheiro'), 'Dinheiro');
+  assert.equal(nomeFormaPagamento('cartao_credito'), 'Cartão de crédito');
+  assert.equal(nomeFormaPagamento('cartao_debito'), 'Cartão de débito');
+  assert.match(instrucaoPagamento('dinheiro'), /estabelecimento.*retirada/i);
+  assert.match(instrucaoPagamento('cartao_credito'), /maquininha.*retirada/i);
+  assert.match(instrucaoPagamento('cartao_debito'), /maquininha.*retirada/i);
 });
 
 test('a forma de pagamento participa da idempotência do pedido', () => {
@@ -181,18 +201,15 @@ test('itensParaRpc converte pro formato snake_case que criar_pedido() espera', (
   ]);
 });
 
-test('validarEntradaCheckout preserva cotacao apenas no delivery', () => {
-  const delivery = validarEntradaCheckout(entradaBase({
-    tipo: 'delivery', formaPagamento: 'dinheiro_entrega', endereco: 'Rua Um, 123, Centro',
+test('validarEntradaCheckout ignora campos legados de entrega em uma retirada', () => {
+  const retirada = validarEntradaCheckout(entradaBase({
+    endereco: 'Rua Um, 123, Centro',
     enderecoCotacao: 'Rua Um, 123, Centro, Cidade - PB, CEP 58000-000',
     cotacaoToken: 'payload.assinatura',
+    enderecoDetalhado: { cidade: 'Cidade', uf: 'PB' },
   }));
-  assert.equal(delivery.enderecoCotacao, 'Rua Um, 123, Centro, Cidade - PB, CEP 58000-000');
-  assert.equal(delivery.cotacaoToken, 'payload.assinatura');
-
-  const retirada = validarEntradaCheckout(entradaBase({
-    enderecoCotacao: 'nao deve entrar', cotacaoToken: 'nao deve entrar',
-  }));
+  assert.equal(retirada.endereco, undefined);
   assert.equal(retirada.enderecoCotacao, undefined);
   assert.equal(retirada.cotacaoToken, undefined);
+  assert.equal(retirada.enderecoDetalhado, undefined);
 });
