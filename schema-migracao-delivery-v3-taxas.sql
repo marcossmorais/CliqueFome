@@ -10,6 +10,32 @@
 begin;
 
 -- ---------------------------------------------------------------------------
+-- Terceira modalidade: taxa fixa MAIS valor por km
+-- ---------------------------------------------------------------------------
+-- Para quem tem custo de saída (a moto sai da loja de qualquer jeito) e ainda
+-- quer cobrar a distância por cima: `fixed_fee_cents` + (km × price_per_km).
+--
+-- A soma acontece só entre as duas partes da MESMA regra base. Override de
+-- bairro/cidade continua SUBSTITUINDO o resultado inteiro, nunca somando.
+alter table public.store_delivery_settings
+  drop constraint if exists store_delivery_settings_calculation_type_check;
+alter table public.store_delivery_settings
+  add constraint store_delivery_settings_calculation_type_check
+  check (calculation_type in ('FIXED', 'PER_KM', 'FIXED_PLUS_KM'));
+
+-- A exigência de coordenada passa a valer para as duas modalidades que
+-- dependem de rota. Sem origem não há distância, e sem distância a taxa
+-- combinada seria só a base — cobrando a menos, silenciosamente.
+alter table public.store_delivery_settings
+  drop constraint if exists store_delivery_settings_origem_para_km;
+alter table public.store_delivery_settings
+  add constraint store_delivery_settings_origem_para_km
+  check (
+    calculation_type not in ('PER_KM', 'FIXED_PLUS_KM')
+    or (origin_lat is not null and origin_lng is not null)
+  );
+
+-- ---------------------------------------------------------------------------
 -- Taxa de entrega em centavos inteiros
 -- ---------------------------------------------------------------------------
 -- `taxa_entrega` (numeric em reais) CONTINUA sendo escrita pela cadeia de
@@ -77,7 +103,7 @@ create table if not exists public.pedido_entrega_snapshot (
   -- Qual regra produziu a taxa. Sem isto, meses depois ninguém consegue
   -- explicar por que aquela entrega custou aquilo.
   regra_aplicada text not null
-    check (regra_aplicada in ('FIXED', 'PER_KM', 'OVERRIDE_CITY', 'OVERRIDE_NEIGHBORHOOD')),
+    check (regra_aplicada in ('FIXED', 'PER_KM', 'FIXED_PLUS_KM', 'OVERRIDE_CITY', 'OVERRIDE_NEIGHBORHOOD')),
   -- Sem FK: a regra pode ser apagada depois, e o snapshot precisa sobreviver
   -- a isso. Guarda o id só como rastro.
   override_id uuid,

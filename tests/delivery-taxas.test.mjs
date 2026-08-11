@@ -224,3 +224,84 @@ test('toda indisponibilidade tem mensagem humana, sem codigo tecnico', () => {
     assert.doesNotMatch(mensagem, /[A-Z]{4,}_[A-Z]{3,}|50\d|429|ROUTING|PROVIDER/, `${motivo} vaza codigo tecnico`);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Modalidade combinada: taxa fixa + por km
+// ---------------------------------------------------------------------------
+
+test('FIXED_PLUS_KM soma a base com a distancia', () => {
+  // Saída R$5 + 4km x R$2 = R$13.
+  const combinada = config({ calculationType: 'FIXED_PLUS_KM', fixedFeeCents: 500, pricePerKmCents: 200 });
+  const plano = fecharCotacaoPorKm({ config: combinada, distanceMeters: 4000 });
+  assert.equal(plano.tipo, 'pronto');
+  assert.equal(plano.feeCents, 1300);
+  assert.equal(plano.regra, 'FIXED_PLUS_KM');
+});
+
+test('FIXED_PLUS_KM cobra a base mesmo na distancia zero', () => {
+  const combinada = config({ calculationType: 'FIXED_PLUS_KM', fixedFeeCents: 500, pricePerKmCents: 200 });
+  const plano = fecharCotacaoPorKm({ config: combinada, distanceMeters: 0 });
+  assert.equal(plano.feeCents, 500, 'a taxa de saida existe justamente pra ser cobrada sempre');
+});
+
+test('FIXED_PLUS_KM precisa de rota', () => {
+  const plano = planejarCotacao({
+    config: config({ calculationType: 'FIXED_PLUS_KM' }),
+    taxasEspecificas: [],
+    destino: destino('campina grande', 'centro'),
+  });
+  assert.equal(plano.tipo, 'precisa_rota');
+  assert.equal(plano.regra, 'FIXED_PLUS_KM');
+});
+
+test('FIXED_PLUS_KM sem coordenada da loja fica indisponivel', () => {
+  // Sem origem a distancia seria desconhecida, e cobrar so a base seria
+  // cobrar a menos silenciosamente.
+  const plano = planejarCotacao({
+    config: config({ calculationType: 'FIXED_PLUS_KM', origem: null }),
+    taxasEspecificas: [],
+    destino: destino('campina grande', 'centro'),
+  });
+  assert.equal(plano.tipo, 'indisponivel');
+  assert.equal(plano.motivo, 'SEM_ORIGEM');
+});
+
+test('override SUBSTITUI a combinada inteira — nao soma com a base', () => {
+  const plano = planejarCotacao({
+    config: config({ calculationType: 'FIXED_PLUS_KM', fixedFeeCents: 500, pricePerKmCents: 200 }),
+    taxasEspecificas: [CENTRO],
+    destino: destino('campina grande', 'centro'),
+  });
+  assert.equal(plano.tipo, 'pronto');
+  assert.equal(plano.feeCents, 500, 'e o valor do override, nao override + base');
+  assert.equal(plano.regra, 'OVERRIDE_NEIGHBORHOOD');
+});
+
+test('override em FIXED_PLUS_KM tambem evita a chamada de rota', () => {
+  const plano = planejarCotacao({
+    config: config({ calculationType: 'FIXED_PLUS_KM' }),
+    taxasEspecificas: [CIDADE_CG],
+    destino: destino('campina grande', 'bairro qualquer'),
+  });
+  assert.notEqual(plano.tipo, 'precisa_rota');
+});
+
+test('FIXED_PLUS_KM respeita o teto de seguranca somando as duas partes', () => {
+  // Base 3000 + 20km x 200 = 7000, acima do teto de 4000.
+  const plano = fecharCotacaoPorKm({
+    config: config({ calculationType: 'FIXED_PLUS_KM', fixedFeeCents: 3000, pricePerKmCents: 200, maxFeeCents: 4000 }),
+    distanceMeters: 20000,
+  });
+  assert.equal(plano.tipo, 'indisponivel');
+  assert.equal(plano.motivo, 'TAXA_ACIMA_LIMITE');
+});
+
+test('PER_KM puro nao soma a taxa fixa configurada', () => {
+  // Regressao: fixedFeeCents existe na config mesmo em PER_KM (fica guardado
+  // de quando a loja usava taxa fixa). Nao pode vazar pro calculo.
+  const plano = fecharCotacaoPorKm({
+    config: config({ calculationType: 'PER_KM', fixedFeeCents: 900, pricePerKmCents: 200 }),
+    distanceMeters: 4000,
+  });
+  assert.equal(plano.feeCents, 800, 'PER_KM e so a distancia');
+});

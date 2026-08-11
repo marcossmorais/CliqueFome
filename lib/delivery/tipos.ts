@@ -1,4 +1,5 @@
-export type TipoTaxaDelivery = 'fixa' | 'por_km';
+/** 'fixa_mais_km' = taxa base cobrada sempre + valor por km rodado. */
+export type TipoTaxaDelivery = 'fixa' | 'por_km' | 'fixa_mais_km';
 
 /** 'facilitado' = uma taxa para a cidade da loja.
  *  'avancado'   = a cidade da loja mais cidades vizinhas, cada uma com a
@@ -74,7 +75,21 @@ export type CotacaoDelivery = {
 };
 
 export function normalizarTipoTaxa(valor: unknown): TipoTaxaDelivery {
-  return valor === 'por_km' ? 'por_km' : 'fixa';
+  if (valor === 'por_km') return 'por_km';
+  if (valor === 'fixa_mais_km') return 'fixa_mais_km';
+  return 'fixa';
+}
+
+/** Traduz pro vocabulário da tabela v3, que é quem a cotação lê. */
+export function paraCalculationType(tipo: TipoTaxaDelivery) {
+  if (tipo === 'por_km') return 'PER_KM' as const;
+  if (tipo === 'fixa_mais_km') return 'FIXED_PLUS_KM' as const;
+  return 'FIXED' as const;
+}
+
+/** As duas modalidades que precisam de rota — e portanto de coordenada da loja. */
+export function dependeDeRota(tipo: TipoTaxaDelivery) {
+  return tipo === 'por_km' || tipo === 'fixa_mais_km';
 }
 
 export function calcularTaxaPorDistancia(distanciaMetros: number, valorPorKm: number) {

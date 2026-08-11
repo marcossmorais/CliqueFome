@@ -6,6 +6,7 @@ import {
   normalizarSetor,
   normalizarTexto,
   normalizarTipoTaxa,
+  paraCalculationType,
   type EnderecoEstruturado,
 } from '@/lib/delivery/tipos';
 import { criarClientPrivilegiado } from '@/lib/delivery/servidor';
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
   }
   try {
     const sb = criarClientPrivilegiado();
-    const [{ data: config }, { data: cidades }, { data: endereco }] = await Promise.all([
+    const [{ data: config }, { data: cidades }, { data: endereco }, { data: v3 }] = await Promise.all([
       sb.from('configuracoes_delivery').select('*').eq('loja_id', lojaId).maybeSingle(),
       sb.from('configuracoes_delivery_cidades').select('cidade,taxa').eq('loja_id', lojaId).order('cidade'),
       sb
@@ -36,9 +37,27 @@ export async function GET(request: Request) {
         .select('cep,logradouro,numero,bairro,cidade,uf,complemento,endereco_formatado')
         .eq('loja_id', lojaId)
         .maybeSingle(),
+      sb.from('store_delivery_settings').select('calculation_type').eq('store_id', lojaId).maybeSingle(),
     ]);
+
+    // A modalidade real vem da v3: 'fixa_mais_km' é gravada na v2 como
+    // 'por_km' por compatibilidade, então ler só de lá faria o painel
+    // recarregar mostrando a modalidade errada.
+    const calculationType = (v3 as { calculation_type?: string } | null)?.calculation_type;
+    const tipoTaxa = calculationType === 'FIXED_PLUS_KM'
+      ? 'fixa_mais_km'
+      : calculationType === 'PER_KM'
+        ? 'por_km'
+        : calculationType === 'FIXED'
+          ? 'fixa'
+          : (config as { tipo_taxa?: string } | null)?.tipo_taxa ?? 'fixa';
+
     return NextResponse.json(
-      { config: config ?? null, cidades: cidades ?? [], endereco: endereco ?? null },
+      {
+        config: config ? { ...config, tipo_taxa: tipoTaxa } : null,
+        cidades: cidades ?? [],
+        endereco: endereco ?? null,
+      },
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (falha) {
@@ -159,7 +178,12 @@ export async function PUT(request: Request) {
     const { error } = await sb.rpc('salvar_config_delivery_v2', {
       p_loja_id: lojaId,
       p_setor: setor,
-      p_tipo_taxa: tipoTaxa,
+      // A v2 só conhece 'fixa' e 'por_km'. 'fixa_mais_km' entra lá como
+      // 'por_km' (o parente mais próximo, que também exige coordenada) e a
+      // modalidade real vai pro espelho v3 logo abaixo — que é de onde a
+      // cotação lê. Evita reescrever salvar_config_delivery_v2 inteira só
+      // pra ampliar um check constraint.
+      p_tipo_taxa: tipoTaxa === 'fixa' ? 'fixa' : 'por_km',
       p_taxa_fixa: taxaFixa,
       p_valor_por_km: valorPorKm,
       p_taxa_maxima: taxaMaxima,
@@ -192,7 +216,7 @@ export async function PUT(request: Request) {
     const { error: erroEspelho } = await sb.from('store_delivery_settings').upsert(
       {
         store_id: lojaId,
-        calculation_type: tipoTaxa === 'por_km' ? 'PER_KM' : 'FIXED',
+        calculation_type: paraCalculationType(tipoTaxa),
         fixed_fee_cents: Math.round(taxaFixa * 100),
         price_per_km_cents: Math.round(valorPorKm * 100),
         max_fee_cents: Math.round(taxaMaxima * 100),

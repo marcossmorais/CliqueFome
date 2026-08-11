@@ -12,12 +12,17 @@
  * descartado na linha seguinte.
  */
 
-export type TipoCalculo = 'FIXED' | 'PER_KM';
+/**
+ * `FIXED_PLUS_KM` = uma taxa base cobrada sempre, MAIS o valor por quilômetro
+ * rodado. É o modelo de quem tem custo de saída (a moto sai da loja de
+ * qualquer jeito) e ainda quer cobrar a distância por cima.
+ */
+export type TipoCalculo = 'FIXED' | 'PER_KM' | 'FIXED_PLUS_KM';
 export type EscopoOverride = 'CITY' | 'NEIGHBORHOOD';
 
 /** Qual regra produziu a taxa. Vai no snapshot do pedido, pra a loja
  *  conseguir explicar meses depois por que aquela entrega custou aquilo. */
-export type RegraAplicada = 'OVERRIDE_NEIGHBORHOOD' | 'OVERRIDE_CITY' | 'FIXED' | 'PER_KM';
+export type RegraAplicada = 'OVERRIDE_NEIGHBORHOOD' | 'OVERRIDE_CITY' | 'FIXED' | 'PER_KM' | 'FIXED_PLUS_KM';
 
 export type ConfiguracaoEntrega = {
   enabled: boolean;
@@ -52,7 +57,7 @@ export type MotivoIndisponivel =
 
 export type PlanoCotacao =
   | { tipo: 'pronto'; feeCents: number; regra: RegraAplicada; overrideId: string | null }
-  | { tipo: 'precisa_rota'; regra: 'PER_KM' }
+  | { tipo: 'precisa_rota'; regra: 'PER_KM' | 'FIXED_PLUS_KM' }
   | { tipo: 'indisponivel'; motivo: MotivoIndisponivel };
 
 /**
@@ -129,9 +134,10 @@ export function planejarCotacao({
     return { tipo: 'pronto', feeCents: config.fixedFeeCents, regra: 'FIXED', overrideId: null };
   }
 
-  // PER_KM sem coordenada da loja não tem como virar rota.
+  // Sem coordenada da loja não há como traçar rota — vale pros dois modos
+  // que dependem de distância.
   if (!config.origem) return { tipo: 'indisponivel', motivo: 'SEM_ORIGEM' };
-  return { tipo: 'precisa_rota', regra: 'PER_KM' };
+  return { tipo: 'precisa_rota', regra: config.calculationType };
 }
 
 /** Fecha a cotação por km depois que a rota respondeu. Separada de
@@ -147,11 +153,16 @@ export function fecharCotacaoPorKm({
   if (distanceMeters > config.maxDistanceMeters) {
     return { tipo: 'indisponivel', motivo: 'FORA_DA_AREA' };
   }
-  const feeCents = taxaPorDistanciaCents(distanceMeters, config.pricePerKmCents);
+  const porDistancia = taxaPorDistanciaCents(distanceMeters, config.pricePerKmCents);
+  // FIXED_PLUS_KM soma a base à distância. É a ÚNICA soma do motor inteiro —
+  // e ela é entre as duas partes da MESMA regra base. Override continua
+  // substituindo o resultado todo, nunca somando com ele.
+  const combinada = config.calculationType === 'FIXED_PLUS_KM';
+  const feeCents = combinada ? config.fixedFeeCents + porDistancia : porDistancia;
   if (feeCents > config.maxFeeCents) {
     return { tipo: 'indisponivel', motivo: 'TAXA_ACIMA_LIMITE' };
   }
-  return { tipo: 'pronto', feeCents, regra: 'PER_KM', overrideId: null };
+  return { tipo: 'pronto', feeCents, regra: combinada ? 'FIXED_PLUS_KM' : 'PER_KM', overrideId: null };
 }
 
 /** Mensagens de tela. Nenhum código técnico do provedor chega ao cliente —

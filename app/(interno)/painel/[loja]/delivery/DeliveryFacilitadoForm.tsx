@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ENDERECO_VAZIO, enderecoEstruturadoValido, formatarCep, type EnderecoEstruturado } from '@/lib/delivery/tipos';
+import { ENDERECO_VAZIO, dependeDeRota, enderecoEstruturadoValido, formatarCep, type EnderecoEstruturado, type TipoTaxaDelivery } from '@/lib/delivery/tipos';
 import { CampoEnderecoEntrega } from '@/components/delivery/CampoEnderecoEntrega';
 import { deEnderecoEstruturado, paraEnderecoEstruturado } from '@/lib/delivery/endereco';
 import styles from './delivery.module.css';
@@ -9,7 +9,7 @@ import styles from './delivery.module.css';
 type ConfigApi = {
   loja_id: string;
   setor: 'facilitado' | 'avancado';
-  tipo_taxa: 'fixa' | 'por_km';
+  tipo_taxa: TipoTaxaDelivery;
   cidade_atendida: string;
   taxa_fixa: number;
   valor_por_km: number;
@@ -31,7 +31,7 @@ export function DeliveryFacilitadoForm({ lojaId, lojaSlug }: { lojaId: string; l
   const [mensagem, setMensagem] = useState<Mensagem>(null);
 
   const [setor, setSetor] = useState<'facilitado' | 'avancado'>('facilitado');
-  const [tipoTaxa, setTipoTaxa] = useState<'fixa' | 'por_km'>('fixa');
+  const [tipoTaxa, setTipoTaxa] = useState<TipoTaxaDelivery>('fixa');
   const [taxaFixa, setTaxaFixa] = useState('0');
   const [valorPorKm, setValorPorKm] = useState('2');
   const [taxaMaxima, setTaxaMaxima] = useState('40');
@@ -253,23 +253,38 @@ export function DeliveryFacilitadoForm({ lojaId, lojaSlug }: { lojaId: string; l
               <small>Calcula pela rota até o endereço do cliente.</small>
             </span>
           </label>
+          <label className={styles.radio}>
+            <input
+              type="radio"
+              name="tipoTaxa"
+              checked={tipoTaxa === 'fixa_mais_km'}
+              onChange={() => setTipoTaxa('fixa_mais_km')}
+            />
+            <span>
+              <strong>Taxa fixa + por quilômetro</strong>
+              <small>Um valor de saída cobrado sempre, mais a distância por cima.</small>
+            </span>
+          </label>
         </div>
 
-        {tipoTaxa === 'fixa' ? (
-          <div className={styles.campo}>
-            <label htmlFor="delivery-taxa-fixa">Taxa fixa (R$)</label>
-            <input
-              id="delivery-taxa-fixa"
-              type="number"
-              min={0}
-              max={200}
-              step="0.01"
-              value={taxaFixa}
-              onChange={(evento) => setTaxaFixa(evento.target.value)}
-            />
-          </div>
-        ) : (
-          <>
+        <div className={styles.enderecoGrid}>
+          {(tipoTaxa === 'fixa' || tipoTaxa === 'fixa_mais_km') && (
+            <div className={styles.campo}>
+              <label htmlFor="delivery-taxa-fixa">
+                {tipoTaxa === 'fixa_mais_km' ? 'Taxa de saída (R$)' : 'Taxa fixa (R$)'}
+              </label>
+              <input
+                id="delivery-taxa-fixa"
+                type="number"
+                min={0}
+                max={200}
+                step="0.01"
+                value={taxaFixa}
+                onChange={(evento) => setTaxaFixa(evento.target.value)}
+              />
+            </div>
+          )}
+          {dependeDeRota(tipoTaxa) && (
             <div className={styles.campo}>
               <label htmlFor="delivery-valor-km">Valor por km (R$)</label>
               <input
@@ -282,7 +297,15 @@ export function DeliveryFacilitadoForm({ lojaId, lojaSlug }: { lojaId: string; l
                 onChange={(evento) => setValorPorKm(evento.target.value)}
               />
             </div>
-          </>
+          )}
+        </div>
+        {tipoTaxa === 'fixa_mais_km' && (
+          <p className={styles.blocoDesc}>
+            Exemplo: saída de R$ {(Number(taxaFixa) || 0).toFixed(2).replace('.', ',')} mais
+            R$ {(Number(valorPorKm) || 0).toFixed(2).replace('.', ',')} por km — uma entrega de 4 km sai por
+            R$ {((Number(taxaFixa) || 0) + 4 * (Number(valorPorKm) || 0)).toFixed(2).replace('.', ',')}.
+            Uma taxa específica de bairro ou cidade substitui esse cálculo inteiro.
+          </p>
         )}
       </section>
 
