@@ -1,0 +1,196 @@
+/* Campo único de endereço de entrega.
+ *
+ * Serve o cardápio público (whitelabel) e o painel do lojista, então a cor de
+ * destaque sai de `--marca` — a cor que o dono cadastrou — com um verde
+ * neutro de reserva pro painel, onde essa variável não existe. Nenhuma cor
+ * fixa da marca CliqueFome entra aqui: no cardápio isso seria vazamento de
+ * marca numa tela que é do cliente.
+ */
+
+.campo {
+  display: grid;
+  gap: 8px;
+}
+
+.rotulo {
+  color: #52625b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Some da tela, permanece pro leitor de tela. `display:none` não serviria:
+ * removeria o label da árvore de acessibilidade junto. */
+.rotuloOculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.combo {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.entrada {
+  width: 100%;
+  min-width: 0;
+  /* 43px acompanha .checkout-campo input e mantém o alvo de toque confortável
+   * no celular, que é onde a maior parte dos pedidos é feita. */
+  min-height: 43px;
+  padding: 9px 11px;
+  border: 1px solid #cbd5d0;
+  border-radius: 9px;
+  color: #17261f;
+  background: #fff;
+  /* 16px evita o zoom automático do Safari no iOS ao focar o campo — abaixo
+   * disso a página salta e a lista de sugestões sai da área visível. */
+  font: 500 16px inherit;
+}
+
+.entrada:focus {
+  outline: 3px solid color-mix(in srgb, var(--marca, #1f7a4d) 16%, transparent);
+  border-color: var(--marca, #1f7a4d);
+}
+
+.girando {
+  position: absolute;
+  right: 12px;
+  width: 15px;
+  height: 15px;
+  border: 2px solid color-mix(in srgb, var(--marca, #1f7a4d) 25%, transparent);
+  border-top-color: var(--marca, #1f7a4d);
+  border-radius: 50%;
+  animation: girar .7s linear infinite;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .girando { animation-duration: 2.4s; }
+}
+
+.lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e2e8e4;
+  border-radius: 10px;
+  background: #fff;
+  list-style: none;
+  overflow: hidden;
+}
+
+.lista[hidden] { display: none; }
+
+.opcao,
+.opcaoAtiva {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid #f0f3f1;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.opcaoAtiva {
+  background: color-mix(in srgb, var(--marca, #1f7a4d) 8%, #fff);
+}
+
+.opcao:last-child,
+.opcaoAtiva:last-child { border-bottom: 0; }
+
+.opcao strong,
+.opcaoAtiva strong {
+  color: #17261f;
+  font-size: 13.5px;
+}
+
+.opcao small,
+.opcaoAtiva small {
+  color: #718078;
+  font-size: 11.5px;
+}
+
+.aviso {
+  margin: 0;
+  color: #52625b;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.avisoErro {
+  margin: 0;
+  color: #a32e26;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.alternar {
+  justify-self: start;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--marca, #1f7a4d);
+  font-size: 11.5px;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.confirmacao {
+  display: grid;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: #f3f6f4;
+}
+
+.resumo {
+  margin: 0;
+  color: #17261f;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.complementares {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 9px;
+}
+
+.subCampo {
+  display: grid;
+  gap: 5px;
+  color: #52625b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.subCampo input {
+  width: 100%;
+  min-width: 0;
+  min-height: 43px;
+  padding: 9px 11px;
+  border: 1px solid #cbd5d0;
+  border-radius: 9px;
+  color: #17261f;
+  background: #fff;
+  font: 500 16px inherit;
+}
+
+.subCampo input:focus {
+  outline: 3px solid color-mix(in srgb, var(--marca, #1f7a4d) 16%, transparent);
+  border-color: var(--marca, #1f7a4d);
+}

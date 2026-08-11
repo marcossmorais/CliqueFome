@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { extraDaLinha, formatarTelefone, formatBRL, precoBase, subtotalLinha, type LinhaCarrinho, type ProdutoPublico } from '@/lib/cardapio/tipos';
-import { formatarCep, type ConfigDeliveryPublica, type EnderecoEstruturado } from '@/lib/delivery/tipos';
-import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
+import { type ConfigDeliveryPublica, type EnderecoEstruturado } from '@/lib/delivery/tipos';
+import { CampoEnderecoEntrega } from '@/components/delivery/CampoEnderecoEntrega';
+import { deEnderecoEstruturado, paraEnderecoEstruturado } from '@/lib/delivery/endereco';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import {
   formasPagamentoPara,
@@ -94,25 +95,25 @@ type EstadoModal = 'fechado' | 'entrando' | 'aberto' | 'saindo';
  * dois problemas de uma vez.
  */
 export function CheckoutModal({
-  aberto, linhas, nome, telefone, endereco, modo, formaPagamento, erro, enviando, pedidoRegistrado,
-  deliveryConfig, taxaEstatica, cidadeEscolhida, cotacao, onFechar, onMudarQtd, onRemover,
+  aberto, lojaSlug, linhas, nome, telefone, endereco, modo, formaPagamento, erro, enviando, pedidoRegistrado,
+  deliveryConfig, taxaEstatica, cotacao, onFechar, onMudarQtd, onRemover,
   sugestoes, sugestoesComplementos, onAdicionarSugestao, onAdicionarComplemento,
   lojaAberta, deliveryAtivo, retiradaAtiva,
-  onNome, onTelefone, onEndereco, onCidade, onCalcularFrete, onModo, onFormaPagamento, onFinalizar, onNovoPedido,
+  onNome, onTelefone, onEndereco, onCalcularFrete, onModo, onFormaPagamento, onFinalizar, onNovoPedido,
 }: {
-  aberto: boolean; linhas: LinhaCarrinho[]; nome: string; telefone: string;
+  aberto: boolean; lojaSlug: string; linhas: LinhaCarrinho[]; nome: string; telefone: string;
   endereco: EnderecoEstruturado; modo: ModoEntrega; formaPagamento: FormaPagamentoOffline | ''; erro: string | null; enviando: boolean;
   pedidoRegistrado: PedidoRegistrado | null; deliveryConfig: ConfigDeliveryPublica | null;
   lojaAberta: boolean; deliveryAtivo: boolean; retiradaAtiva: boolean;
   taxaEstatica: number;
-  cidadeEscolhida: string; cotacao: CotacaoEstado; onFechar: () => void;
+  cotacao: CotacaoEstado; onFechar: () => void;
   sugestoes: { titulo: string; produtos: ProdutoPublico[] }[];
   sugestoesComplementos: SugestaoComplementoCarrinho[];
   onAdicionarSugestao: (produto: ProdutoPublico) => void;
   onAdicionarComplemento: (sugestao: SugestaoComplementoCarrinho) => void;
   onMudarQtd: (lineId: string, delta: number) => void; onRemover: (lineId: string) => void;
   onNome: (v: string) => void; onTelefone: (v: string) => void;
-  onEndereco: (v: EnderecoEstruturado) => void; onCidade: (v: string) => void;
+  onEndereco: (v: EnderecoEstruturado) => void;
   onCalcularFrete: () => void; onModo: (m: ModoEntrega) => void;
   onFormaPagamento: (forma: FormaPagamentoOffline | '') => void;
   onFinalizar: () => void; onNovoPedido: () => void;
@@ -120,8 +121,6 @@ export function CheckoutModal({
   const [etapa, setEtapa] = useState<Etapa>('carrinho');
   const tituloRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
-  const enderecoAtualRef = useRef(endereco);
-  const buscaCep = useBuscaCep();
 
   // Reabrir sempre começa pelo carrinho — evita reabrir já em "Entrega" com
   // o cliente sem ter revisado os itens. Padrão documentado do React pra
@@ -168,10 +167,6 @@ export function CheckoutModal({
 
   useEscFechar(() => { if (!enviando) onFechar(); });
 
-  useEffect(() => {
-    enderecoAtualRef.current = endereco;
-  }, [endereco]);
-
   // Só quando o modal ABRE (não a cada tecla): trava o scroll de fundo e
   // manda o foco pro título. O bug original era ter `onFechar` (uma arrow
   // function nova a cada render do componente pai) na lista de
@@ -208,23 +203,6 @@ export function CheckoutModal({
   }, [estado]);
 
   if (estado === 'fechado') return null;
-  const atualizar = (campo: keyof EnderecoEstruturado, valor: string) => onEndereco({ ...endereco, [campo]: valor });
-  const alterarCep = (valor: string) => {
-    const cep = formatarCep(valor);
-    atualizar('cep', cep);
-    void buscaCep.consultar(cep, (localizado) => {
-      const atual = enderecoAtualRef.current;
-      onEndereco({
-        ...atual,
-        cep: formatarCep(localizado.cep),
-        logradouro: localizado.logradouro || atual.logradouro,
-        bairro: localizado.bairro || atual.bairro,
-        cidade: localizado.cidade,
-        uf: localizado.uf,
-      });
-      if (deliveryConfig?.setor === 'avancado') onCidade(localizado.cidade);
-    });
-  };
 
   const titulo = pedidoRegistrado
     ? 'Pedido recebido'
@@ -367,19 +345,23 @@ export function CheckoutModal({
             {modo === 'entrega' && (
               <section className="checkout-bloco">
                 <h3>Endereço de entrega</h3>
-                {deliveryConfig?.setor === 'avancado' && (
-                  <label className="checkout-campo checkout-largo">Cidade atendida<select value={cidadeEscolhida} onChange={(e) => onCidade(e.target.value)}><option value="">Selecione</option>{deliveryConfig.cidade && <option>{deliveryConfig.cidade}</option>}{deliveryConfig.cidades.map((c) => <option key={c.cidade}>{c.cidade}</option>)}</select></label>
-                )}
-                <div className="checkout-endereco-grid">
-                  <label className="checkout-campo campo-cep">CEP<input inputMode="numeric" autoComplete="postal-code" value={formatarCep(endereco.cep)} onChange={(e) => alterarCep(e.target.value)} placeholder="00000-000" />{buscaCep.mensagem && <small className={`checkout-cep-status${buscaCep.status === 'erro' ? ' erro' : ''}`} aria-live="polite">{buscaCep.mensagem}</small>}</label>
-                  <label className="checkout-campo campo-logradouro">Logradouro<input autoComplete="address-line1" maxLength={120} value={endereco.logradouro} onChange={(e) => atualizar('logradouro', e.target.value)} placeholder="Rua ou avenida" /></label>
-                  <label className="checkout-campo campo-numero">Número<input maxLength={20} value={endereco.numero} onChange={(e) => atualizar('numero', e.target.value)} /></label>
-                  <label className="checkout-campo campo-bairro">Bairro<input maxLength={80} value={endereco.bairro} onChange={(e) => atualizar('bairro', e.target.value)} /></label>
-                  <label className="checkout-campo campo-cidade">Cidade<input autoComplete="address-level2" maxLength={100} value={endereco.cidade} readOnly={!!deliveryConfig?.cidade} onChange={(e) => atualizar('cidade', e.target.value)} /></label>
-                  <label className="checkout-campo campo-uf">UF<input autoComplete="address-level1" maxLength={2} value={endereco.uf} onChange={(e) => atualizar('uf', e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))} placeholder="SP" /></label>
-                  <label className="checkout-campo campo-complemento">Complemento (opcional)<input autoComplete="address-line2" maxLength={100} value={endereco.complemento || ''} onChange={(e) => atualizar('complemento', e.target.value)} placeholder="Apto, bloco, casa…" /></label>
-                  <label className="checkout-campo campo-referencia">Ponto de referência (opcional)<input maxLength={120} value={endereco.referencia || ''} onChange={(e) => atualizar('referencia', e.target.value)} /></label>
-                </div>
+                {/* Um campo só. A cidade da cotação sai do endereço escolhido —
+                    o <select> de "cidade atendida" saiu junto com o fluxo
+                    antigo, porque perguntar a cidade a quem já disse a rua é
+                    passo redundante (e o servidor confere de qualquer jeito). */}
+                <CampoEnderecoEntrega
+                  lojaSlug={lojaSlug}
+                  rotuloVisivel={false}
+                  valor={deEnderecoEstruturado(endereco)}
+                  onChange={(novo) => onEndereco(paraEnderecoEstruturado(novo, {
+                    complemento: endereco.complemento,
+                    referencia: endereco.referencia,
+                  }))}
+                  complemento={endereco.complemento || ''}
+                  onComplemento={(v) => onEndereco({ ...endereco, complemento: v })}
+                  referencia={endereco.referencia || ''}
+                  onReferencia={(v) => onEndereco({ ...endereco, referencia: v })}
+                />
                 {usaCotacaoDinamica ? (
                   <>
                     <button type="button" className="checkout-calcular" disabled={cotacao.status === 'calculando'} onClick={onCalcularFrete}>{cotacao.status === 'calculando' ? 'Calculando rota…' : 'Calcular taxa de entrega'}</button>

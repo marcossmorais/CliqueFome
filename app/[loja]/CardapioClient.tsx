@@ -100,11 +100,13 @@ export function CardapioClient({
   function mudarEnderecoDetalhado(valor: EnderecoEstruturado) {
     setEnderecoDetalhado(valor);
     mudarEndereco(enderecoEmLinha(valor));
-  }
-
-  function mudarCidade(v: string) {
-    setCidadeEscolhida(v);
-    if (cotacao.status !== 'idle') setCotacao(COTACAO_INICIAL);
+    // Modo avançado: a cidade da cotação passa a vir do endereço que o
+    // cliente escolheu, no lugar do <select> que existia aqui. É conveniência
+    // de tela e nada mais — quem decide se a loja atende essa cidade (e por
+    // qual taxa) continua sendo o servidor, na cotação.
+    if (deliveryConfig?.setor === 'avancado' && valor.cidade.trim()) {
+      setCidadeEscolhida(valor.cidade.trim());
+    }
   }
 
   async function calcularFrete() {
@@ -617,6 +619,7 @@ export function CardapioClient({
 
       <CheckoutModal
         aberto={modalAberto}
+        lojaSlug={loja.slug}
         linhas={linhas}
         nome={nome}
         telefone={telefone}
@@ -631,7 +634,6 @@ export function CardapioClient({
         deliveryAtivo={loja.delivery_ativo}
         retiradaAtiva={loja.retirada_ativa}
         taxaEstatica={taxaEstatica}
-        cidadeEscolhida={cidadeEscolhida}
         cotacao={cotacao}
         sugestoes={sugestoesCarrinho}
         sugestoesComplementos={sugestoesComplementos}
@@ -643,10 +645,6 @@ export function CardapioClient({
         onNome={setNome}
         onTelefone={setTelefone}
         onEndereco={mudarEnderecoDetalhado}
-        onCidade={(v) => {
-          mudarCidade(v);
-          setEnderecoDetalhado((atual) => ({ ...atual, cidade: v }));
-        }}
         onCalcularFrete={calcularFrete}
         onModo={(m) => {
           setModo(m);

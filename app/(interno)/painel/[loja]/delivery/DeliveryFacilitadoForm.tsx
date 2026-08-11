@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ENDERECO_VAZIO, enderecoEstruturadoValido, formatarCep, type EnderecoEstruturado } from '@/lib/delivery/tipos';
-import { useBuscaCep } from '@/lib/endereco/useBuscaCep';
-import { useBuscaEndereco } from '@/lib/endereco/useBuscaEndereco';
+import { CampoEnderecoEntrega } from '@/components/delivery/CampoEnderecoEntrega';
+import { deEnderecoEstruturado, paraEnderecoEstruturado } from '@/lib/delivery/endereco';
 import styles from './delivery.module.css';
 
 type ConfigApi = {
@@ -25,7 +25,7 @@ type Mensagem = { tipo: 'sucesso' | 'erro'; texto: string } | null;
 
 type Cidade = { cidade: string; taxa: string };
 
-export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
+export function DeliveryFacilitadoForm({ lojaId, lojaSlug }: { lojaId: string; lojaSlug: string }) {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState<Mensagem>(null);
@@ -40,40 +40,6 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
   const [enderecoFormatado, setEnderecoFormatado] = useState('');
   const [editandoEndereco, setEditandoEndereco] = useState(true);
   const [cidades, setCidades] = useState<Cidade[]>([]);
-  const buscaCep = useBuscaCep();
-  const buscaEndereco = useBuscaEndereco();
-  const [sugestoesAbertas, setSugestoesAbertas] = useState(false);
-
-  function selecionarSugestao(sugestao: {
-    logradouro: string; numero: string; bairro: string; cidade: string; uf: string; cep: string;
-  }) {
-    setEndereco((atual) => ({
-      ...atual,
-      logradouro: sugestao.logradouro,
-      numero: sugestao.numero || atual.numero,
-      bairro: sugestao.bairro || atual.bairro,
-      cidade: sugestao.cidade || atual.cidade,
-      uf: sugestao.uf || atual.uf,
-      cep: sugestao.cep ? formatarCep(sugestao.cep) : atual.cep,
-    }));
-    setSugestoesAbertas(false);
-    buscaEndereco.limpar();
-  }
-
-  function alterarCep(valor: string) {
-    const cep = formatarCep(valor);
-    setEndereco((atual) => ({ ...atual, cep }));
-    void buscaCep.consultar(cep, (localizado) => {
-      setEndereco((atual) => ({
-        ...atual,
-        cep: formatarCep(localizado.cep),
-        logradouro: localizado.logradouro || atual.logradouro,
-        bairro: localizado.bairro || atual.bairro,
-        cidade: localizado.cidade,
-        uf: localizado.uf,
-      }));
-    });
-  }
 
   useEffect(() => {
     let cancelado = false;
@@ -244,111 +210,23 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
             {endereco.complemento && <span>{endereco.complemento}</span>}
           </div>
         ) : (
-          <div className={styles.enderecoGrid}>
-            <div className={styles.campo}>
-              <label htmlFor="est-cep">CEP</label>
-              <input id="est-cep" inputMode="numeric" autoComplete="postal-code" value={endereco.cep}
-                onChange={(e) => alterarCep(e.target.value)} placeholder="00000-000" />
-              {buscaCep.mensagem && (
-                <small className={buscaCep.status === 'erro' ? styles.erro : undefined} aria-live="polite">
-                  {buscaCep.mensagem}
-                </small>
-              )}
-            </div>
-            <div className={`${styles.campo} ${styles.campoLargo} ${styles.campoComBusca}`}>
-              <label htmlFor="est-logradouro">Logradouro</label>
-              <input
-                id="est-logradouro"
-                autoComplete="off"
-                maxLength={120}
-                value={endereco.logradouro}
-                onChange={(e) => {
-                  const valor = e.target.value;
-                  setEndereco((a) => ({ ...a, logradouro: valor }));
-                  setSugestoesAbertas(true);
-                  buscaEndereco.buscar(`${valor}, ${endereco.cidade || ''} ${endereco.uf || ''}`.trim());
-                }}
-                onFocus={() => setSugestoesAbertas(true)}
-                onBlur={() => setTimeout(() => setSugestoesAbertas(false), 150)}
-                placeholder="Comece a digitar a rua…"
-                role="combobox"
-                aria-expanded={sugestoesAbertas}
-                aria-autocomplete="list"
-                aria-controls="est-logradouro-sugestoes"
-              />
-              <small className={styles.buscaDica}>
-                Digite e escolha o endereço na lista — evita erro de &quot;endereço não encontrado&quot; ao salvar.
-              </small>
-              {sugestoesAbertas && buscaEndereco.estado.status === 'buscando' && (
-                <div className={styles.sugestoesLista}><div className={styles.sugestaoVazia}>Buscando…</div></div>
-              )}
-              {sugestoesAbertas && buscaEndereco.estado.status === 'resultados' && (
-                <ul id="est-logradouro-sugestoes" className={styles.sugestoesLista} role="listbox">
-                  {buscaEndereco.estado.sugestoes.map((sugestao, indice) => (
-                    <li key={indice} role="option" aria-selected={false}>
-                      <button type="button" onMouseDown={(e) => { e.preventDefault(); selecionarSugestao(sugestao); }}>
-                        {sugestao.formatado}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {sugestoesAbertas && buscaEndereco.estado.status === 'vazio' && (
-                <div className={styles.sugestoesLista}>
-                  <div className={styles.sugestaoVazia}>Nenhum endereço encontrado — continue digitando ou preencha manualmente.</div>
-                </div>
-              )}
-              {sugestoesAbertas && buscaEndereco.estado.status === 'erro' && (
-                <div className={styles.sugestoesLista}>
-                  <div className={styles.sugestaoVazia}>{buscaEndereco.estado.mensagem}</div>
-                </div>
-              )}
-            </div>
-            <div className={styles.campo}>
-              <label htmlFor="est-numero">Número</label>
-              <input
-                id="est-numero"
-                maxLength={20}
-                value={endereco.numero}
-                onChange={(e) => {
-                  const valor = e.target.value;
-                  setEndereco((a) => ({ ...a, numero: valor }));
-                  // Busca de novo incluindo o número: uma sugestão que só
-                  // tinha o logradouro (rua inteira, sem número específico)
-                  // pode virar uma sugestão precisa agora — é essa segunda
-                  // chance que evita "número que a pessoa chutou" cair na
-                  // validação do salvar.
-                  if (valor.trim() && endereco.logradouro.trim()) {
-                    setSugestoesAbertas(true);
-                    buscaEndereco.buscar(`${endereco.logradouro} ${valor}, ${endereco.cidade || ''} ${endereco.uf || ''}`.trim());
-                  }
-                }}
-                onFocus={() => { if (endereco.logradouro.trim()) setSugestoesAbertas(true); }}
-                onBlur={() => setTimeout(() => setSugestoesAbertas(false), 150)}
-                placeholder="123"
-              />
-            </div>
-            <div className={styles.campo}>
-              <label htmlFor="est-bairro">Bairro</label>
-              <input id="est-bairro" maxLength={80} value={endereco.bairro}
-                onChange={(e) => setEndereco((a) => ({ ...a, bairro: e.target.value }))} />
-            </div>
-            <div className={styles.campo}>
-              <label htmlFor="est-cidade">Cidade</label>
-              <input id="est-cidade" autoComplete="address-level2" maxLength={100} value={endereco.cidade}
-                onChange={(e) => setEndereco((a) => ({ ...a, cidade: e.target.value }))} />
-            </div>
-            <div className={styles.campo}>
-              <label htmlFor="est-uf">UF</label>
-              <input id="est-uf" autoComplete="address-level1" maxLength={2} value={endereco.uf}
-                onChange={(e) => setEndereco((a) => ({ ...a, uf: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') }))} placeholder="SP" />
-            </div>
-            <div className={`${styles.campo} ${styles.campoLargo}`}>
-              <label htmlFor="est-complemento">Complemento (opcional)</label>
-              <input id="est-complemento" autoComplete="address-line2" maxLength={100} value={endereco.complemento}
-                onChange={(e) => setEndereco((a) => ({ ...a, complemento: e.target.value }))} placeholder="Loja, sala, bloco…" />
-            </div>
-          </div>
+          // Mesmo componente do checkout. É o que garante que a origem
+          // (PONTO A) e o destino do cliente (PONTO B) sejam coletados e
+          // normalizados exatamente do mesmo jeito — antes eram dois
+          // formulários independentes, com duas noções de "endereço válido".
+          <CampoEnderecoEntrega
+            lojaSlug={lojaSlug}
+            rotulo="Endereço do estabelecimento"
+            rotuloVisivel={false}
+            valor={deEnderecoEstruturado(endereco)}
+            onChange={(novo) => setEndereco((atual) => ({
+              ...paraEnderecoEstruturado(novo),
+              complemento: atual.complemento,
+              referencia: atual.referencia,
+            }))}
+            complemento={endereco.complemento ?? ''}
+            onComplemento={(v) => setEndereco((atual) => ({ ...atual, complemento: v }))}
+          />
         )}
       </section>
 
@@ -486,8 +364,12 @@ export function DeliveryFacilitadoForm({ lojaId }: { lojaId: string }) {
             <span className={mensagem.tipo === 'sucesso' ? styles.sucesso : styles.erro}>{mensagem.texto}</span>
           )}
         </div>
-        <button type="button" className={styles.salvar} disabled={salvando || buscaCep.status === 'carregando'} onClick={salvar}>
-          {salvando ? 'Salvando…' : buscaCep.status === 'carregando' ? 'Buscando CEP…' : 'Salvar configuração'}
+        {/* A trava "aguarde o CEP" saiu junto com o formulário antigo: o
+            estado da busca agora é interno ao CampoEnderecoEntrega. Quem
+            impede salvar endereço incompleto continua sendo a validação em
+            `salvar`, que é a barreira que importa. */}
+        <button type="button" className={styles.salvar} disabled={salvando} onClick={salvar}>
+          {salvando ? 'Salvando…' : 'Salvar configuração'}
         </button>
       </div>
     </main>
