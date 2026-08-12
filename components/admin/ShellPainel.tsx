@@ -132,6 +132,37 @@ export function ShellPainel({
         </aside>
 
         <main id="main">
+          {/* Marca e identidade da loja, só no mobile: no desktop as duas já
+              vivem no topo da sidebar, sempre visíveis. */}
+          <div id="topoMarca">
+            <div className="topo-marca-logo">
+              <LogoCliqueFome />
+            </div>
+            <button
+              type="button"
+              className="topo-sino"
+              disabled
+              title="Avisos — em breve"
+              aria-label="Avisos — em breve"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+              </svg>
+              {/* Ponto laranja é o mesmo marcador de "em breve" do menu, e não
+                  um contador de não lidas: ainda não existe o que notificar. */}
+              <span className="marca-breve" aria-hidden="true" />
+            </button>
+          </div>
+
+          <div id="lojaTopo">
+            <div className="loja-topo-id">
+              <strong>{lojaNome}</strong>
+              <span>/{lojaSlug}</span>
+            </div>
+            {souAdmin && <span className="badge-admin">Super admin</span>}
+          </div>
+
           <div id="mainTop">
             <h1>{titulo}</h1>
             <StatusOperacional />
