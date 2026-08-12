@@ -72,4 +72,17 @@ jobs:
       - run: npm run build
       # Specs sem credencial configurada (E2E_ADMIN_EMAIL/PASSWORD) pulam
       # sozinhos via test.skip() — não é preciso condicionar o job aqui.
-      - run: npm run test:e2e
+      - name: e2e
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee e2e.log
+      # Job verde com tudo pulado é pior que job vermelho: parece cobertura e
+      # não é. Enquanto faltar secret, o aviso aparece no resumo do run.
+      - name: Avisa quando o e2e não executou nada
+        if: always()
+        shell: bash
+        run: |
+          if ! grep -qE '[0-9]+ (passed|failed)' e2e.log; then
+            echo "::warning title=e2e sem cobertura::Todos os specs pularam por falta de secret. Verde neste job NÃO significa testado."
+          fi
