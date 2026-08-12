@@ -16,6 +16,10 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: E2E_BASE_URL,
+    // Só grava tráfego do navegador, que nunca carrega credencial de
+    // servidor: a limpeza do checkout usa fetch do Node, fora do contexto do
+    // Playwright. Vídeo e screenshot seguem desligados (padrão), e o CI não
+    // publica artefato nenhum.
     trace: 'on-first-retry',
   },
   projects: [

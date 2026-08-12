@@ -9,7 +9,7 @@ const LOJA_SLUG = process.env.E2E_LOJA_SLUG || 'lojateste';
 const SUPABASE_CI_CONFIGURADO = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SECRET_KEY
 );
 
 test.skip(
@@ -18,14 +18,19 @@ test.skip(
 );
 
 /**
- * Apaga o pedido que o teste criou, com a service key — a mesma que a API
- * usa. Falha aqui não derruba o teste: o objetivo é não sujar a base, e um
- * pedido órfão é menos grave que um verde perdido por causa da limpeza. O
- * que não deu pra apagar aparece no log do job.
+ * Apaga o pedido que o teste criou.
+ *
+ * A chave vem do ambiente do processo Node do Playwright e é usada só neste
+ * `fetch` — que não passa pelo navegador, então não entra em trace, vídeo,
+ * screenshot nem HAR. Nada dela é impresso: o log traz apenas o id e o
+ * status HTTP. E, por contrato do CI, é a chave do projeto de teste.
+ *
+ * Falha aqui não derruba o teste: o objetivo é não sujar a base, e um pedido
+ * órfão é menos grave que um verde perdido por causa da limpeza.
  */
 async function removerPedidoDeTeste(pedidoId: string | undefined) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const chave = process.env.SUPABASE_SECRET_KEY;
   if (!pedidoId || !url || !chave) return;
   try {
     const resposta = await fetch(`${url}/rest/v1/pedidos?id=eq.${pedidoId}`, {
