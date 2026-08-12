@@ -10,6 +10,9 @@ const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
  */
 export default defineConfig({
   testDir: './tests/e2e',
+  // O padrão de 30s não cobre o checkout inteiro: são muitas idas ao Supabase
+  // remoto e a primeira requisição ainda paga o start do servidor.
+  timeout: 90_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
