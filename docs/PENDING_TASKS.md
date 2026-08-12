@@ -241,9 +241,9 @@ disso eu consigo fazer sozinho — precisa de conta/segredo do dono):
 - **e2e em CI**: além dos secrets do Supabase, precisa de
   `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` (login de uma loja de teste,
   nunca conta real) e opcionalmente `E2E_LOJA_SLUG` (default
-  `lojateste`). Sem essas duas primeiras, o spec de login pula sozinho
-  (não quebra o pipeline) — mas o spec de checkout com Pix roda sempre,
-  já que não precisa de login.
+  `lojateste`). Sem credenciais administrativas, o spec de login pula; sem
+  as três variáveis Supabase, o checkout E2E também pula com motivo explícito.
+  Com os secrets configurados, ambos executam normalmente.
 - **Datadog / New Relic**: ficaram de fora de propósito — são APM pagos;
   avaliar quando o volume de tráfego justificar (o OpenTelemetry já
   instrumentado facilita plugar qualquer um dos dois depois, sem reescrever

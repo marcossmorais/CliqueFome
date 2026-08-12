@@ -6,6 +6,16 @@ import { test, expect, type Page } from '@playwright/test';
  * os seletores ao nome de um produto ou a ids do banco.
  */
 const LOJA_SLUG = process.env.E2E_LOJA_SLUG || 'lojateste';
+const SUPABASE_CI_CONFIGURADO = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+test.skip(
+  Boolean(process.env.CI) && !SUPABASE_CI_CONFIGURADO,
+  'Configure os secrets do Supabase para executar o checkout E2E no CI.'
+);
 
 function valorBRL(texto: string | null) {
   const numero = texto?.match(/R\$\s*([\d.]+,\d{2})/)?.[1];
