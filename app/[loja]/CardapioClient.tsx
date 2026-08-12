@@ -23,6 +23,7 @@ import {
 } from '@/lib/cardapio/tipos';
 import { formaPagamentoPermitida, type FormaPagamentoOffline } from '@/lib/pedidos/pagamento';
 import { IconeCategoria } from '@/components/cardapio/IconeCategoria';
+import type { CotacaoDeliveryPublica, ModalidadePedido } from '@/lib/delivery/tipos';
 
 const TEXTO_AVISO: Record<string, string> = {
   removido: 'saiu do cardápio',
@@ -45,10 +46,12 @@ export function CardapioClient({
   loja,
   categorias,
   produtos,
+  deliveryAtiva,
 }: {
   loja: LojaPublica;
   categorias: CategoriaPublica[];
   produtos: ProdutoPublico[];
+  deliveryAtiva: boolean;
 }) {
   const [linhasSalvas, setLinhas] = useLocalStorage<LinhaCarrinho[]>(
     chaveCarrinho(loja.slug),
@@ -66,6 +69,10 @@ export function CardapioClient({
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [pedidoRegistrado, setPedidoRegistrado] = useState<PedidoRegistrado | null>(null);
+  const [modalidade, setModalidade] = useState<ModalidadePedido>(() =>
+    loja.retirada_ativa ? 'retirada' : 'delivery'
+  );
+  const [versaoCarrinho, setVersaoCarrinho] = useState(0);
   // Uma chave por tentativa de checkout: sobrevive a retry (clique de novo
   // depois de erro de rede) e só é trocada depois que um pedido é
   // efetivamente criado — é o que garante que duplo clique ou timeout não
@@ -85,6 +92,7 @@ export function CardapioClient({
    * reconciliação virar permanente na primeira mexida do cliente. */
   function atualizar(fn: (atual: LinhaCarrinho[]) => LinhaCarrinho[]) {
     setLinhas(fn(linhas));
+    setVersaoCarrinho((atual) => atual + 1);
   }
 
   const tipoPedido = 'retirada';
@@ -288,7 +296,7 @@ export function CardapioClient({
     );
   }
 
-  async function finalizar() {
+  async function finalizar(cotacao: CotacaoDeliveryPublica | null) {
     setErro(null);
     if (linhas.length === 0 || enviando) return;
 
@@ -305,8 +313,16 @@ export function CardapioClient({
       setErro('Informe um telefone válido com DDD.');
       return;
     }
-    if (!loja.retirada_ativa) {
+    if (modalidade === 'retirada' && !loja.retirada_ativa) {
       setErro('A retirada está indisponível no momento.');
+      return;
+    }
+    if (modalidade === 'delivery' && !deliveryAtiva) {
+      setErro('O Delivery está indisponível no momento.');
+      return;
+    }
+    if (modalidade === 'delivery' && !cotacao) {
+      setErro('Calcule e confirme a taxa de entrega.');
       return;
     }
     const minimo = Number(loja.pedido_minimo) || 0;
@@ -314,23 +330,28 @@ export function CardapioClient({
       setErro(`O pedido mínimo é de ${formatBRL(minimo)}.`);
       return;
     }
-    if (!formaPagamentoPermitida(tipoPedido, formaPagamento)) {
+    if (!formaPagamentoPermitida(modalidade, formaPagamento)) {
       setErro('Escolha como deseja pagar.');
       return;
     }
 
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), 20_000);
     setEnviando(true);
     try {
       const resposta = await fetch(`/api/lojas/${loja.slug}/pedidos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controlador.signal,
         body: JSON.stringify({
           idempotencyKey,
           clienteNome: nome.trim(),
           clienteTelefone: telefone,
-          tipo: 'retirada',
+          tipo: modalidade,
+          quoteId: modalidade === 'delivery' ? cotacao?.quoteId : undefined,
           formaPagamento,
-          totalEsperadoCentavos: Math.round(totalGeral * 100),
+          totalEsperadoCentavos: Math.round(totalGeral * 100) +
+            (modalidade === 'delivery' ? cotacao?.deliveryFeeCents || 0 : 0),
           itens: linhas.map((l) => ({
             produtoId: l.produtoId,
             quantidade: l.qty,
@@ -345,8 +366,10 @@ export function CardapioClient({
       const corpo = await resposta.json();
 
       if (!resposta.ok) {
+        if (corpo.codigo === 'DELIVERY_QUOTE_STALE') {
+          setVersaoCarrinho((atual) => atual + 1);
+        }
         setErro(corpo.erro || 'Não foi possível registrar seu pedido. Tente novamente.');
-        setEnviando(false);
         return;
       }
 
@@ -356,7 +379,6 @@ export function CardapioClient({
       setIdempotencyKey(crypto.randomUUID());
       setPedidoRegistrado({ pedido: corpo.pedido, proximaAcao: corpo.proxima_acao });
       registrarAcompanhamento({ token: corpo.pedido.token, numero: corpo.pedido.numero });
-      setEnviando(false);
       // Pix no WhatsApp é o único caminho pra fechar o pagamento — tenta
       // abrir sozinho. Pode ser bloqueado como popup (Safari/Chrome mobile
       // bloqueiam window.open fora de um clique síncrono, e este roda
@@ -367,6 +389,8 @@ export function CardapioClient({
       }
     } catch {
       setErro('Falha de conexão ao enviar seu pedido. Seu carrinho continua salvo — tente de novo.');
+    } finally {
+      clearTimeout(temporizador);
       setEnviando(false);
     }
   }
@@ -408,8 +432,8 @@ export function CardapioClient({
         </nav>
 
         <div id="info-loja" className="sidebar-info">
-          <strong className={loja.recebendo_encomendas && loja.retirada_ativa ? 'aberto' : 'fechado'}>
-            <i /> {loja.recebendo_encomendas && loja.retirada_ativa ? 'Aceitando pedidos' : 'Loja fechada'}
+          <strong className={loja.recebendo_encomendas && (loja.retirada_ativa || deliveryAtiva) ? 'aberto' : 'fechado'}>
+            <i /> {loja.recebendo_encomendas && (loja.retirada_ativa || deliveryAtiva) ? 'Aceitando pedidos' : 'Loja fechada'}
           </strong>
           {loja.tempo_preparo_min && loja.tempo_preparo_max && (
             <p><span>Tempo de preparo</span>{loja.tempo_preparo_min}–{loja.tempo_preparo_max} min</p>
@@ -425,7 +449,7 @@ export function CardapioClient({
       </aside>
 
       <section id="cardapio" className="menu-section">
-        <HeroLoja loja={loja} />
+        <HeroLoja loja={loja} deliveryAtiva={deliveryAtiva} />
 
         <div id="cardapio-conteudo" className="menu-conteudo">
 
@@ -529,6 +553,10 @@ export function CardapioClient({
         pedidoRegistrado={pedidoRegistrado}
         lojaAberta={loja.recebendo_encomendas}
         retiradaAtiva={loja.retirada_ativa}
+        deliveryAtiva={deliveryAtiva}
+        lojaSlug={loja.slug}
+        modalidade={modalidade}
+        versaoCarrinho={versaoCarrinho}
         sugestoes={sugestoesCarrinho}
         sugestoesComplementos={sugestoesComplementos}
         onAdicionarSugestao={adicionarSugestao}
@@ -539,6 +567,7 @@ export function CardapioClient({
         onNome={setNome}
         onTelefone={setTelefone}
         onFormaPagamento={(forma) => { setFormaPagamento(forma); setErro(null); }}
+        onModalidade={(novaModalidade) => { setModalidade(novaModalidade); setErro(null); }}
         onFinalizar={finalizar}
         onNovoPedido={() => {
           setPedidoRegistrado(null);

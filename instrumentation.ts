@@ -16,11 +16,48 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { registerOTel } = await import('@vercel/otel');
-    registerOTel('cliquefome');
+    registerOTel({
+      serviceName: 'cliquefome',
+      // Geoapify recebe chave e endereço na query string por contrato da API.
+      // Esses dois fetches ficam fora dos traces para não exportar segredo nem
+      // endereço de cliente; duração/falhas continuam cobertas pela rota pai.
+      instrumentationConfig: {
+        fetch: { ignoreUrls: [/^https:\/\/api\.geoapify\.com\//] },
+      },
+    });
 
     if (process.env.SENTRY_DSN) {
       const Sentry = await import('@sentry/nextjs');
-      Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
+      const hostGeoapify = 'api.geoapify.com';
+      Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        tracesSampleRate: 0.1,
+        beforeBreadcrumb(breadcrumb) {
+          const contemGeoapify =
+            breadcrumb.category === 'http' &&
+            Object.values(breadcrumb.data ?? {}).some(
+              (valor) => typeof valor === 'string' && valor.includes(hostGeoapify)
+            );
+          // O breadcrumb separa `http.query` da URL. Descartar o registro
+          // inteiro evita enviar apiKey, endereço ou coordenadas junto de um
+          // evento posterior da mesma request.
+          return contemGeoapify ? null : breadcrumb;
+        },
+        beforeSendSpan(span) {
+          const contemGeoapify =
+            span.description?.includes(hostGeoapify) ||
+            Object.values(span.data).some(
+              (valor) => typeof valor === 'string' && valor.includes(hostGeoapify)
+            );
+          if (!contemGeoapify) return span;
+
+          // O Sentry decompõe a URL em campos como `url.query`; estes campos
+          // não contêm o hostname, mas carregam apiKey, endereço e waypoints.
+          // Uma allowlist seria frágil entre versões do SDK, então o span da
+          // chamada externa mantém somente nome/tempo/status e nenhum dado.
+          return { ...span, description: 'Geoapify request', data: {} };
+        },
+      });
     }
   }
 }

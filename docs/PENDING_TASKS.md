@@ -6,12 +6,12 @@ O ledger completo da auditoria está em
 
 ## Antes do próximo deploy
 
-Aplicar `supabase/migrations/20260811_remove_legacy_delivery_system.sql` no
-Supabase antes de publicar o código desta limpeza. A aplicação já consulta
-`tempo_preparo_min/max` e chama `criar_pedido_publico_retirada_v1`; publicar
-antes da migration deixa o cardápio público incompatível com o schema antigo.
-Depois da aplicação, `GEOAPIFY_API_KEY` e `DELIVERY_QUOTE_SECRET` podem ser
-removidas dos ambientes da Vercel.
+Aplicar `supabase/migrations/20260811180000_rebuild_delivery_module.sql` no
+Supabase depois de `20260811_remove_legacy_delivery_system.sql` e antes de
+ativar o novo Delivery. O cardápio e a Retirada possuem fallback enquanto a
+migration nova não existe, mas Delivery permanece desligado. Configurar
+`GEOAPIFY_API_KEY` somente no servidor/Vercel; sem ela as cotações respondem
+503. `DELIVERY_QUOTE_SECRET` continua obsoleta e pode permanecer removida.
 
 ## Feito em 2026-08-08 (migration + deploy confirmados em produção)
 
@@ -241,9 +241,9 @@ disso eu consigo fazer sozinho — precisa de conta/segredo do dono):
 - **e2e em CI**: além dos secrets do Supabase, precisa de
   `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` (login de uma loja de teste,
   nunca conta real) e opcionalmente `E2E_LOJA_SLUG` (default
-  `lojateste`). Sem essas duas primeiras, o spec de login pula sozinho
-  (não quebra o pipeline) — mas o spec de checkout com Pix roda sempre,
-  já que não precisa de login.
+  `lojateste`). Sem credenciais administrativas, o spec de login pula; sem
+  as três variáveis Supabase, o checkout E2E também pula com motivo explícito.
+  Com os secrets configurados, ambos executam normalmente.
 - **Datadog / New Relic**: ficaram de fora de propósito — são APM pagos;
   avaliar quando o volume de tráfego justificar (o OpenTelemetry já
   instrumentado facilita plugar qualquer um dos dois depois, sem reescrever

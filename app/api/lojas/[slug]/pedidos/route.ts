@@ -4,6 +4,7 @@ import {
   itensParaRpc,
   payloadCanonico,
   validarEntradaCheckout,
+  type PedidoCheckoutEntrada,
 } from '@/lib/pedidos/checkout';
 import { montarMensagemPedido } from '@/lib/pedidos/mensagemWhatsapp';
 import { criarClientPrivilegiado, hashLimite, hashPayload } from '@/lib/pedidos/servidor';
@@ -14,9 +15,87 @@ export const runtime = 'nodejs';
 const ROTA = '/api/lojas/[slug]/pedidos';
 
 const TAMANHO_MAXIMO_BYTES = 60_000;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type EntradaPedido =
+  | (PedidoCheckoutEntrada & { tipo: 'retirada'; quoteId: null })
+  | (Omit<PedidoCheckoutEntrada, 'tipo'> & { tipo: 'delivery'; quoteId: string });
+
+function validarEntradaPedido(corpo: unknown): EntradaPedido {
+  const objeto = corpo && typeof corpo === 'object' ? corpo as Record<string, unknown> : null;
+  if (objeto?.tipo !== 'delivery') {
+    return { ...validarEntradaCheckout(corpo), quoteId: null };
+  }
+
+  const base = validarEntradaCheckout({ ...objeto, tipo: 'retirada' });
+  const quoteId = String(objeto.quoteId ?? '');
+  if (!UUID_RE.test(quoteId)) throw new ErroValidacaoCheckout('A taxa de entrega precisa ser recalculada.');
+  if (base.formaPagamento === 'pagamento_retirada') {
+    throw new ErroValidacaoCheckout('Escolha uma forma de pagamento válida para a entrega.');
+  }
+  return { ...base, tipo: 'delivery', quoteId };
+}
+
+function payloadCanonicoPedido(entrada: EntradaPedido) {
+  if (entrada.tipo === 'retirada') return payloadCanonico(entrada);
+  const baseRetirada: PedidoCheckoutEntrada = { ...entrada, tipo: 'retirada' };
+  const base = JSON.parse(payloadCanonico(baseRetirada)) as Record<string, unknown>;
+  return JSON.stringify({ ...base, tipo: 'delivery', quoteId: entrada.quoteId });
+}
 
 function respostaErro(erro: string, status: number, extra?: Record<string, unknown>) {
   return NextResponse.json({ erro, ...extra }, { status, headers: { 'Cache-Control': 'no-store' } });
+}
+
+function mensagemNegocioSegura(mensagem: string) {
+  if (mensagem.includes('Informe o nome') || mensagem.includes('Nome muito longo')) {
+    return 'Informe corretamente o nome de quem está pedindo.';
+  }
+  if (mensagem.includes('telefone') || mensagem.includes('Telefone')) {
+    return 'Informe um telefone válido com DDD.';
+  }
+  if (mensagem.includes('pedido esta vazio') || mensagem.includes('Pedido com itens demais')) {
+    return 'Confira os itens do pedido.';
+  }
+  if (mensagem.includes('Produto indisponivel')) {
+    return 'Um produto do carrinho não está mais disponível.';
+  }
+  if (
+    mensagem.includes('Complemento') ||
+    mensagem.includes('complemento') ||
+    mensagem.includes('opcao') ||
+    mensagem.includes('Escolha pelo menos') ||
+    mensagem.includes('Escolha no maximo') ||
+    mensagem.includes('Nao e permitido repetir')
+  ) {
+    return 'Confira as opções escolhidas nos produtos.';
+  }
+  if (mensagem.includes('Quantidade invalida') || mensagem.includes('Preco invalido')) {
+    return 'O carrinho contém uma quantidade ou preço inválido.';
+  }
+  if (mensagem.includes('pedido minimo')) {
+    return 'O pedido não atingiu o valor mínimo da loja.';
+  }
+  if (mensagem.includes('Forma de pagamento')) {
+    return 'Escolha uma forma de pagamento válida.';
+  }
+  if (mensagem.includes('Observacao muito longa') || mensagem.includes('Endereco muito longo')) {
+    return 'Revise os dados informados antes de continuar.';
+  }
+  if (mensagem.includes('Loja nao encontrada')) return 'Loja não encontrada.';
+  if (mensagem.includes('loja esta fechada') || mensagem.includes('nao esta recebendo')) {
+    return 'A loja não está recebendo pedidos no momento.';
+  }
+  if (mensagem.includes('retirada esta indisponivel')) {
+    return 'A retirada está indisponível no momento.';
+  }
+  if (mensagem.includes('Delivery indisponivel')) {
+    return 'O Delivery está indisponível no momento.';
+  }
+  if (mensagem.includes('Requisicao') || mensagem.includes('Pedidos do site')) {
+    return 'Dados do pedido inválidos.';
+  }
+  return null;
 }
 
 /** Cloudflare Turnstile é opcional: sem TURNSTILE_SECRET_KEY configurada, a
@@ -36,8 +115,8 @@ async function captchaValido(token: string | undefined) {
     });
     const dados = (await resposta.json().catch(() => null)) as { success?: boolean } | null;
     return dados?.success === true;
-  } catch (erro) {
-    logger.error({ err: erro, rota: ROTA }, 'Falha ao verificar captcha (Turnstile) — tratando como inválido');
+  } catch {
+    logger.error({ rota: ROTA }, 'Falha ao verificar captcha (Turnstile) — tratando como inválido');
     return false;
   }
 }
@@ -72,17 +151,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let corpoJson: unknown;
   try {
     corpoJson = JSON.parse(bruto);
-  } catch (erro) {
-    logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'JSON malformado no corpo do pedido');
+  } catch {
+    logger.warn({ rota: ROTA, lojaSlug: slug }, 'JSON malformado no corpo do pedido');
     return respostaErro('Dados inválidos.', 422);
   }
 
   let entrada;
   try {
-    entrada = validarEntradaCheckout(corpoJson);
+    entrada = validarEntradaPedido(corpoJson);
   } catch (erro) {
     if (erro instanceof ErroValidacaoCheckout) return respostaErro(erro.message, 422);
-    logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha inesperada ao validar entrada do checkout');
+    logger.error({ rota: ROTA, lojaSlug: slug }, 'Falha inesperada ao validar entrada do checkout');
     return respostaErro('Dados inválidos.', 422);
   }
 
@@ -93,8 +172,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let sb;
   try {
     sb = criarClientPrivilegiado();
-  } catch (erro) {
-    logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha ao criar client privilegiado do Supabase');
+  } catch {
+    logger.error({ rota: ROTA, lojaSlug: slug }, 'Falha ao criar client privilegiado do Supabase');
     return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
   }
 
@@ -106,14 +185,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .eq('slug', slug)
     .maybeSingle();
   if (erroLojaOperacao) {
-    logger.error({ err: erroLojaOperacao, rota: ROTA, lojaSlug: slug }, 'Falha ao consultar estado operacional da loja');
+    logger.error(
+      { codigo: erroLojaOperacao.code, rota: ROTA, lojaSlug: slug },
+      'Falha ao consultar estado operacional da loja'
+    );
     return respostaErro('Não foi possível confirmar se a loja está aberta. Tente novamente.', 503);
   }
   if (!lojaOperacao) return respostaErro('Loja não encontrada.', 404);
   if (!lojaOperacao.recebendo_encomendas) {
     return respostaErro('A loja está fechada e não está recebendo pedidos no momento.', 409);
   }
-  if (!lojaOperacao.retirada_ativa) {
+  if (entrada.tipo === 'retirada' && !lojaOperacao.retirada_ativa) {
     return respostaErro('A retirada está indisponível no momento.', 409);
   }
 
@@ -123,14 +205,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     chaveIp = hashLimite(`${ip}:${slug}`);
     chaveTelefone = hashLimite(`${entrada.clienteTelefone}:${slug}`);
-  } catch (erro) {
-    logger.error({ err: erro, rota: ROTA, lojaSlug: slug }, 'Falha ao gerar hash de limite de pedidos');
+  } catch {
+    logger.error({ rota: ROTA, lojaSlug: slug }, 'Falha ao gerar hash de limite de pedidos');
     return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
   }
 
-  const payloadHash = hashPayload(payloadCanonico(entrada));
-
-  const parametros = {
+  const payloadHash = hashPayload(payloadCanonicoPedido(entrada));
+  const parametrosComuns = {
     p_loja_slug: slug,
     p_cliente_nome: entrada.clienteNome,
     p_cliente_telefone: entrada.clienteTelefone,
@@ -143,7 +224,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     p_chave_ip: chaveIp,
     p_chave_telefone: chaveTelefone,
   };
-  const { data, error } = await sb.rpc('criar_pedido_publico_retirada_v1', parametros);
+  const chamada = entrada.tipo === 'delivery'
+    ? sb.rpc('criar_pedido_publico_delivery_v1', {
+        p_loja_slug: parametrosComuns.p_loja_slug,
+        p_cliente_nome: parametrosComuns.p_cliente_nome,
+        p_cliente_telefone: parametrosComuns.p_cliente_telefone,
+        p_observacao: parametrosComuns.p_observacao,
+        p_forma_pagamento: parametrosComuns.p_forma_pagamento,
+        p_itens: parametrosComuns.p_itens,
+        p_quote_id: entrada.quoteId,
+        p_idempotency_key: parametrosComuns.p_idempotency_key,
+        p_payload_hash: parametrosComuns.p_payload_hash,
+        p_total_esperado_centavos: parametrosComuns.p_total_esperado_centavos,
+        p_chave_ip: parametrosComuns.p_chave_ip,
+        p_chave_telefone: parametrosComuns.p_chave_telefone,
+      })
+    : sb.rpc('criar_pedido_publico_retirada_v1', parametrosComuns);
+  const { data, error } = await chamada;
 
   if (error) {
     // Nunca repassar error.message inteiro sem checar: pode conter detalhe
@@ -153,7 +250,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // que é segura porque criar_pedido() só levanta RAISE EXCEPTION com
     // texto pensado pra o cliente ler (mesma convenção do pedido manual).
     const msg = error.message || '';
-    if (error.code === 'PGRST202' || msg.includes('criar_pedido_publico_retirada_v1')) {
+    if (error.code === 'PGRST202' || msg.includes('criar_pedido_publico_retirada_v1') || msg.includes('criar_pedido_publico_delivery_v1')) {
       return respostaErro('O checkout está sendo atualizado. Tente novamente em alguns minutos.', 503);
     }
     if (msg.includes('CART_CHANGED')) {
@@ -161,6 +258,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         'O cardápio mudou desde que você montou o carrinho. Atualize a página e confira os itens antes de finalizar.',
         409,
         { codigo: 'CART_CHANGED' }
+      );
+    }
+    if (msg.includes('DELIVERY_QUOTE_STALE')) {
+      return respostaErro(
+        'A taxa de entrega precisa ser recalculada.',
+        409,
+        { codigo: 'DELIVERY_QUOTE_STALE' }
       );
     }
     if (msg.includes('IDEMPOTENCY_CONFLICT')) {
@@ -175,9 +279,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (msg.includes('SUPABASE_SERVICE_ROLE') || msg.includes('SEGREDO_CHECKOUT')) {
       return respostaErro('Pedido pelo site ainda não configurado. Fale pelo WhatsApp da loja.', 503);
     }
-    // Mensagens de validação de negócio (nome, telefone, item esgotado,
-    // pedido mínimo etc.) — já pensadas pra tela.
-    return respostaErro(msg || 'Não foi possível registrar o pedido.', 422);
+    const mensagemSegura = mensagemNegocioSegura(msg);
+    if (mensagemSegura) return respostaErro(mensagemSegura, 422);
+
+    // Erro desconhecido nunca atravessa a fronteira pública. O código basta
+    // para diagnóstico sem colocar endereço, telefone ou detalhe SQL em log.
+    logger.error(
+      { codigo: error.code, rota: ROTA, lojaSlug: slug },
+      'Falha não classificada ao registrar pedido público'
+    );
+    return respostaErro('Não foi possível registrar o pedido. Tente novamente.', 500);
   }
 
   const resultado = data as {
@@ -189,6 +300,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     replay: boolean;
     forma_pagamento: string;
     pagamento_status: string;
+    delivery_fee_cents?: number;
   };
 
   const origem = request.nextUrl.origin;
@@ -210,7 +322,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }),
   }));
 
-  const mensagem = montarMensagemPedido({
+  const mensagemBase = montarMensagemPedido({
     numero: resultado.numero,
     clienteNome: entrada.clienteNome,
     itens: itensMensagem,
@@ -218,6 +330,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     trackingUrl,
     formaPagamento: entrada.formaPagamento,
   });
+  const mensagem = entrada.tipo === 'delivery'
+    ? mensagemBase.replace('Retirada no local', 'Delivery')
+    : mensagemBase;
 
   const numeroWhats = (lojaOperacao.whatsapp_numero || '').replace(/\D/g, '');
   const urlWhatsapp = numeroWhats ? `https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}` : null;
@@ -228,6 +343,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         numero: resultado.numero,
         token: resultado.token,
         status: 'pendente',
+        tipo: entrada.tipo,
         pagamento_status: resultado.pagamento_status,
         forma_pagamento: resultado.forma_pagamento,
         subtotal: Number(resultado.subtotal),
