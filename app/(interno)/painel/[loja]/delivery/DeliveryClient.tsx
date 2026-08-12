@@ -1,9 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  aplicarRespostaViaCep,
+  formatarCep,
+  validarEnderecoDelivery,
+} from '@/lib/delivery/endereco';
+import type { EnderecoDelivery } from '@/lib/delivery/tipos';
 import {
   enderecoResumido,
   formatarTotalPedido,
+  reaisParaCentavos,
   resumoPagamentoEntrega,
   statusVisualEntregador,
   type ConfiguracaoDelivery,
@@ -377,28 +384,103 @@ function SecaoConfiguracoes({
   const [gratisAtiva, setGratisAtiva] = useState(configuracao?.free_delivery_threshold_cents != null);
   const [gratis, setGratis] = useState(configuracao?.free_delivery_threshold_cents == null ? '' : String(configuracao.free_delivery_threshold_cents / 100));
   const [salvando, setSalvando] = useState(false);
+  const [consultandoCep, setConsultandoCep] = useState(false);
+  const [erroCep, setErroCep] = useState('');
+  const [tentativaCep, setTentativaCep] = useState(0);
+  const ultimoCepConsultado = useRef('');
   const origemInicial = useMemo(() => ({
     cep: configuracao?.origin_postal_code ?? '', rua: configuracao?.origin_street ?? '', numero: configuracao?.origin_number ?? '',
-    bairro: configuracao?.origin_neighborhood ?? '', cidade: configuracao?.origin_city ?? '', uf: configuracao?.origin_state ?? '',
+    bairro: configuracao?.origin_neighborhood ?? '', cidade: configuracao?.origin_city ?? '', uf: configuracao?.origin_state ?? '', complemento: null,
   }), [configuracao]);
+  const [origem, setOrigem] = useState<EnderecoDelivery>(origemInicial);
 
-  function centavos(valor: string) {
-    const numero = Number(valor.replace(',', '.'));
-    return Number.isFinite(numero) && numero >= 0 ? Math.round(numero * 100) : null;
+  useEffect(() => {
+    const cep = origem.cep.replace(/\D/g, '');
+    if (cep.length !== 8) {
+      ultimoCepConsultado.current = '';
+      return;
+    }
+    if (ultimoCepConsultado.current === cep) return;
+    ultimoCepConsultado.current = cep;
+
+    const controlador = new AbortController();
+    const temporizador = window.setTimeout(() => controlador.abort(), 5_000);
+    let ativo = true;
+    setConsultandoCep(true);
+    setErroCep('');
+
+    void fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      signal: controlador.signal,
+      headers: { Accept: 'application/json' },
+    })
+      .then(async (resposta) => {
+        if (!resposta.ok) throw new Error('VIACEP_INDISPONIVEL');
+        return await resposta.json() as {
+          erro?: boolean;
+          logradouro?: string;
+          bairro?: string;
+          localidade?: string;
+          uf?: string;
+        };
+      })
+      .then((dados) => {
+        if (!ativo) return;
+        if (dados.erro) {
+          setErroCep('CEP não encontrado. Confira o CEP ou preencha o endereço manualmente.');
+          return;
+        }
+        setOrigem((atual) => aplicarRespostaViaCep(atual, dados));
+      })
+      .catch(() => {
+        if (ativo) setErroCep('Não foi possível consultar o CEP. Preencha o endereço manualmente ou tente novamente.');
+      })
+      .finally(() => {
+        window.clearTimeout(temporizador);
+        if (ativo) setConsultandoCep(false);
+      });
+
+    return () => {
+      ativo = false;
+      window.clearTimeout(temporizador);
+      controlador.abort();
+      if (ultimoCepConsultado.current === cep) ultimoCepConsultado.current = '';
+    };
+  }, [origem.cep, tentativaCep]);
+
+  function alterarOrigem(campo: keyof EnderecoDelivery, valor: string) {
+    let normalizado: string | null = valor;
+    if (campo === 'cep') normalizado = formatarCep(valor);
+    if (campo === 'uf') normalizado = valor.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2);
+    setOrigem((atual) => ({ ...atual, [campo]: normalizado }));
+    setErroCep('');
+    if (campo === 'cep') setConsultandoCep(false);
   }
 
   async function salvar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    const form = new FormData(evento.currentTarget);
-    const valorTaxa = centavos(feeMode === 'FIXED' ? fixed : perKm);
-    const valorGratis = gratisAtiva ? centavos(gratis) : null;
-    if (valorTaxa === null || (gratisAtiva && valorGratis === null)) { setMensagem({ tipo: 'erro', texto: 'Confira os valores informados.' }); return; }
+    const valorTaxa = reaisParaCentavos(feeMode === 'FIXED' ? fixed : perKm);
+    const valorGratis = gratisAtiva ? reaisParaCentavos(gratis) : null;
+    if (valorTaxa === null) {
+      setMensagem({ tipo: 'erro', texto: feeMode === 'FIXED' ? 'Informe a taxa fixa.' : 'Informe o valor por KM.' });
+      return;
+    }
+    if (gratisAtiva && valorGratis === null) {
+      setMensagem({ tipo: 'erro', texto: 'Informe o valor mínimo para entrega grátis.' });
+      return;
+    }
+    let origemValidada: EnderecoDelivery;
+    try {
+      origemValidada = validarEnderecoDelivery(origem);
+    } catch {
+      setMensagem({ tipo: 'erro', texto: 'Preencha CEP, rua, número, bairro, cidade e UF.' });
+      return;
+    }
     setSalvando(true); setMensagem(null);
     try {
       const dados = await requisicaoJson<{ configuracao: ConfiguracaoDelivery }>(`/api/admin/delivery/${lojaSlug}/configuracao`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled, feeMode, fixedFeeCents: feeMode === 'FIXED' ? valorTaxa : null, pricePerKmCents: feeMode === 'PER_KM' ? valorTaxa : null, freeDeliveryThresholdCents: valorGratis,
-          origem: { cep: form.get('cep'), rua: form.get('rua'), numero: form.get('numero'), bairro: form.get('bairro'), cidade: form.get('cidade'), uf: form.get('uf'), complemento: null },
+          origem: origemValidada,
         }),
       });
       setConfiguracao(dados.configuracao); setMensagem({ tipo: 'sucesso', texto: 'Origem localizada e configurações salvas.' });
@@ -407,11 +489,24 @@ function SecaoConfiguracoes({
   }
 
   return (
-    <form className={styles.configForm} onSubmit={salvar}>
+    <form className={styles.configForm} onSubmit={salvar} noValidate>
       <section className={styles.formCard}><div className={styles.linhaToggle}><div><h2>Entregas</h2><p>Disponibilizar Delivery no cardápio.</p></div><label className={styles.toggle}><input type="checkbox" aria-label="Ativar entregas" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /><span /></label></div></section>
-      <section className={styles.formCard}><h2>Endereço de origem</h2><p>Este é o ponto de saída do entregador.</p><div className={styles.grade2}><Campo name="cep" label="CEP" defaultValue={origemInicial.cep} minLength={8} maxLength={9} /><Campo name="rua" label="Rua" defaultValue={origemInicial.rua} maxLength={120} /><Campo name="numero" label="Número" defaultValue={origemInicial.numero} maxLength={20} /><Campo name="bairro" label="Bairro" defaultValue={origemInicial.bairro} maxLength={80} /><Campo name="cidade" label="Cidade" defaultValue={origemInicial.cidade} maxLength={80} /><Campo name="uf" label="UF" defaultValue={origemInicial.uf} minLength={2} maxLength={2} /></div></section>
-      <section className={styles.formCard}><h2>Tipo de taxa</h2><div className={styles.radios}><label><input type="radio" checked={feeMode === 'FIXED'} onChange={() => setFeeMode('FIXED')} /> Taxa fixa</label><label><input type="radio" checked={feeMode === 'PER_KM'} onChange={() => setFeeMode('PER_KM')} /> Taxa por KM</label></div>{feeMode === 'FIXED' ? <label>Taxa fixa (R$)<input type="number" min="0" step="0.01" required value={fixed} onChange={(e) => setFixed(e.target.value)} /></label> : <label>Valor por KM (R$)<input type="number" min="0" step="0.01" required value={perKm} onChange={(e) => setPerKm(e.target.value)} /></label>}<label className={styles.check}><input type="checkbox" checked={gratisAtiva} onChange={(e) => setGratisAtiva(e.target.checked)} /> Entrega grátis a partir de</label>{gratisAtiva && <label>Subtotal mínimo (R$)<input type="number" min="0" step="0.01" required value={gratis} onChange={(e) => setGratis(e.target.value)} /></label>}</section>
-      <button type="submit" className={styles.salvarConfig} disabled={salvando}>{salvando ? 'Localizando…' : 'Localizar e salvar'}</button>
+      <section className={styles.formCard}>
+        <h2>Endereço de origem</h2>
+        <p>Digite o CEP completo. O que o ViaCEP não encontrar pode ser preenchido manualmente.</p>
+        <div className={styles.grade2}>
+          <label>CEP<input name="cep" inputMode="numeric" autoComplete="postal-code" value={origem.cep} maxLength={9} onChange={(e) => alterarOrigem('cep', e.target.value)} /></label>
+          <label>Rua<input name="rua" autoComplete="address-line1" value={origem.rua} maxLength={120} onChange={(e) => alterarOrigem('rua', e.target.value)} /></label>
+          <label>Número<input name="numero" autoComplete="address-line2" value={origem.numero} maxLength={20} onChange={(e) => alterarOrigem('numero', e.target.value)} /></label>
+          <label>Bairro<input name="bairro" value={origem.bairro} maxLength={80} onChange={(e) => alterarOrigem('bairro', e.target.value)} /></label>
+          <label>Cidade<input name="cidade" autoComplete="address-level2" value={origem.cidade} maxLength={80} onChange={(e) => alterarOrigem('cidade', e.target.value)} /></label>
+          <label>UF<input name="uf" autoComplete="address-level1" value={origem.uf} minLength={2} maxLength={2} onChange={(e) => alterarOrigem('uf', e.target.value)} /></label>
+        </div>
+        {consultandoCep && <p className={styles.ajudaCep} role="status">Consultando CEP…</p>}
+        {erroCep && <div className={styles.erroCep} role="alert"><span>{erroCep}</span><button type="button" onClick={() => { ultimoCepConsultado.current = ''; setTentativaCep((atual) => atual + 1); }}>Tentar novamente</button></div>}
+      </section>
+      <section className={styles.formCard}><h2>Tipo de taxa</h2><div className={styles.radios}><label><input type="radio" checked={feeMode === 'FIXED'} onChange={() => setFeeMode('FIXED')} /> Taxa fixa</label><label><input type="radio" checked={feeMode === 'PER_KM'} onChange={() => setFeeMode('PER_KM')} /> Taxa por KM</label></div>{feeMode === 'FIXED' ? <label>Taxa fixa (R$)<input type="number" min="0" step="0.01" value={fixed} onChange={(e) => setFixed(e.target.value)} /></label> : <label>Valor por KM (R$)<input type="number" min="0" step="0.01" value={perKm} onChange={(e) => setPerKm(e.target.value)} /></label>}<label className={styles.check}><input type="checkbox" checked={gratisAtiva} onChange={(e) => setGratisAtiva(e.target.checked)} /> Entrega grátis a partir de</label>{gratisAtiva && <label>Subtotal mínimo (R$)<input type="number" min="0" step="0.01" value={gratis} onChange={(e) => setGratis(e.target.value)} /></label>}</section>
+      <button type="submit" className={styles.salvarConfig} disabled={salvando || consultandoCep}>{salvando ? 'Localizando…' : consultandoCep ? 'Consultando CEP…' : 'Localizar e salvar'}</button>
     </form>
   );
 }

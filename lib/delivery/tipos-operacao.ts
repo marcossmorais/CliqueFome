@@ -108,6 +108,21 @@ export function formatarTotalPedido(valor: number | string) {
   }).format(Number(valor));
 }
 
+/**
+ * Converte o que o lojista digitou em reais para centavos.
+ *
+ * Devolve `null` para campo vazio/só espaços: `Number('')` é 0, e devolver 0
+ * aqui fazia o formulário salvar taxa de R$ 0,00 em silêncio quando o campo
+ * ficava em branco — o formulário usa `noValidate`, então não há validação
+ * nativa segurando o submit. Quem chama trata `null` como "não preenchido".
+ */
+export function reaisParaCentavos(valor: string): number | null {
+  const texto = valor.trim().replace(',', '.');
+  if (!texto) return null;
+  const numero = Number(texto);
+  return Number.isFinite(numero) && numero >= 0 ? Math.round(numero * 100) : null;
+}
+
 export function sanitizarTelefone(valor: string) {
   return valor.replace(/\D/g, '').slice(0, 15);
 }

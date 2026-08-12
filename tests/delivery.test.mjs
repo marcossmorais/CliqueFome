@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { aplicarRespostaViaCep } from '../lib/delivery/endereco.ts';
+import { reaisParaCentavos } from '../lib/delivery/tipos-operacao.ts';
 import {
   calcularCotacaoDelivery,
   validarItensDelivery,
@@ -67,6 +68,30 @@ test('1. ViaCEP preenche o que encontrou e preserva campos manuais', () => {
   assert.equal(preenchido.bairro, 'Bairro digitado');
   assert.equal(preenchido.cidade, 'Itabaiana');
   assert.equal(preenchido.uf, 'PB');
+
+  const painelDelivery = fonte('../app/(interno)/painel/[loja]/delivery/DeliveryClient.tsx');
+  assert.equal((painelDelivery.match(/fetch\(`https:\/\/viacep\.com\.br\/ws\/\$\{cep\}\/json\/`/g) || []).length, 1);
+  // O formulário desliga a validação nativa, então a checagem dos valores em
+  // JS é a única que resta: ela precisa continuar sendo feita antes do PUT.
+  assert.match(painelDelivery, /noValidate/);
+  assert.match(painelDelivery, /reaisParaCentavos/);
+});
+
+test('1b. campo de taxa em branco NÃO vira R$ 0,00', () => {
+  // Regressão: `Number('')` é 0, e devolver 0 aqui salvava taxa zero em
+  // silêncio quando o lojista deixava o campo vazio (o formulário usa
+  // noValidate, logo nada mais segura o submit).
+  assert.equal(reaisParaCentavos(''), null);
+  assert.equal(reaisParaCentavos('   '), null);
+  assert.equal(reaisParaCentavos('abc'), null);
+  assert.equal(reaisParaCentavos('-3'), null);
+
+  assert.equal(reaisParaCentavos('0'), 0);
+  assert.equal(reaisParaCentavos('7'), 700);
+  assert.equal(reaisParaCentavos('7.50'), 750);
+  assert.equal(reaisParaCentavos('7,50'), 750);
+  assert.equal(reaisParaCentavos(' 12,34 '), 1234);
+  assert.equal(reaisParaCentavos('0.015'), 2);
 });
 
 test('2. FIXED faz um geocode, nenhum routing e cobra a taxa correta', async () => {

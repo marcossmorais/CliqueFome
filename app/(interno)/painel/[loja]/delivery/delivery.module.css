@@ -63,6 +63,9 @@
 .check { display: flex; align-items: center; gap: 8px; margin: 10px 0 15px; color: var(--texto); }
 .salvarConfig { min-height: 46px; border: 0; border-radius: 11px; color: #fff; background: var(--verde); font-weight: 700; cursor: pointer; }
 .salvarConfig:disabled { opacity: .6; }
+.ajudaCep { margin: 10px 0 0; color: var(--texto-suave); font-size: 13px; }
+.erroCep { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid #efb9b9; border-radius: 9px; color: #8c2828; background: #fff0f0; font-size: 13px; }
+.erroCep button { flex: 0 0 auto; padding: 6px 8px; border: 1px solid currentColor; border-radius: 7px; color: inherit; background: transparent; cursor: pointer; }
 
 @media (max-width: 850px) { .colunasEntrega { grid-template-columns: 1fr; } }
 @media (max-width: 600px) {
@@ -72,4 +75,5 @@
   .grade2 { grid-template-columns: 1fr; }
   .secaoCabecalho { align-items: flex-start; flex-direction: column; }
   .secaoCabecalho button { width: 100%; }
+  .erroCep { align-items: flex-start; flex-direction: column; }
 }
