@@ -28,20 +28,21 @@ test.skip(
  * Falha aqui não derruba o teste: o objetivo é não sujar a base, e um pedido
  * órfão é menos grave que um verde perdido por causa da limpeza.
  */
-async function removerPedidoDeTeste(pedidoId: string | undefined) {
+async function removerPedidoDeTeste(token: string | undefined) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const chave = process.env.SUPABASE_SECRET_KEY;
-  if (!pedidoId || !url || !chave) return;
+  if (!token || !url || !chave) return;
   try {
-    const resposta = await fetch(`${url}/rest/v1/pedidos?id=eq.${pedidoId}`, {
-      method: 'DELETE',
-      headers: { apikey: chave, Authorization: `Bearer ${chave}` },
-    });
+    // Pelo token: a resposta pública não devolve o id do pedido de propósito.
+    const resposta = await fetch(
+      `${url.replace(/\/$/, '')}/rest/v1/pedidos?token=eq.${encodeURIComponent(token)}`,
+      { method: 'DELETE', headers: { apikey: chave, Authorization: `Bearer ${chave}` } }
+    );
     if (!resposta.ok) {
-      console.warn(`[e2e] pedido ${pedidoId} não removido: HTTP ${resposta.status}`);
+      console.warn(`[e2e] pedido não removido: HTTP ${resposta.status}`);
     }
   } catch (erro) {
-    console.warn(`[e2e] pedido ${pedidoId} não removido: ${(erro as Error).message}`);
+    console.warn(`[e2e] pedido não removido: ${(erro as Error).message}`);
   }
 }
 
@@ -194,6 +195,6 @@ test('checkout registra Retirada com Pix sem chamar a API de Delivery', async ({
   // Este teste cria um pedido de verdade. Rodando contra a base real, um por
   // execução do CI viraria dezenas de linhas falsas na lista do lojista, no
   // dashboard e no financeiro — some com o que acabou de criar.
-  const { id: pedidoId } = (await respostaPedido.json()) as { id?: string };
-  await removerPedidoDeTeste(pedidoId);
+  const corpoResposta = (await respostaPedido.json()) as { pedido?: { token?: string } };
+  await removerPedidoDeTeste(corpoResposta.pedido?.token);
 });
