@@ -28,7 +28,10 @@ export const ICONES: Record<string, string> = {
   caixa: 'M3 7h18v12H3zM3 11h18M7 15h3M7 7V5h10v2',
   pdv: 'M3 7h18v12H3zM3 11h18M7 15h3M16 15h1M7 7V5h10v2',
   estoque: 'M4 7l8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10',
-  catalogo: 'M5 4h14v16H5zM9 8h6M9 12h6M9 16h3',
+  // Livro aberto, e não o retângulo com linhas de antes: aquele era quase
+  // idêntico ao de `pedidos`, e na barra inferior do mobile — onde o ícone
+  // carrega o significado, com o rótulo em 10px — os dois se confundiam.
+  catalogo: 'M12 7c-1.8-1.3-4-2-6.5-2H3v13h2.5c2.5 0 4.7.7 6.5 2M12 7c1.8-1.3 4-2 6.5-2H21v13h-2.5c-2.5 0-4.7.7-6.5 2M12 7v13',
   links: 'M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1',
   desempenho: 'M3 17l6-6 4 4 8-8M15 7h6v6',
   historico: 'M12 21a9 9 0 110-18 9 9 0 010 18zM12 7v5l3 3',

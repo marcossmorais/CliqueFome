@@ -240,10 +240,6 @@
 
   #main{ flex:1; min-width:0; padding: 26px 30px 80px; background: var(--fundo); min-height:100vh; }
   #mainTop{ display:flex; align-items:center; gap:12px; margin-bottom: 20px; }
-  #menuToggle{
-    display:none; background:var(--superficie); border:1px solid var(--borda);
-    border-radius:10px; padding:8px 11px; color:var(--texto);
-  }
   #sidebarBackdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:40; }
 
   .area{ display:none; max-width: 900px; }
@@ -268,6 +264,11 @@
   .em-breve h2{ margin-bottom: 8px; }
   .em-breve p{ font-size: 14px; color: var(--texto-suave); max-width: 420px; margin: 0 auto 18px; line-height: 1.55; }
 
+  /* Barra inferior, faixa da marca e cartão da loja: os três existem só no
+     mobile. No desktop a sidebar está sempre visível e já carrega marca,
+     identidade da loja e navegação. */
+  #navInferior, #topoMarca, #lojaTopo{ display:none; }
+
   @media (max-width: 900px){
     #sidebar{
       position: fixed; left:0; top:0; z-index:50;
@@ -276,8 +277,68 @@
     }
     #sidebar.aberto{ transform: none; }
     #sidebarBackdrop.ativo{ display:block; }
-    #menuToggle{ display:block; }
-    #main{ padding: 20px 16px 80px; }
+    /* Espaço para a barra + a faixa do indicador de home do iPhone. */
+    #main{ padding: 0 16px calc(84px + env(safe-area-inset-bottom, 0px)); }
+
+    /* Sangram até a borda: o padding lateral do #main é anulado aqui, e não
+       removido do #main, para o resto do conteúdo seguir alinhado. */
+    #topoMarca{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin: 0 -16px; padding: 12px 16px calc(12px + env(safe-area-inset-top, 0px));
+      background: linear-gradient(165deg, var(--verde-escuro), #14543a);
+      color:#fff;
+    }
+    #topoMarca .topo-marca-logo{ display:flex; align-items:center; gap:8px; font-weight:800; }
+    #topoMarca .topo-marca-logo svg{ width:26px; height:26px; }
+    .topo-sino{
+      position:relative; display:grid; place-items:center;
+      width:38px; height:38px; flex:0 0 38px;
+      border:1px solid rgba(255,255,255,.22); border-radius:11px;
+      background:rgba(255,255,255,.08); color:#fff; cursor:not-allowed;
+    }
+    .topo-sino svg{ width:19px; height:19px; }
+    /* O estilo de .marca-breve é escopado em .nav-item, então aqui a bolinha
+       precisa da própria forma — senão o elemento existe e não desenha nada.
+       Anel escuro em volta para ela não sumir no verde da faixa. */
+    .topo-sino .marca-breve{
+      position:absolute; top:7px; right:8px;
+      width:7px; height:7px; border-radius:50%;
+      background: var(--laranja); box-shadow: 0 0 0 2px var(--verde-escuro);
+    }
+    .topo-sino:disabled{ opacity:.85; }
+
+    #lojaTopo{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin: 0 -16px 18px; padding: 12px 16px 14px;
+      background: linear-gradient(165deg, #14543a, var(--verde));
+      color:#fff;
+    }
+    #lojaTopo .loja-topo-id{ display:grid; gap:2px; min-width:0; }
+    #lojaTopo .loja-topo-id strong{ font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #lojaTopo .loja-topo-id span{ color:rgba(255,255,255,.72); font-size:12.5px; }
+    #lojaTopo .badge-admin{ flex:0 0 auto; }
+
+    /* O título da tela vinha colado na faixa verde. */
+    #mainTop{ margin-top: 2px; }
+
+    #navInferior{
+      position: fixed; left:0; right:0; bottom:0; z-index:45;
+      display:grid; grid-template-columns: repeat(5, 1fr);
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--borda);
+      background: var(--superficie);
+      box-shadow: 0 -2px 14px rgba(15,61,46,.06);
+    }
+    .nav-inferior-item{
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      min-height:52px; padding:7px 2px 5px;
+      border:0; border-radius:11px; background:transparent;
+      color: var(--texto-suave); font-size:10.5px; font-weight:600;
+      text-decoration:none; cursor:pointer;
+    }
+    .nav-inferior-item svg{ width:22px; height:22px; }
+    .nav-inferior-item.ativo{ color: var(--verde); background: var(--verde-tint); }
+    .nav-inferior-item:focus-visible{ outline:2px solid var(--verde); outline-offset:-2px; }
   }
 
   /* ---------- CATÁLOGO ---------- */
