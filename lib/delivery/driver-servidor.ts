@@ -3,6 +3,7 @@ import 'server-only';
 import { criarClientPrivilegiado } from '@/lib/pedidos/servidor';
 import { logger } from '@/lib/observabilidade/logger';
 import { ErroApiDelivery } from './operacao-api';
+import { recusaDeAcessoDoEntregador } from './erros-entregador';
 import type { EntregadorDelivery } from './tipos-operacao';
 
 export function validarEmail(valor: unknown) {
@@ -43,9 +44,15 @@ export async function criarEntregadorComAuth({
   });
 
   if (erroAuth || !authData.user) {
-    // Não diferencia email já cadastrado de outro erro: isso evitar expor
-    // quais contas existem no projeto Supabase.
-    throw new ErroApiDelivery('Não foi possível criar o acesso do entregador.', 409);
+    // Sem este log o motivo se perdia dos dois lados: mensagem genérica na
+    // tela e nada no servidor. O email fica de fora do log de propósito.
+    logger.error(
+      { codigo: erroAuth?.code, status: erroAuth?.status, storeId },
+      'Supabase Auth recusou a criação do acesso do entregador'
+    );
+
+    const recusa = recusaDeAcessoDoEntregador(erroAuth);
+    throw new ErroApiDelivery(recusa.mensagem, recusa.status);
   }
 
   const authUserId = authData.user.id;
