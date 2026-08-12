@@ -49,6 +49,9 @@ export function PedidosClient({
   const [modalManualAberto, setModalManualAberto] = useState(false);
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
   const [novosIds, setNovosIds] = useState<Set<string>>(new Set());
+  // Só o botão "Atualizar" usa este estado: as recargas automáticas não
+  // devem piscar indicador de carregamento na tela da operação.
+  const [atualizando, setAtualizando] = useState(false);
 
   // Ids já vistos, pra distinguir "pedido que acabou de chegar" de "pedido
   // que só mudou de status" — só o primeiro caso ganha o destaque visual.
@@ -108,6 +111,22 @@ export function PedidosClient({
     return () => clearInterval(id);
   }, [recarregar]);
 
+  // O polling acima pula enquanto a aba está escondida, e nada corria atrás
+  // do atraso na volta: quem trocava de aba e voltava via a lista velha até
+  // o próximo tique — ou até um F5, que era o sintoma relatado. Voltar pra
+  // aba e recuperar a rede sincronizam na hora, sem encurtar o intervalo.
+  useEffect(() => {
+    const sincronizar = () => {
+      if (document.visibilityState === 'visible') recarregar();
+    };
+    document.addEventListener('visibilitychange', sincronizar);
+    window.addEventListener('online', sincronizar);
+    return () => {
+      document.removeEventListener('visibilitychange', sincronizar);
+      window.removeEventListener('online', sincronizar);
+    };
+  }, [recarregar]);
+
   // Realtime: qualquer INSERT/UPDATE em `pedidos` desta loja invalida a
   // lista. A autorização continua sendo a RLS de "pedidos_select_dono" —
   // o evento só avisa que algo mudou, não manda o payload como verdade;
@@ -127,7 +146,12 @@ export function PedidosClient({
           pausa = setTimeout(recarregar, 400);
         }
       )
-      .subscribe();
+      // Sem observar o status, uma queda do WebSocket passava despercebida e
+      // a tela ficava dependendo só do polling. Todo (re)ingresso no canal
+      // puxa a lista, cobrindo o que tenha entrado enquanto estava fora.
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') recarregar();
+      });
 
     return () => {
       if (pausa) clearTimeout(pausa);
@@ -164,6 +188,18 @@ export function PedidosClient({
   const atrasados = agora ? emAndamento.filter((p) => minutosAteOPrazo(p, agora) < 0).length : 0;
 
   const pedidoAberto = pedidos.find((p) => p.id === pedidoAbertoId) || null;
+
+  // Sincronização manual: rede oscilando, Realtime caído ou simplesmente a
+  // vontade de conferir. Busca só a lista de pedidos — nada de recarregar a
+  // página, e o indicador fica no próprio botão.
+  async function atualizarAgora() {
+    setAtualizando(true);
+    try {
+      await recarregar();
+    } finally {
+      setAtualizando(false);
+    }
+  }
 
   async function avancarRapido(p: PedidoResumo) {
     const proximo = proximoStatus(p);
@@ -205,6 +241,15 @@ export function PedidosClient({
         </div>
         <button type="button" className="btn-primary btn-small" onClick={() => setModalManualAberto(true)}>
           + Novo pedido
+        </button>
+        <button
+          type="button"
+          className="btn-ghost btn-small"
+          onClick={atualizarAgora}
+          disabled={atualizando}
+          title="Buscar os pedidos novamente"
+        >
+          {atualizando ? 'Atualizando…' : 'Atualizar'}
         </button>
         <button
           type="button"

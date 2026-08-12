@@ -116,7 +116,6 @@ export function DeliveryClient({
             lojaSlug={lojaSlug}
             configuracao={configuracao}
             setConfiguracao={setConfiguracao}
-            setMensagem={setMensagem}
           />
         )}
       </main>
@@ -366,24 +365,53 @@ function Campo({ label, name, type = 'text', ...props }: { label: string; name: 
   return <label>{label}<input name={name} type={type} required {...props} /></label>;
 }
 
+/**
+ * Endereço e taxas são dois formulários separados de propósito.
+ *
+ * Antes era um <form> só: clicar em "salvar" com a intenção de mudar a taxa
+ * revalidava o CEP e mandava a origem para o Geoapify de novo, e um erro de
+ * geocodificação derrubava junto a gravação da taxa. Cada bloco agora tem o
+ * próprio submit, o próprio "salvando" e a própria mensagem, e o backend
+ * grava apenas as colunas do escopo que recebeu.
+ */
 function SecaoConfiguracoes({
   lojaSlug,
   configuracao,
   setConfiguracao,
-  setMensagem,
 }: {
   lojaSlug: string;
   configuracao: ConfiguracaoDelivery | null;
   setConfiguracao: (configuracao: ConfiguracaoDelivery) => void;
-  setMensagem: (mensagem: Mensagem) => void;
 }) {
-  const [enabled, setEnabled] = useState(configuracao?.enabled ?? false);
-  const [feeMode, setFeeMode] = useState<ModoTaxaDelivery>(configuracao?.fee_mode ?? 'FIXED');
-  const [fixed, setFixed] = useState(configuracao?.fixed_fee_cents == null ? '' : String(configuracao.fixed_fee_cents / 100));
-  const [perKm, setPerKm] = useState(configuracao?.price_per_km_cents == null ? '' : String(configuracao.price_per_km_cents / 100));
-  const [gratisAtiva, setGratisAtiva] = useState(configuracao?.free_delivery_threshold_cents != null);
-  const [gratis, setGratis] = useState(configuracao?.free_delivery_threshold_cents == null ? '' : String(configuracao.free_delivery_threshold_cents / 100));
+  return (
+    <div className={styles.configForm}>
+      <FormularioOrigem lojaSlug={lojaSlug} configuracao={configuracao} setConfiguracao={setConfiguracao} />
+      <FormularioTaxas lojaSlug={lojaSlug} configuracao={configuracao} setConfiguracao={setConfiguracao} />
+    </div>
+  );
+}
+
+/** Mensagem de um bloco só — não usa o aviso global da tela. */
+function AvisoDoBloco({ mensagem }: { mensagem: Mensagem }) {
+  if (!mensagem) return null;
+  return (
+    <div className={mensagem.tipo === 'erro' ? styles.erro : styles.sucesso} role="status">
+      {mensagem.texto}
+    </div>
+  );
+}
+
+function FormularioOrigem({
+  lojaSlug,
+  configuracao,
+  setConfiguracao,
+}: {
+  lojaSlug: string;
+  configuracao: ConfiguracaoDelivery | null;
+  setConfiguracao: (configuracao: ConfiguracaoDelivery) => void;
+}) {
   const [salvando, setSalvando] = useState(false);
+  const [mensagem, setMensagem] = useState<Mensagem>(null);
   const [consultandoCep, setConsultandoCep] = useState(false);
   const [erroCep, setErroCep] = useState('');
   const [tentativaCep, setTentativaCep] = useState(0);
@@ -416,7 +444,7 @@ function SecaoConfiguracoes({
       .then(async (resposta) => {
         if (!resposta.ok) throw new Error('VIACEP_INDISPONIVEL');
         return await resposta.json() as {
-          erro?: boolean;
+          erro?: boolean | string;
           logradouro?: string;
           bairro?: string;
           localidade?: string;
@@ -425,6 +453,7 @@ function SecaoConfiguracoes({
       })
       .then((dados) => {
         if (!ativo) return;
+        // O ViaCEP devolve `"erro": "true"` (string) com HTTP 200.
         if (dados.erro) {
           setErroCep('CEP não encontrado. Confira o CEP ou preencha o endereço manualmente.');
           return;
@@ -453,21 +482,12 @@ function SecaoConfiguracoes({
     if (campo === 'uf') normalizado = valor.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2);
     setOrigem((atual) => ({ ...atual, [campo]: normalizado }));
     setErroCep('');
+    setMensagem(null);
     if (campo === 'cep') setConsultandoCep(false);
   }
 
-  async function salvar(evento: React.FormEvent<HTMLFormElement>) {
+  async function salvarEndereco(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    const valorTaxa = reaisParaCentavos(feeMode === 'FIXED' ? fixed : perKm);
-    const valorGratis = gratisAtiva ? reaisParaCentavos(gratis) : null;
-    if (valorTaxa === null) {
-      setMensagem({ tipo: 'erro', texto: feeMode === 'FIXED' ? 'Informe a taxa fixa.' : 'Informe o valor por KM.' });
-      return;
-    }
-    if (gratisAtiva && valorGratis === null) {
-      setMensagem({ tipo: 'erro', texto: 'Informe o valor mínimo para entrega grátis.' });
-      return;
-    }
     let origemValidada: EnderecoDelivery;
     try {
       origemValidada = validarEnderecoDelivery(origem);
@@ -479,34 +499,114 @@ function SecaoConfiguracoes({
     try {
       const dados = await requisicaoJson<{ configuracao: ConfiguracaoDelivery }>(`/api/admin/delivery/${lojaSlug}/configuracao`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled, feeMode, fixedFeeCents: feeMode === 'FIXED' ? valorTaxa : null, pricePerKmCents: feeMode === 'PER_KM' ? valorTaxa : null, freeDeliveryThresholdCents: valorGratis,
-          origem: origemValidada,
-        }),
+        body: JSON.stringify({ escopo: 'endereco', origem: origemValidada }),
       });
-      setConfiguracao(dados.configuracao); setMensagem({ tipo: 'sucesso', texto: 'Origem localizada e configurações salvas.' });
-    } catch (erro) { setMensagem({ tipo: 'erro', texto: erro instanceof Error ? erro.message : 'Não foi possível salvar.' }); }
-    finally { setSalvando(false); }
+      setConfiguracao(dados.configuracao);
+      setMensagem({ tipo: 'sucesso', texto: 'Endereço salvo com sucesso.' });
+    } catch (erro) {
+      setMensagem({ tipo: 'erro', texto: erro instanceof Error ? erro.message : 'Não foi possível salvar o endereço.' });
+    } finally { setSalvando(false); }
   }
 
   return (
-    <form className={styles.configForm} onSubmit={salvar} noValidate>
-      <section className={styles.formCard}><div className={styles.linhaToggle}><div><h2>Entregas</h2><p>Disponibilizar Delivery no cardápio.</p></div><label className={styles.toggle}><input type="checkbox" aria-label="Ativar entregas" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /><span /></label></div></section>
+    <form className={styles.formCard} onSubmit={salvarEndereco} noValidate>
+      <h2>Endereço de origem</h2>
+      <p>Ponto de saída do entregador. Digite o CEP completo — o que o ViaCEP não encontrar pode ser preenchido manualmente.</p>
+      <div className={styles.grade2}>
+        <label>CEP<input name="cep" inputMode="numeric" autoComplete="postal-code" value={origem.cep} maxLength={9} onChange={(e) => alterarOrigem('cep', e.target.value)} /></label>
+        <label>Rua<input name="rua" autoComplete="address-line1" value={origem.rua} maxLength={120} onChange={(e) => alterarOrigem('rua', e.target.value)} /></label>
+        <label>Número<input name="numero" autoComplete="address-line2" value={origem.numero} maxLength={20} onChange={(e) => alterarOrigem('numero', e.target.value)} /></label>
+        <label>Bairro<input name="bairro" value={origem.bairro} maxLength={80} onChange={(e) => alterarOrigem('bairro', e.target.value)} /></label>
+        <label>Cidade<input name="cidade" autoComplete="address-level2" value={origem.cidade} maxLength={80} onChange={(e) => alterarOrigem('cidade', e.target.value)} /></label>
+        <label>UF<input name="uf" autoComplete="address-level1" value={origem.uf} minLength={2} maxLength={2} onChange={(e) => alterarOrigem('uf', e.target.value)} /></label>
+      </div>
+      {consultandoCep && <p className={styles.ajudaCep} role="status">Consultando CEP…</p>}
+      {erroCep && <div className={styles.erroCep} role="alert"><span>{erroCep}</span><button type="button" onClick={() => { ultimoCepConsultado.current = ''; setTentativaCep((atual) => atual + 1); }}>Tentar novamente</button></div>}
+      <AvisoDoBloco mensagem={mensagem} />
+      <button type="submit" className={styles.salvarConfig} disabled={salvando || consultandoCep}>
+        {salvando ? 'Localizando…' : consultandoCep ? 'Consultando CEP…' : 'Localizar e salvar endereço'}
+      </button>
+    </form>
+  );
+}
+
+function FormularioTaxas({
+  lojaSlug,
+  configuracao,
+  setConfiguracao,
+}: {
+  lojaSlug: string;
+  configuracao: ConfiguracaoDelivery | null;
+  setConfiguracao: (configuracao: ConfiguracaoDelivery) => void;
+}) {
+  const [enabled, setEnabled] = useState(configuracao?.enabled ?? false);
+  const [feeMode, setFeeMode] = useState<ModoTaxaDelivery>(configuracao?.fee_mode ?? 'FIXED');
+  const [fixed, setFixed] = useState(configuracao?.fixed_fee_cents == null ? '' : String(configuracao.fixed_fee_cents / 100));
+  const [perKm, setPerKm] = useState(configuracao?.price_per_km_cents == null ? '' : String(configuracao.price_per_km_cents / 100));
+  const [gratisAtiva, setGratisAtiva] = useState(configuracao?.free_delivery_threshold_cents != null);
+  const [gratis, setGratis] = useState(configuracao?.free_delivery_threshold_cents == null ? '' : String(configuracao.free_delivery_threshold_cents / 100));
+  const [salvando, setSalvando] = useState(false);
+  const [mensagem, setMensagem] = useState<Mensagem>(null);
+
+  async function salvarTaxas(evento: React.FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const valorTaxa = reaisParaCentavos(feeMode === 'FIXED' ? fixed : perKm);
+    const valorGratis = gratisAtiva ? reaisParaCentavos(gratis) : null;
+    if (valorTaxa === null) {
+      setMensagem({ tipo: 'erro', texto: feeMode === 'FIXED' ? 'Informe a taxa fixa.' : 'Informe o valor por KM.' });
+      return;
+    }
+    if (gratisAtiva && valorGratis === null) {
+      setMensagem({ tipo: 'erro', texto: 'Informe o valor mínimo para entrega grátis.' });
+      return;
+    }
+    setSalvando(true); setMensagem(null);
+    try {
+      const dados = await requisicaoJson<{ configuracao: ConfiguracaoDelivery }>(`/api/admin/delivery/${lojaSlug}/configuracao`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          escopo: 'taxas', enabled, feeMode,
+          fixedFeeCents: feeMode === 'FIXED' ? valorTaxa : null,
+          pricePerKmCents: feeMode === 'PER_KM' ? valorTaxa : null,
+          freeDeliveryThresholdCents: valorGratis,
+        }),
+      });
+      setConfiguracao(dados.configuracao);
+      setMensagem({ tipo: 'sucesso', texto: 'Configurações de entrega salvas.' });
+    } catch (erro) {
+      setMensagem({ tipo: 'erro', texto: erro instanceof Error ? erro.message : 'Não foi possível salvar as taxas.' });
+    } finally { setSalvando(false); }
+  }
+
+  return (
+    <form className={styles.configForm} onSubmit={salvarTaxas} noValidate>
       <section className={styles.formCard}>
-        <h2>Endereço de origem</h2>
-        <p>Digite o CEP completo. O que o ViaCEP não encontrar pode ser preenchido manualmente.</p>
-        <div className={styles.grade2}>
-          <label>CEP<input name="cep" inputMode="numeric" autoComplete="postal-code" value={origem.cep} maxLength={9} onChange={(e) => alterarOrigem('cep', e.target.value)} /></label>
-          <label>Rua<input name="rua" autoComplete="address-line1" value={origem.rua} maxLength={120} onChange={(e) => alterarOrigem('rua', e.target.value)} /></label>
-          <label>Número<input name="numero" autoComplete="address-line2" value={origem.numero} maxLength={20} onChange={(e) => alterarOrigem('numero', e.target.value)} /></label>
-          <label>Bairro<input name="bairro" value={origem.bairro} maxLength={80} onChange={(e) => alterarOrigem('bairro', e.target.value)} /></label>
-          <label>Cidade<input name="cidade" autoComplete="address-level2" value={origem.cidade} maxLength={80} onChange={(e) => alterarOrigem('cidade', e.target.value)} /></label>
-          <label>UF<input name="uf" autoComplete="address-level1" value={origem.uf} minLength={2} maxLength={2} onChange={(e) => alterarOrigem('uf', e.target.value)} /></label>
+        <div className={styles.linhaToggle}>
+          <div><h2>Entregas</h2><p>Disponibilizar Delivery no cardápio.</p></div>
+          <label className={styles.toggle}>
+            <input type="checkbox" aria-label="Ativar entregas" checked={enabled} onChange={(e) => { setEnabled(e.target.checked); setMensagem(null); }} />
+            <span />
+          </label>
         </div>
-        {consultandoCep && <p className={styles.ajudaCep} role="status">Consultando CEP…</p>}
-        {erroCep && <div className={styles.erroCep} role="alert"><span>{erroCep}</span><button type="button" onClick={() => { ultimoCepConsultado.current = ''; setTentativaCep((atual) => atual + 1); }}>Tentar novamente</button></div>}
       </section>
-      <section className={styles.formCard}><h2>Tipo de taxa</h2><div className={styles.radios}><label><input type="radio" checked={feeMode === 'FIXED'} onChange={() => setFeeMode('FIXED')} /> Taxa fixa</label><label><input type="radio" checked={feeMode === 'PER_KM'} onChange={() => setFeeMode('PER_KM')} /> Taxa por KM</label></div>{feeMode === 'FIXED' ? <label>Taxa fixa (R$)<input type="number" min="0" step="0.01" value={fixed} onChange={(e) => setFixed(e.target.value)} /></label> : <label>Valor por KM (R$)<input type="number" min="0" step="0.01" value={perKm} onChange={(e) => setPerKm(e.target.value)} /></label>}<label className={styles.check}><input type="checkbox" checked={gratisAtiva} onChange={(e) => setGratisAtiva(e.target.checked)} /> Entrega grátis a partir de</label>{gratisAtiva && <label>Subtotal mínimo (R$)<input type="number" min="0" step="0.01" value={gratis} onChange={(e) => setGratis(e.target.value)} /></label>}</section>
-      <button type="submit" className={styles.salvarConfig} disabled={salvando || consultandoCep}>{salvando ? 'Localizando…' : consultandoCep ? 'Consultando CEP…' : 'Localizar e salvar'}</button>
+      <section className={styles.formCard}>
+        <h2>Tipo de taxa</h2>
+        <div className={styles.radios}>
+          <label><input type="radio" checked={feeMode === 'FIXED'} onChange={() => { setFeeMode('FIXED'); setMensagem(null); }} /> Taxa fixa</label>
+          <label><input type="radio" checked={feeMode === 'PER_KM'} onChange={() => { setFeeMode('PER_KM'); setMensagem(null); }} /> Taxa por KM</label>
+        </div>
+        {feeMode === 'FIXED'
+          ? <label>Taxa fixa (R$)<input type="number" min="0" step="0.01" value={fixed} onChange={(e) => setFixed(e.target.value)} /></label>
+          : <label>Valor por KM (R$)<input type="number" min="0" step="0.01" value={perKm} onChange={(e) => setPerKm(e.target.value)} /></label>}
+        <label className={styles.check}>
+          <input type="checkbox" checked={gratisAtiva} onChange={(e) => setGratisAtiva(e.target.checked)} /> Entrega grátis a partir de
+        </label>
+        {gratisAtiva && <label>Subtotal mínimo (R$)<input type="number" min="0" step="0.01" value={gratis} onChange={(e) => setGratis(e.target.value)} /></label>}
+        <AvisoDoBloco mensagem={mensagem} />
+        <button type="submit" className={styles.salvarConfig} disabled={salvando}>
+          {salvando ? 'Salvando…' : 'Salvar taxas'}
+        </button>
+      </section>
     </form>
   );
 }
