@@ -67,6 +67,34 @@
 .erroCep { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid #efb9b9; border-radius: 9px; color: #8c2828; background: #fff0f0; font-size: 13px; }
 .erroCep button { flex: 0 0 auto; padding: 6px 8px; border: 1px solid currentColor; border-radius: 7px; color: inherit; background: transparent; cursor: pointer; }
 
+/* Dark mode. Este módulo nasceu sem o bloco que os outros do painel já
+   tinham, então tudo que é cor fixa aqui — avisos, selos de status e o
+   trilho do toggle — continuava claro sobre o fundo escuro. Os tons
+   seguem os que inicio.module.css já usa, para não inventar paleta. */
+:global(html[data-admin-theme='dark']) .erro,
+:global(html[data-admin-theme='dark']) .erroCep {
+  color: #f0b4b4; border-color: #633c3c; background: #2b1919;
+}
+:global(html[data-admin-theme='dark']) .sucesso {
+  color: #7fd3a5; border-color: #29523b; background: #12251a;
+}
+:global(html[data-admin-theme='dark']) .entregaTopo span {
+  color: #efb45f; background: #3a2b17;
+}
+:global(html[data-admin-theme='dark']) .entregaTopo span[data-status='OUT_FOR_DELIVERY'] {
+  color: #f0a86e; background: #3d2617;
+}
+:global(html[data-admin-theme='dark']) .entregaTopo span[data-status='DELIVERED'] {
+  color: #6fd19a; background: #193d2a;
+}
+/* O contador do grupo usava --superficie sobre --fundo-2: no dark os dois
+   quase coincidem e o selo sumia. */
+:global(html[data-admin-theme='dark']) .grupo > header span {
+  color: var(--texto); background: var(--borda);
+}
+/* Trilho do toggle desligado: o cinza claro brigava com o fundo escuro. */
+:global(html[data-admin-theme='dark']) .toggle span { background: #3d4a43; }
+
 @media (max-width: 850px) { .colunasEntrega { grid-template-columns: 1fr; } }
 @media (max-width: 600px) {
   .driverCard { grid-template-columns: 1fr; }

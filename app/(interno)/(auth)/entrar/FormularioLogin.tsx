@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { LogoCliqueFome } from '@/components/LogoCliqueFome';
-import { TemaAdmin } from '@/components/admin/TemaAdmin';
 
 export function FormularioLogin() {
   const router = useRouter();
@@ -54,7 +53,6 @@ export function FormularioLogin() {
 
   return (
     <div id="authView">
-      <TemaAdmin flutuante />
       <div className="wrap">
         <div className="brand-logo">
           <LogoCliqueFome />

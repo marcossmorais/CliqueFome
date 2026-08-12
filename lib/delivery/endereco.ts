@@ -16,7 +16,11 @@ export class ErroEnderecoDelivery extends Error {
 }
 
 export type RespostaViaCep = {
-  erro?: boolean;
+  /**
+   * CEP inexistente vem como `{"erro": "true"}` — string, não booleano, e com
+   * HTTP 200. Quem consome trata pela veracidade do valor, não pelo tipo.
+   */
+  erro?: boolean | string;
   logradouro?: string;
   bairro?: string;
   localidade?: string;

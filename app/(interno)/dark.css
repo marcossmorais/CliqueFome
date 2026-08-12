@@ -1,5 +1,6 @@
+/* #authView (login) ficou de fora de propósito: as telas de autenticação são
+   sempre light, fixadas pelo layout de (auth). */
 html[data-admin-theme='dark'] #appView,
-html[data-admin-theme='dark'] #authView,
 html[data-admin-theme='dark'] .onboarding{
   --fundo:#0d1511;
   --fundo-2:#121d17;
@@ -26,15 +27,17 @@ html[data-admin-theme='dark'] .onboarding-caixa{
   background:var(--superficie);
   border-color:var(--borda);
 }
-html[data-admin-theme='dark'] input,
-html[data-admin-theme='dark'] textarea,
-html[data-admin-theme='dark'] select{
+/* Escopados em #appView/.onboarding igual aos tokens acima. Soltos, pegavam
+   também campo fora dessas cascas: o fundo virava escuro, mas --texto ainda
+   resolvia pro valor claro do :root e o que era digitado sumia (1.16:1). */
+html[data-admin-theme='dark'] #appView :is(input,textarea,select),
+html[data-admin-theme='dark'] .onboarding :is(input,textarea,select){
   background:#111b16;
   border-color:var(--borda);
   color:var(--texto);
 }
-html[data-admin-theme='dark'] input::placeholder,
-html[data-admin-theme='dark'] textarea::placeholder{ color:#718078; }
+html[data-admin-theme='dark'] #appView :is(input,textarea)::placeholder,
+html[data-admin-theme='dark'] .onboarding :is(input,textarea)::placeholder{ color:#8b9a92; }
 html[data-admin-theme='dark'] .btn-ghost,
 html[data-admin-theme='dark'] #menuToggle,
 html[data-admin-theme='dark'] .col-header .btn-icone{
@@ -73,3 +76,14 @@ html[data-admin-theme='dark'] .esqueleto{
   background-size:200% 100%;
 }
 html[data-admin-theme='dark'] ::-webkit-scrollbar-thumb{ background:#405148; }
+/* O anel de foco do claro é um brilho verde a 12%, que no fundo escuro
+   praticamente não aparece — quem navega por teclado perdia a referência.
+   Mesma cor, opacidade suficiente para o fundo escuro. */
+html[data-admin-theme='dark'] #appView :is(input,textarea,select):focus,
+html[data-admin-theme='dark'] .onboarding :is(input,textarea,select):focus{
+  border-color:var(--verde-claro);
+  box-shadow:0 0 0 3px rgba(47,169,104,.35);
+}
+/* Botão desabilitado: só a opacidade herdada deixava o rótulo ilegível
+   sobre o fundo escuro. */
+html[data-admin-theme='dark'] #appView button:disabled{ opacity:.65; }

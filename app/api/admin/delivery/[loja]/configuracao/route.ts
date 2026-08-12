@@ -32,57 +32,68 @@ export async function PUT(
       15 * 60_000
     );
     if (!limite.permitido) {
-      throw new ErroApiDelivery('Muitas tentativas de localização. Aguarde alguns minutos.', 429);
+      throw new ErroApiDelivery('Muitas gravações em pouco tempo. Aguarde alguns minutos.', 429);
     }
 
     const corpo = objeto(await lerJson(request, 8_000));
-    const enabled = booleano(corpo.enabled, 'Ativação de entregas');
-    const feeMode = corpo.feeMode;
-    if (feeMode !== 'FIXED' && feeMode !== 'PER_KM') {
-      throw new ErroApiDelivery('Selecione um tipo de taxa.');
+
+    // Endereço e taxas são salvos por botões diferentes na tela, e cada um
+    // grava só as suas colunas. Antes um PUT único regravava tudo: mexer na
+    // taxa mandava a origem pro Geoapify de novo, e uma falha de
+    // geocodificação derrubava junto a gravação da taxa.
+    const escopo = corpo.escopo;
+    if (escopo !== 'endereco' && escopo !== 'taxas') {
+      throw new ErroApiDelivery('Escopo de gravação inválido.');
     }
 
-    const fixedFeeCents =
-      feeMode === 'FIXED' ? inteiroNaoNegativo(corpo.fixedFeeCents, 'Taxa fixa') : null;
-    const pricePerKmCents =
-      feeMode === 'PER_KM'
-        ? inteiroNaoNegativo(corpo.pricePerKmCents, 'Valor por quilômetro')
-        : null;
-    const freeDeliveryThresholdCents =
-      corpo.freeDeliveryThresholdCents === null || corpo.freeDeliveryThresholdCents === undefined
-        ? null
-        : inteiroNaoNegativo(corpo.freeDeliveryThresholdCents, 'Limite de entrega grátis');
-    const origem = validarEnderecoDelivery(corpo.origem);
+    let campos: Record<string, unknown>;
+    if (escopo === 'endereco') {
+      const origem = validarEnderecoDelivery(corpo.origem);
+      // O Geoapify só é chamado aqui — salvar taxa não geocodifica nada.
+      const coordenadas = await geocodificarEndereco(origem);
+      campos = {
+        origin_postal_code: origem.cep,
+        origin_street: origem.rua,
+        origin_number: origem.numero,
+        origin_neighborhood: origem.bairro,
+        origin_city: origem.cidade,
+        origin_state: origem.uf,
+        origin_latitude: coordenadas.latitude,
+        origin_longitude: coordenadas.longitude,
+      };
+    } else {
+      const feeMode = corpo.feeMode;
+      if (feeMode !== 'FIXED' && feeMode !== 'PER_KM') {
+        throw new ErroApiDelivery('Selecione um tipo de taxa.');
+      }
+      campos = {
+        enabled: booleano(corpo.enabled, 'Ativação de entregas'),
+        fee_mode: feeMode,
+        // As duas colunas vão sempre juntas: a checagem
+        // store_delivery_settings_single_fee_check exige que a do modo não
+        // escolhido fique nula.
+        fixed_fee_cents:
+          feeMode === 'FIXED' ? inteiroNaoNegativo(corpo.fixedFeeCents, 'Taxa fixa') : null,
+        price_per_km_cents:
+          feeMode === 'PER_KM'
+            ? inteiroNaoNegativo(corpo.pricePerKmCents, 'Valor por quilômetro')
+            : null,
+        free_delivery_threshold_cents:
+          corpo.freeDeliveryThresholdCents === null ||
+          corpo.freeDeliveryThresholdCents === undefined
+            ? null
+            : inteiroNaoNegativo(corpo.freeDeliveryThresholdCents, 'Limite de entrega grátis'),
+      };
+    }
 
-    // Uma única chamada: a origem é localizada somente quando o responsável
-    // pressiona "Localizar e salvar". As coordenadas ficam persistidas e não
-    // serão recalculadas a cada pedido.
-    const coordenadas = await geocodificarEndereco(origem);
     // A tabela não aceita escrita direta de `authenticated`: somente este
     // endpoint, depois de resolver owner/admin, persiste as coordenadas que o
-    // Geoapify calculou no servidor.
+    // Geoapify calculou no servidor. A loja vem de `autorizarLojaAdministrativa`,
+    // nunca de um store_id mandado pelo navegador.
     const sb = criarClientPrivilegiado();
     const { data, error } = await sb
       .from('store_delivery_settings')
-      .upsert(
-        {
-          store_id: loja.id,
-          enabled,
-          fee_mode: feeMode,
-          fixed_fee_cents: fixedFeeCents,
-          price_per_km_cents: pricePerKmCents,
-          free_delivery_threshold_cents: freeDeliveryThresholdCents,
-          origin_postal_code: origem.cep,
-          origin_street: origem.rua,
-          origin_number: origem.numero,
-          origin_neighborhood: origem.bairro,
-          origin_city: origem.cidade,
-          origin_state: origem.uf,
-          origin_latitude: coordenadas.latitude,
-          origin_longitude: coordenadas.longitude,
-        },
-        { onConflict: 'store_id' }
-      )
+      .upsert({ store_id: loja.id, ...campos }, { onConflict: 'store_id' })
       .select(`
         store_id, enabled, fee_mode, fixed_fee_cents, price_per_km_cents,
         free_delivery_threshold_cents, origin_postal_code, origin_street,
@@ -90,10 +101,19 @@ export async function PUT(
         origin_latitude, origin_longitude, created_at, updated_at
       `)
       .single();
+    // O banco só aceita `enabled` com origem completa e taxa do modo
+    // escolhido preenchidas. Sem esta tradução, ativar a entrega antes de
+    // salvar o endereço devolvia um 500 com texto de constraint.
+    if (error?.code === '23514' && error.message?.includes('enabled_complete')) {
+      throw new ErroApiDelivery(
+        'Salve o endereço de origem antes de ativar as entregas.',
+        409
+      );
+    }
     if (error || !data) throw error || new Error('CONFIGURACAO_NAO_RETORNADA');
 
     logger.info(
-      { rota: ROTA, lojaId: loja.id, userId, feeMode, enabled },
+      { rota: ROTA, lojaId: loja.id, userId, escopo },
       'Configuração de delivery salva'
     );
     return respostaJson({ configuracao: data });
