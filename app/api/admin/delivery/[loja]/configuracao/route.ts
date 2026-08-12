@@ -91,16 +91,42 @@ export async function PUT(
     // Geoapify calculou no servidor. A loja vem de `autorizarLojaAdministrativa`,
     // nunca de um store_id mandado pelo navegador.
     const sb = criarClientPrivilegiado();
-    const { data, error } = await sb
+    const COLUNAS = `
+      store_id, enabled, fee_mode, fixed_fee_cents, price_per_km_cents,
+      free_delivery_threshold_cents, origin_postal_code, origin_street,
+      origin_number, origin_neighborhood, origin_city, origin_state,
+      origin_latitude, origin_longitude, created_at, updated_at
+    `;
+
+    // UPDATE quando a linha existe, INSERT quando não — e nunca `upsert`.
+    //
+    // O upsert do PostgREST vira `insert ... on conflict do update`, e o
+    // Postgres avalia as check constraints na TUPLA DO INSERT proposto, antes
+    // de detectar o conflito. Como o escopo 'taxas' não manda coluna de
+    // origem, essa tupla nasce com origem nula e bate na
+    // store_delivery_settings_enabled_complete_check — ou seja, marcar
+    // "ativar entregas" era recusado por endereço ausente mesmo com o
+    // endereço salvo e geocodificado. Com o update, a linha avaliada é a
+    // final, com origem e taxa juntas.
+    const existente = await sb
       .from('store_delivery_settings')
-      .upsert({ store_id: loja.id, ...campos }, { onConflict: 'store_id' })
-      .select(`
-        store_id, enabled, fee_mode, fixed_fee_cents, price_per_km_cents,
-        free_delivery_threshold_cents, origin_postal_code, origin_street,
-        origin_number, origin_neighborhood, origin_city, origin_state,
-        origin_latitude, origin_longitude, created_at, updated_at
-      `)
-      .single();
+      .select('store_id')
+      .eq('store_id', loja.id)
+      .maybeSingle();
+    if (existente.error) throw existente.error;
+
+    const { data, error } = existente.data
+      ? await sb
+          .from('store_delivery_settings')
+          .update(campos)
+          .eq('store_id', loja.id)
+          .select(COLUNAS)
+          .single()
+      : await sb
+          .from('store_delivery_settings')
+          .insert({ store_id: loja.id, ...campos })
+          .select(COLUNAS)
+          .single();
     // O banco só aceita `enabled` com origem completa e taxa do modo
     // escolhido preenchidas. Sem esta tradução, ativar a entrega antes de
     // salvar o endereço devolvia um 500 com texto de constraint.
