@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHash, createHmac } from 'node:crypto';
 
-import { logger } from '@/lib/observabilidade/logger';
 import { resolverChaveSupabase, resolverSegredoDeLimite } from './segredos';
 
 /** Client privilegiado — só existe em código de servidor. Nunca importar
@@ -14,20 +13,11 @@ export function criarClientPrivilegiado() {
   });
 }
 
-let avisouSegredoLegado = false;
-
 /** Chave de rate limit (IP ou telefone) sem guardar o valor cru. */
 export function hashLimite(valor: string) {
-  const { segredo, fonte } = resolverSegredoDeLimite(process.env);
-  if (fonte === 'legado' && !avisouSegredoLegado) {
-    // Uma vez por processo: isto roda em toda cotação e todo checkout.
-    avisouSegredoLegado = true;
-    logger.warn(
-      { variavel: 'RATE_LIMIT_HMAC_SECRET' },
-      'Rate limit usando a chave do Supabase como segredo; configure a variável dedicada'
-    );
-  }
-  return createHmac('sha256', segredo).update(valor).digest('hex');
+  return createHmac('sha256', resolverSegredoDeLimite(process.env))
+    .update(valor)
+    .digest('hex');
 }
 
 /** Hash canônico do payload pra idempotência — não precisa de pepper, só

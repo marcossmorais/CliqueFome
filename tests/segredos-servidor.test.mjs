@@ -9,42 +9,34 @@ const CHAVE = `sb_secret_${'x'.repeat(40)}`;
 const LEGADA = `eyJ${'y'.repeat(60)}`;
 const DEDICADO = 'd'.repeat(64);
 
-test('chave do Supabase: nome novo vence, nome antigo continua servindo de ponte', () => {
+test('chave do Supabase vem só de SUPABASE_SECRET_KEY', () => {
   assert.equal(resolverChaveSupabase({ SUPABASE_SECRET_KEY: CHAVE }), CHAVE);
-  // Estado da produção hoje: só o nome antigo publicado. Publicar a
-  // renomeação sem esta ponte derrubaria o checkout.
-  assert.equal(resolverChaveSupabase({ SUPABASE_SERVICE_ROLE_KEY: LEGADA }), LEGADA);
-  assert.equal(
-    resolverChaveSupabase({ SUPABASE_SECRET_KEY: CHAVE, SUPABASE_SERVICE_ROLE_KEY: LEGADA }),
-    CHAVE
+
+  // A ponte para o nome antigo foi removida depois que produção, local e CI
+  // migraram. Voltar a aceitá-lo reabriria a porta para um ambiente ficar
+  // rodando na credencial legada sem ninguém perceber.
+  assert.throws(
+    () => resolverChaveSupabase({ SUPABASE_SERVICE_ROLE_KEY: LEGADA }),
+    /SUPABASE_SECRET_KEY_NAO_CONFIGURADA/
   );
   assert.throws(() => resolverChaveSupabase({}), /SUPABASE_SECRET_KEY_NAO_CONFIGURADA/);
   assert.throws(() => resolverChaveSupabase({ SUPABASE_SECRET_KEY: '   ' }), /NAO_CONFIGURADA/);
 });
 
-test('segredo do rate limit deixa de ser a credencial do Supabase', () => {
-  const dedicado = resolverSegredoDeLimite({
-    SUPABASE_SECRET_KEY: CHAVE,
-    RATE_LIMIT_HMAC_SECRET: DEDICADO,
-  });
-  assert.equal(dedicado.segredo, DEDICADO);
-  assert.equal(dedicado.fonte, 'dedicado');
-  // O ponto da separação: o segredo do hash não é mais a chave do banco.
-  assert.notEqual(dedicado.segredo, CHAVE);
+test('segredo do rate limit é variável própria e falha alto se faltar', () => {
+  assert.equal(resolverSegredoDeLimite({ RATE_LIMIT_HMAC_SECRET: DEDICADO }), DEDICADO);
 
-  // Sem a variável dedicada, cai na chave do Supabase e se identifica como
-  // ponte, para quem chama poder avisar em vez de falhar calado.
-  const ponte = resolverSegredoDeLimite({ SUPABASE_SERVICE_ROLE_KEY: LEGADA });
-  assert.equal(ponte.segredo, LEGADA);
-  assert.equal(ponte.fonte, 'legado');
+  // Não cai mais na chave do Supabase: as duas funções estão separadas.
+  assert.throws(
+    () => resolverSegredoDeLimite({ SUPABASE_SECRET_KEY: CHAVE }),
+    /RATE_LIMIT_HMAC_SECRET_NAO_CONFIGURADO/
+  );
 
-  // Segredo curto demais não vale como dedicado — cai na ponte em vez de
-  // enfraquecer o HMAC em silêncio.
-  const curto = resolverSegredoDeLimite({
-    RATE_LIMIT_HMAC_SECRET: 'curto',
-    SUPABASE_SECRET_KEY: CHAVE,
-  });
-  assert.equal(curto.fonte, 'legado');
-
-  assert.throws(() => resolverSegredoDeLimite({}), /SEGREDO_CHECKOUT_NAO_CONFIGURADO/);
+  // Segredo curto demais para: aceitá-lo em silêncio tornaria os hashes de IP
+  // e telefone reversíveis por dicionário.
+  assert.throws(
+    () => resolverSegredoDeLimite({ RATE_LIMIT_HMAC_SECRET: 'curto' }),
+    /RATE_LIMIT_HMAC_SECRET_NAO_CONFIGURADO/
+  );
+  assert.throws(() => resolverSegredoDeLimite({}), /RATE_LIMIT_HMAC_SECRET_NAO_CONFIGURADO/);
 });

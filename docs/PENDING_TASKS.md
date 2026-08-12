@@ -18,7 +18,7 @@ migration nova não existe, mas Delivery permanece desligado. Configurar
 `schema-migracao-checkout-publico.sql` rodou em produção e foi confirmado
 por smoke test real: `POST /api/lojas/hamburgueria-teste/pedidos` respondeu
 `422` (validação de negócio, não `503` de config ausente) — prova que
-`SUPABASE_SERVICE_ROLE_KEY` está setada na Vercel e o caminho completo
+`SUPABASE_SECRET_KEY` está setada na Vercel e o caminho completo
 (Route Handler → RPC → banco) funciona em produção, não só localmente.
 `main` está publicado com persistência do checkout público, menu reorganizado
 com fundo verde e **Cozinha (KDS)**.
@@ -58,9 +58,10 @@ Antes de rodar em produção, o checklist era:
    `pedidos` na publicação de realtime).
 2. Testar com `anon`, com o dono da própria loja e com o dono de outra loja
    (RLS + as duas RPCs novas) antes de liberar o Route Handler.
-3. Confirmar `SUPABASE_SERVICE_ROLE_KEY` na Vercel. É o client privilegiado
-   usado por `lib/pedidos/servidor.ts`; sem ela, a rota responde 503 em vez de
-   quebrar.
+3. Confirmar `SUPABASE_SECRET_KEY` e `RATE_LIMIT_HMAC_SECRET` na Vercel. A
+   primeira é o client privilegiado usado por `lib/pedidos/servidor.ts`; a
+   segunda é o segredo do HMAC do rate limit, que deixou de reaproveitar a
+   chave do Supabase. Sem qualquer uma, a rota responde 503 em vez de quebrar.
 4. Fazer deploy do backend com `CHECKOUT_PUBLICO_ATIVO=false` primeiro,
    rodar um smoke test manual direto na rota, e só então tirar a variável
    (ou setar qualquer valor diferente de `"false"`) pra ligar de vez. Ver
@@ -234,9 +235,10 @@ disso eu consigo fazer sozinho — precisa de conta/segredo do dono):
   o upload do `codecov-action` falha silenciosamente
   (`fail_ci_if_error: false`) — o resto do CI continua passando.
 - **CI precisa dos secrets do Supabase**: `NEXT_PUBLIC_SUPABASE_URL`,
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — mesmos
-  valores do `.env.local`, cadastrados como secrets do repositório no
-  GitHub. Sem eles, os jobs `build` e `e2e` do workflow vão falhar (a
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY`, `E2E_LOJA_SLUG` e
+  `RATE_LIMIT_HMAC_SECRET` — todos apontando para um projeto Supabase de
+  TESTE/STAGING, **nunca** os valores de produção: o e2e cria e apaga pedido
+  de verdade. Cadastrados como secrets do repositório no GitHub. Sem eles, os jobs `build` e `e2e` do workflow vão falhar (a
   aplicação não sobe sem essas variáveis).
 - **e2e em CI**: além dos secrets do Supabase, precisa de
   `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` (login de uma loja de teste,
