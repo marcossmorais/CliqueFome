@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { aplicarRespostaViaCep } from '../lib/delivery/endereco.ts';
 import { reaisParaCentavos } from '../lib/delivery/tipos-operacao.ts';
+import { recusaDeAcessoDoEntregador } from '../lib/delivery/erros-entregador.ts';
 import {
   calcularCotacaoDelivery,
   validarItensDelivery,
@@ -92,6 +93,30 @@ test('1b. campo de taxa em branco NÃO vira R$ 0,00', () => {
   assert.equal(reaisParaCentavos('7,50'), 750);
   assert.equal(reaisParaCentavos(' 12,34 '), 1234);
   assert.equal(reaisParaCentavos('0.015'), 2);
+});
+
+test('1c. recusa do Auth vira mensagem acionável para o dono da loja', () => {
+  // `email_exists` é o código real devolvido pelo Supabase quando o e-mail já
+  // existe; antes ele virava "Não foi possível criar o acesso", que não dizia
+  // ao lojista o que fazer e travava o cadastro de entregador.
+  const repetido = recusaDeAcessoDoEntregador({ code: 'email_exists', status: 422 });
+  assert.match(repetido.mensagem, /já tem acesso cadastrado/i);
+  assert.equal(repetido.status, 409);
+
+  const excesso = recusaDeAcessoDoEntregador({ status: 429 });
+  assert.match(excesso.mensagem, /excesso de tentativas/i);
+  assert.equal(excesso.status, 429);
+
+  const fraca = recusaDeAcessoDoEntregador({ code: 'weak_password' });
+  assert.match(fraca.mensagem, /senha mais forte/i);
+  assert.equal(fraca.status, 422);
+
+  // Qualquer outro motivo continua genérico: não há o que o lojista faça.
+  for (const desconhecido of [null, undefined, {}, { code: 'unexpected_failure' }]) {
+    const generico = recusaDeAcessoDoEntregador(desconhecido);
+    assert.equal(generico.mensagem, 'Não foi possível criar o acesso do entregador.');
+    assert.equal(generico.status, 409);
+  }
 });
 
 test('2. FIXED faz um geocode, nenhum routing e cobra a taxa correta', async () => {
