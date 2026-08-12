@@ -50,10 +50,15 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.localStorage.clear());
 });
 
-test('checkout abre, opera o carrinho e registra somente retirada com Pix', async ({ page, context }) => {
+test('checkout registra Retirada com Pix sem chamar a API de Delivery', async ({ page, context }) => {
   // O fluxo tenta abrir o WhatsApp automaticamente depois do commit. Fechamos
   // a aba externa para manter o teste deterministico e auditamos o href na UI.
   context.on('page', (popup) => { void popup.close().catch(() => {}); });
+  const chamadasDelivery: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.pathname.startsWith('/api/delivery/')) chamadasDelivery.push(url.pathname);
+  });
 
   const respostaPagina = await page.goto(`/${LOJA_SLUG}`, { waitUntil: 'networkidle' });
   expect(respostaPagina?.status(), 'o cardapio da fixture E2E precisa abrir').toBe(200);
@@ -93,25 +98,28 @@ test('checkout abre, opera o carrinho e registra somente retirada com Pix', asyn
   await dialog.getByRole('button', { name: 'Continuar pedido' }).click();
   await expect(dialog.getByRole('heading', { name: 'Finalizar pedido' })).toBeVisible();
 
-  // Contrato visual temporario: uma unica modalidade, nenhum formulario de
-  // endereco/frete e nenhum CTA de Delivery escondido no dialog.
+  // Mesmo que a fixture também ofereça Delivery, este cenário escolhe Retirada
+  // e garante que nenhum campo/end-point de endereço participe do pedido.
+  const opcaoRetirada = dialog.getByRole('radio', { name: /Retirar no estabelecimento/i });
+  await expect(opcaoRetirada).toBeVisible();
+  await opcaoRetirada.click();
   await expect(dialog.getByRole('heading', { name: 'Retirada', exact: true })).toBeVisible();
   await expect(dialog.getByText('Retirar no estabelecimento')).toBeVisible();
-  await expect(dialog.getByText(/\bDelivery\b/i)).toHaveCount(0);
   await expect(dialog.getByRole('heading', { name: /Entrega/i })).toHaveCount(0);
   await expect(dialog.locator('input[autocomplete="street-address"], input[autocomplete="postal-code"]')).toHaveCount(0);
 
-  const radios = dialog.getByRole('radio');
+  const pagamentos = dialog.locator('.checkout-formas-pagamento');
+  const radios = pagamentos.getByRole('radio');
   await expect(radios).toHaveCount(5);
-  await expect(dialog.getByRole('radio', { name: 'Dinheiro' })).toBeVisible();
-  await expect(dialog.getByRole('radio', { name: /Cart.o de cr.dito/i })).toBeVisible();
-  await expect(dialog.getByRole('radio', { name: /Cart.o de d.bito/i })).toBeVisible();
-  await expect(dialog.getByRole('radio', { name: 'Pix no WhatsApp' })).toBeVisible();
-  await expect(dialog.getByRole('radio', { name: 'Pagar no estabelecimento' })).toBeVisible();
+  await expect(pagamentos.getByRole('radio', { name: 'Dinheiro' })).toBeVisible();
+  await expect(pagamentos.getByRole('radio', { name: /Cart.o de cr.dito/i })).toBeVisible();
+  await expect(pagamentos.getByRole('radio', { name: /Cart.o de d.bito/i })).toBeVisible();
+  await expect(pagamentos.getByRole('radio', { name: 'Pix no WhatsApp' })).toBeVisible();
+  await expect(pagamentos.getByRole('radio', { name: 'Pagar no estabelecimento' })).toBeVisible();
 
   await dialog.locator('input[autocomplete="name"]').fill('Cliente Teste E2E');
   await dialog.locator('input[autocomplete="tel"]').fill('11999998888');
-  await dialog.getByRole('radio', { name: 'Pix no WhatsApp' }).click();
+  await pagamentos.getByRole('radio', { name: 'Pix no WhatsApp' }).click();
 
   const respostaPedidoPromise = page.waitForResponse((resposta) => {
     const url = new URL(resposta.url());
@@ -133,6 +141,7 @@ test('checkout abre, opera o carrinho e registra somente retirada com Pix', asyn
     'tipo',
     'totalEsperadoCentavos',
   ]);
+  expect(chamadasDelivery).toEqual([]);
   expect([200, 201], await respostaPedido.text()).toContain(respostaPedido.status());
 
   const linkPix = dialog.getByRole('link', { name: 'Continuar no WhatsApp pra fazer o Pix' });
@@ -143,24 +152,4 @@ test('checkout abre, opera o carrinho e registra somente retirada com Pix', asyn
   const acompanhamento = page.locator('.acompanhar-barra');
   await expect(acompanhamento).toBeVisible();
   await expect(acompanhamento).toContainText('Acompanhando o pedido #');
-});
-
-test('APIs antigas respondem 404 e o portal removido nunca causa crash', async ({ request }) => {
-  for (const rota of [
-    '/api/delivery/cotacao',
-    '/api/delivery/address/autocomplete',
-    '/api/admin/delivery/configuracao',
-    '/api/admin/delivery/taxas',
-  ]) {
-    const resposta = await request.get(rota);
-    expect(resposta.status(), `${rota} nao deve continuar ativa`).toBe(404);
-    expect(resposta.status(), `${rota} nao pode causar crash`).toBeLessThan(500);
-  }
-
-  // /[loja] e uma rota dinamica de primeiro nivel; por isso /entregador pode
-  // ser tratado como slug de cardapio e responder uma pagina 404 com status
-  // HTTP 200 depois do streaming. O contrato importante aqui e nao existir
-  // mais portal executavel nem erro 5xx (a ausencia fisica e coberta no Node).
-  const portal = await request.get('/entregador');
-  expect(portal.status(), '/entregador nao pode causar crash').toBeLessThan(500);
 });

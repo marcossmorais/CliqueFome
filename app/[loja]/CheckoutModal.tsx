@@ -10,11 +10,17 @@ import {
   nomeFormaPagamento,
   type FormaPagamentoOffline,
 } from '@/lib/pedidos/pagamento';
+import { aplicarRespostaViaCep, formatarCep, validarEnderecoDelivery } from '@/lib/delivery/endereco';
+import type {
+  CotacaoDeliveryPublica,
+  EnderecoDelivery,
+  ModalidadePedido,
+} from '@/lib/delivery/tipos';
 
 export type PedidoRegistrado = {
   pedido: {
     numero: number; token: string; status: string; pagamento_status: string; forma_pagamento: string;
-    subtotal: number; total: number; tracking_url: string;
+    subtotal: number; total: number; tracking_url: string; tipo: ModalidadePedido;
   };
   proximaAcao: { tipo: string; url: string } | null;
 };
@@ -36,6 +42,16 @@ const ROTULOS_FORMA_PAGAMENTO: Record<FormaPagamentoOffline, string> = {
   pix_manual: 'Pix no WhatsApp',
   pagamento_retirada: 'Pagar no estabelecimento',
 };
+
+const ENDERECO_VAZIO: EnderecoDelivery = {
+  cep: '', rua: '', numero: '', bairro: '', cidade: '', uf: '', complemento: null,
+};
+
+type CotacaoCheckout = CotacaoDeliveryPublica & { versaoCarrinho: number };
+
+function instrucaoPagamentoCheckout(forma: string, modalidade: ModalidadePedido) {
+  return instrucaoPagamento(forma, modalidade);
+}
 
 function IconeFormaPagamento({ forma }: { forma: FormaPagamentoOffline }) {
   if (forma === 'dinheiro') {
@@ -88,13 +104,14 @@ export function CheckoutModal({
   aberto, linhas, nome, telefone, formaPagamento, erro, enviando, pedidoRegistrado,
   onFechar, onMudarQtd, onRemover,
   sugestoes, sugestoesComplementos, onAdicionarSugestao, onAdicionarComplemento,
-  lojaAberta, retiradaAtiva,
-  onNome, onTelefone, onFormaPagamento, onFinalizar, onNovoPedido,
+  lojaAberta, retiradaAtiva, deliveryAtiva, lojaSlug, modalidade, versaoCarrinho,
+  onNome, onTelefone, onFormaPagamento, onModalidade, onFinalizar, onNovoPedido,
 }: {
   aberto: boolean; linhas: LinhaCarrinho[]; nome: string; telefone: string;
   formaPagamento: FormaPagamentoOffline | ''; erro: string | null; enviando: boolean;
   pedidoRegistrado: PedidoRegistrado | null;
-  lojaAberta: boolean; retiradaAtiva: boolean;
+  lojaAberta: boolean; retiradaAtiva: boolean; deliveryAtiva: boolean;
+  lojaSlug: string; modalidade: ModalidadePedido; versaoCarrinho: number;
   onFechar: () => void;
   sugestoes: { titulo: string; produtos: ProdutoPublico[] }[];
   sugestoesComplementos: SugestaoComplementoCarrinho[];
@@ -103,9 +120,19 @@ export function CheckoutModal({
   onMudarQtd: (lineId: string, delta: number) => void; onRemover: (lineId: string) => void;
   onNome: (v: string) => void; onTelefone: (v: string) => void;
   onFormaPagamento: (forma: FormaPagamentoOffline | '') => void;
-  onFinalizar: () => void; onNovoPedido: () => void;
+  onModalidade: (modalidade: ModalidadePedido) => void;
+  onFinalizar: (cotacao: CotacaoDeliveryPublica | null) => void; onNovoPedido: () => void;
 }) {
   const [etapa, setEtapa] = useState<Etapa>('carrinho');
+  const [endereco, setEndereco] = useState<EnderecoDelivery>(ENDERECO_VAZIO);
+  const [cotacao, setCotacao] = useState<CotacaoCheckout | null>(null);
+  const [enderecoConfirmado, setEnderecoConfirmado] = useState(false);
+  const [consultandoCep, setConsultandoCep] = useState(false);
+  const [calculandoEntrega, setCalculandoEntrega] = useState(false);
+  const [erroCep, setErroCep] = useState<string | null>(null);
+  const [erroEntrega, setErroEntrega] = useState<string | null>(null);
+  const ultimoCepConsultado = useRef('');
+  const versaoEndereco = useRef(0);
   const tituloRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
 
@@ -144,7 +171,161 @@ export function CheckoutModal({
     }
   }, [estado]);
   const subtotal = linhas.reduce((s, linha) => s + subtotalLinha(linha), 0);
-  const total = subtotal;
+  const cotacaoAtual = cotacao?.versaoCarrinho === versaoCarrinho ? cotacao : null;
+  const enderecoEstaConfirmado = enderecoConfirmado && !!cotacaoAtual;
+  const taxaEntrega = modalidade === 'delivery' && cotacaoAtual
+    ? cotacaoAtual.deliveryFeeCents / 100
+    : 0;
+  const total = subtotal + taxaEntrega;
+
+  useEffect(() => {
+    const cep = endereco.cep.replace(/\D/g, '');
+    if (modalidade !== 'delivery') return;
+    if (cep.length !== 8) {
+      ultimoCepConsultado.current = '';
+      return;
+    }
+    if (ultimoCepConsultado.current === cep) return;
+    ultimoCepConsultado.current = cep;
+
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), 5_000);
+    let ativo = true;
+    setConsultandoCep(true);
+    setErroCep(null);
+
+    void fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      signal: controlador.signal,
+      headers: { Accept: 'application/json' },
+    })
+      .then(async (resposta) => {
+        if (!resposta.ok) throw new Error('VIACEP_INDISPONIVEL');
+        return await resposta.json() as {
+          erro?: boolean;
+          logradouro?: string;
+          bairro?: string;
+          localidade?: string;
+          uf?: string;
+        };
+      })
+      .then((dados) => {
+        if (!ativo) return;
+        if (dados.erro) {
+          setErroCep('Não encontramos o CEP. Preencha o endereço manualmente.');
+          return;
+        }
+        versaoEndereco.current += 1;
+        setEndereco((atual) => aplicarRespostaViaCep(atual, dados));
+        setCotacao(null);
+        setEnderecoConfirmado(false);
+      })
+      .catch(() => {
+        if (ativo) setErroCep('Não encontramos o CEP. Preencha o endereço manualmente.');
+      })
+      .finally(() => {
+        clearTimeout(temporizador);
+        if (ativo) setConsultandoCep(false);
+      });
+
+    return () => {
+      ativo = false;
+      clearTimeout(temporizador);
+      controlador.abort();
+    };
+  }, [endereco.cep, modalidade]);
+
+  function alterarEndereco(campo: keyof EnderecoDelivery, valor: string) {
+    let normalizado: string | null = valor;
+    if (campo === 'cep') normalizado = formatarCep(valor);
+    if (campo === 'uf') normalizado = valor.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2);
+    if (campo === 'complemento') normalizado = valor || null;
+    versaoEndereco.current += 1;
+    setEndereco((atual) => ({ ...atual, [campo]: normalizado }));
+    setCotacao(null);
+    setEnderecoConfirmado(false);
+    setErroEntrega(null);
+    if (campo === 'cep') setConsultandoCep(false);
+  }
+
+  function editarEndereco() {
+    versaoEndereco.current += 1;
+    setCotacao(null);
+    setEnderecoConfirmado(false);
+    setErroEntrega(null);
+  }
+
+  function enderecoPronto() {
+    try {
+      validarEnderecoDelivery(endereco);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function calcularEntrega() {
+    if (calculandoEntrega || modalidade !== 'delivery') return;
+    let enderecoValidado: EnderecoDelivery;
+    try {
+      enderecoValidado = validarEnderecoDelivery(endereco);
+    } catch {
+      setErroEntrega('Preencha CEP, rua, número, bairro, cidade e UF.');
+      return;
+    }
+
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), 16_000);
+    const versaoSolicitada = versaoEndereco.current;
+    setCalculandoEntrega(true);
+    setErroEntrega(null);
+    setEnderecoConfirmado(false);
+    try {
+      const resposta = await fetch('/api/delivery/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controlador.signal,
+        body: JSON.stringify({
+          lojaSlug,
+          endereco: enderecoValidado,
+          itens: linhas.map((linha) => ({
+            produtoId: linha.produtoId,
+            quantidade: linha.qty,
+            observacao: linha.observacao || undefined,
+            complementos: linha.complementos.map((complemento) => ({
+              complementoId: complemento.complementoId,
+              quantidade: complemento.quantidade,
+            })),
+          })),
+        }),
+      });
+      const dados = await resposta.json().catch(() => null) as (CotacaoDeliveryPublica & { erro?: string }) | null;
+      if (versaoEndereco.current !== versaoSolicitada) return;
+      if (!resposta.ok || !dados?.quoteId || !dados.address || !Number.isInteger(dados.deliveryFeeCents)) {
+        setErroEntrega(dados?.erro || 'Não foi possível calcular a taxa de entrega. Tente novamente.');
+        return;
+      }
+      setEndereco(dados.address);
+      setCotacao({ ...dados, versaoCarrinho });
+    } catch {
+      if (versaoEndereco.current === versaoSolicitada) {
+        setErroEntrega('Não foi possível calcular a taxa de entrega. Tente novamente.');
+      }
+    } finally {
+      clearTimeout(temporizador);
+      setCalculandoEntrega(false);
+    }
+  }
+
+  function selecionarModalidade(novaModalidade: ModalidadePedido) {
+    versaoEndereco.current += 1;
+    setCotacao(null);
+    setEnderecoConfirmado(false);
+    setConsultandoCep(false);
+    if (novaModalidade === 'delivery' && formaPagamento === 'pagamento_retirada') {
+      onFormaPagamento('');
+    }
+    onModalidade(novaModalidade);
+  }
 
   useEscFechar(() => { if (!enviando) onFechar(); });
 
@@ -208,7 +389,7 @@ export function CheckoutModal({
         {!pedidoRegistrado && (
           <div className="checkout-etapas" aria-label="Etapas do pedido">
             <span className={etapa === 'carrinho' ? 'ativa' : ''}><b>1</b> Carrinho</span><i />
-            <span className={etapa === 'dados' ? 'ativa' : ''}><b>2</b> Retirada</span>
+            <span className={etapa === 'dados' ? 'ativa' : ''}><b>2</b> {modalidade === 'delivery' ? 'Entrega' : 'Retirada'}</span>
           </div>
         )}
 
@@ -219,7 +400,7 @@ export function CheckoutModal({
             <p>Ele já entrou como pendente na gestão da loja.</p>
             <div className="checkout-pendente">
               <strong>Pagamento a receber · {nomeFormaPagamento(pedidoRegistrado.pedido.forma_pagamento)}</strong>
-              <span>{instrucaoPagamento(pedidoRegistrado.pedido.forma_pagamento)}</span>
+              <span>{instrucaoPagamentoCheckout(pedidoRegistrado.pedido.forma_pagamento, pedidoRegistrado.pedido.tipo)}</span>
             </div>
             <div className="checkout-total"><span>Total</span><strong>{formatBRL(pedidoRegistrado.pedido.total)}</strong></div>
             {pedidoRegistrado.proximaAcao?.tipo === 'whatsapp' && (
@@ -296,8 +477,8 @@ export function CheckoutModal({
 
             <div className="checkout-resumo"><div className="checkout-total"><span>Subtotal</span><strong>{formatBRL(subtotal)}</strong></div></div>
             {!lojaAberta && <p className="checkout-erro" role="status">A loja está fechada. Seu carrinho fica salvo para depois.</p>}
-            {lojaAberta && !retiradaAtiva && <p className="checkout-erro" role="status">A retirada está pausada no momento.</p>}
-            <button type="button" className="btn-primary checkout-acao" disabled={linhas.length === 0 || !lojaAberta || !retiradaAtiva} onClick={() => setEtapa('dados')}>
+            {lojaAberta && !retiradaAtiva && !deliveryAtiva && <p className="checkout-erro" role="status">Os pedidos estão pausados no momento.</p>}
+            <button type="button" className="btn-primary checkout-acao" disabled={linhas.length === 0 || !lojaAberta || (!retiradaAtiva && !deliveryAtiva)} onClick={() => setEtapa('dados')}>
               Continuar pedido
             </button>
           </div>
@@ -306,15 +487,57 @@ export function CheckoutModal({
             <button type="button" className="checkout-voltar" onClick={() => setEtapa('carrinho')}>‹ Voltar ao carrinho</button>
 
             <section className="checkout-bloco">
-              <h3>Retirada</h3>
+              <h3>{modalidade === 'delivery' ? 'Entrega' : 'Retirada'}</h3>
               {!lojaAberta && <p className="checkout-erro" role="status">A loja está fechada e não está recebendo pedidos agora.</p>}
-              {lojaAberta && !retiradaAtiva && <p className="checkout-erro" role="status">A retirada está pausada no momento.</p>}
-              <div className="checkout-opcoes">
-                <div className="checkout-retirada">
+              <div className="checkout-opcoes" role="radiogroup" aria-label="Modalidade do pedido">
+                {retiradaAtiva && <button type="button" role="radio" aria-checked={modalidade === 'retirada'} className={'checkout-retirada' + (modalidade === 'retirada' ? ' selecionada' : '')} onClick={() => selecionarModalidade('retirada')}>
                   <span>🚶</span><div><strong>Retirar no estabelecimento</strong><small>Confirme o endereço com a loja</small></div><b aria-hidden="true" />
-                </div>
+                </button>}
+                {deliveryAtiva && <button type="button" role="radio" aria-checked={modalidade === 'delivery'} className={'checkout-retirada' + (modalidade === 'delivery' ? ' selecionada' : '')} onClick={() => selecionarModalidade('delivery')}>
+                  <span>🛵</span><div><strong>Receber por Delivery</strong><small>Calcule a taxa pelo seu endereço</small></div><b aria-hidden="true" />
+                </button>}
               </div>
             </section>
+
+            {modalidade === 'delivery' && (
+              <section className="checkout-bloco checkout-delivery">
+                <h3>Endereço de entrega</h3>
+                {cotacaoAtual ? (
+                  <div className="checkout-cotacao">
+                    <div>
+                      <strong>{cotacaoAtual.address.rua}, {cotacaoAtual.address.numero}</strong>
+                      <span>{cotacaoAtual.address.bairro}</span>
+                      <span>{cotacaoAtual.address.cidade} - {cotacaoAtual.address.uf}</span>
+                      {cotacaoAtual.address.complemento && <span>{cotacaoAtual.address.complemento}</span>}
+                    </div>
+                    <div className="checkout-cotacao-taxa"><span>Taxa de entrega</span><strong>{formatBRL(cotacaoAtual.deliveryFeeCents / 100)}</strong></div>
+                    <div className="checkout-cotacao-acoes">
+                      <button type="button" className="btn-continue" onClick={editarEndereco}>Editar</button>
+                      {!enderecoEstaConfirmado && <button type="button" className="btn-primary" onClick={() => setEnderecoConfirmado(true)}>Confirmar endereço</button>}
+                    </div>
+                    {enderecoEstaConfirmado && <p className="checkout-endereco-confirmado" role="status">✓ Endereço confirmado</p>}
+                  </div>
+                ) : (
+                  <>
+                    <div className="checkout-endereco-grid">
+                      <label className="checkout-campo">CEP *<input inputMode="numeric" autoComplete="postal-code" maxLength={9} value={formatarCep(endereco.cep)} onChange={(e) => alterarEndereco('cep', e.target.value)} placeholder="00000-000" /></label>
+                      <label className="checkout-campo checkout-campo-rua">Rua *<input autoComplete="address-line1" maxLength={120} value={endereco.rua} onChange={(e) => alterarEndereco('rua', e.target.value)} /></label>
+                      <label className="checkout-campo">Número *<input autoComplete="address-line2" maxLength={20} value={endereco.numero} onChange={(e) => alterarEndereco('numero', e.target.value)} /></label>
+                      <label className="checkout-campo">Bairro *<input maxLength={80} value={endereco.bairro} onChange={(e) => alterarEndereco('bairro', e.target.value)} /></label>
+                      <label className="checkout-campo checkout-campo-cidade">Cidade *<input autoComplete="address-level2" maxLength={80} value={endereco.cidade} onChange={(e) => alterarEndereco('cidade', e.target.value)} /></label>
+                      <label className="checkout-campo">UF *<input autoComplete="address-level1" inputMode="text" maxLength={2} value={endereco.uf} onChange={(e) => alterarEndereco('uf', e.target.value)} /></label>
+                      <label className="checkout-campo checkout-campo-complemento">Complemento<input autoComplete="address-line3" maxLength={120} value={endereco.complemento || ''} onChange={(e) => alterarEndereco('complemento', e.target.value)} /></label>
+                    </div>
+                    {consultandoCep && <p className="checkout-ajuda" role="status">Consultando CEP…</p>}
+                    {erroCep && <p className="checkout-erro" role="status">{erroCep}</p>}
+                    {erroEntrega && <p className="checkout-erro" role="alert">{erroEntrega}</p>}
+                    <button type="button" className="btn-continue checkout-calcular" disabled={!enderecoPronto() || consultandoCep || calculandoEntrega} onClick={calcularEntrega}>
+                      {calculandoEntrega && <span className="btn-spinner" aria-hidden="true" />}{calculandoEntrega ? 'Calculando…' : 'Calcular entrega'}
+                    </button>
+                  </>
+                )}
+              </section>
+            )}
 
             <section className="checkout-bloco">
               <h3>Seus dados</h3>
@@ -325,9 +548,9 @@ export function CheckoutModal({
             </section>
 
             <section className="checkout-bloco">
-              <h3>Pagar na retirada</h3>
+              <h3>{modalidade === 'delivery' ? 'Pagamento' : 'Pagar na retirada'}</h3>
               <div className="checkout-formas-pagamento" role="radiogroup" aria-label="Forma de pagamento">
-                {formasPagamentoPara('retirada').map((forma) => {
+                {formasPagamentoPara(modalidade).map((forma) => {
                   const selecionada = formaPagamento === forma;
                   return (
                     <button
@@ -345,13 +568,13 @@ export function CheckoutModal({
                   );
                 })}
               </div>
-              {formaPagamento && <p className="checkout-pagamento">{instrucaoPagamento(formaPagamento)}</p>}
+              {formaPagamento && <p className="checkout-pagamento">{instrucaoPagamentoCheckout(formaPagamento, modalidade)}</p>}
             </section>
 
             {erro && <p className="checkout-erro" role="alert">{erro}</p>}
-            <div className="checkout-resumo"><div><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div><div className="checkout-total"><span>Total</span><strong>{formatBRL(total)}</strong></div></div>
+            <div className="checkout-resumo"><div><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>{modalidade === 'delivery' && <div><span>Taxa de entrega</span><span>{cotacaoAtual ? formatBRL(taxaEntrega) : '—'}</span></div>}<div className="checkout-total"><span>Total</span><strong>{formatBRL(total)}</strong></div></div>
             <p className="checkout-pagamento"><strong>Pedido e pagamento são separados:</strong> seu pedido entra imediatamente na gestão da loja; o pagamento será confirmado manualmente pelo restaurante.</p>
-            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento || !lojaAberta || !retiradaAtiva} onClick={onFinalizar}>{enviando && <span className="btn-spinner" aria-hidden="true" />}{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
+            <button type="button" className="btn-primary checkout-acao" disabled={enviando || linhas.length === 0 || !formaPagamento || !lojaAberta || (modalidade === 'retirada' ? !retiradaAtiva : !deliveryAtiva || !enderecoEstaConfirmado)} onClick={() => onFinalizar(modalidade === 'delivery' ? cotacaoAtual : null)}>{enviando && <span className="btn-spinner" aria-hidden="true" />}{enviando ? 'Registrando pedido…' : 'Confirmar e registrar pedido'}</button>
           </div>
         )}
       </section>

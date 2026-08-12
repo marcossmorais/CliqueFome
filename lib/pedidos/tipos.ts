@@ -7,7 +7,7 @@ export type StatusPedido =
   | 'cancelado';
 
 export type PagamentoStatus = 'pendente' | 'confirmado' | 'estornado';
-export type TipoPedido = 'retirada' | 'balcao' | 'mesa' | 'encomenda';
+export type TipoPedido = 'retirada' | 'delivery' | 'balcao' | 'mesa' | 'encomenda';
 export type OrigemPedido = 'site' | 'instagram' | 'telefone' | 'outro';
 
 export type PedidoItemOpcao = {
@@ -42,6 +42,17 @@ export type PedidoResumo = {
   pagamento_status: PagamentoStatus;
   subtotal: number;
   total: number;
+  delivery_fee_cents?: number;
+  delivery_postal_code?: string | null;
+  delivery_street?: string | null;
+  delivery_number?: string | null;
+  delivery_neighborhood?: string | null;
+  delivery_city?: string | null;
+  delivery_state?: string | null;
+  delivery_complement?: string | null;
+  delivery_latitude?: number | null;
+  delivery_longitude?: number | null;
+  delivery_distance_meters?: number | null;
   data_hora_agendada: string | null;
   origem: OrigemPedido;
   criado_em: string;
@@ -82,6 +93,7 @@ export const NOMES_STATUS: Record<StatusPedido, string> = {
 
 export const NOMES_TIPO: Record<TipoPedido, string> = {
   retirada: 'Retirada',
+  delivery: 'Delivery',
   balcao: 'Balcão',
   mesa: 'Mesa',
   encomenda: 'Encomenda',
@@ -115,9 +127,11 @@ export function formatBRL(v: number | string) {
 }
 
 export function proximoStatus(p: { status: StatusPedido; tipo: TipoPedido }): StatusPedido | null {
+  if (p.tipo === 'delivery' && p.status === 'pronto') return null;
   return PROXIMO_STATUS[p.status] ?? null;
 }
 
 export function rotuloAvancar(p: { status: StatusPedido; tipo: TipoPedido }): string | null {
+  if (p.tipo === 'delivery' && p.status === 'pronto') return null;
   return ROTULO_AVANCAR[p.status] ?? null;
 }

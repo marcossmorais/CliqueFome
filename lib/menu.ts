@@ -22,6 +22,7 @@ export type ItemMenu = {
 export const ICONES: Record<string, string> = {
   inicio: 'M3 11.5L12 4l9 7.5M5 10v10h14V10M9 20v-6h6v6',
   pedidos: 'M4 3h16v18H4zM8 8h8M8 12h8M8 16h5',
+  delivery: 'M3 7h11v9H3zM14 10h4l3 3v3h-7zM7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z',
   mesas: 'M3 6h18v12H3zM7 6V4M17 6V4M3 11h18',
   kds: 'M3 4h18v13H3zM8 21h8M12 17v4M8 9l2 2 4-4',
   caixa: 'M3 7h18v12H3zM3 11h18M7 15h3M7 7V5h10v2',
@@ -51,6 +52,7 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     itens: [
       { id: 'pedidos', nome: 'Gestão de pedidos', icone: 'pedidos', pronta: true },
       { id: 'kds', nome: 'Cozinha', icone: 'kds', pronta: true },
+      { id: 'delivery', nome: 'Delivery', icone: 'delivery', pronta: true },
       { id: 'cardapio', nome: 'Cardápio', icone: 'catalogo', pronta: true },
       { id: 'pdv', nome: 'PDV', icone: 'pdv', pronta: true, desc: 'Caixa, estoque e nota fiscal em um só lugar.' },
     ],

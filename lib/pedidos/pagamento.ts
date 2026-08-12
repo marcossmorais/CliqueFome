@@ -7,7 +7,7 @@ const FORMAS_PAGAMENTO_OFFLINE = {
 } as const;
 
 export type FormaPagamentoOffline = keyof typeof FORMAS_PAGAMENTO_OFFLINE;
-export type TipoPedidoCheckout = 'retirada';
+export type TipoPedidoCheckout = 'retirada' | 'delivery';
 
 const FORMAS_RETIRADA: FormaPagamentoOffline[] = [
   'dinheiro',
@@ -17,8 +17,15 @@ const FORMAS_RETIRADA: FormaPagamentoOffline[] = [
   'pagamento_retirada',
 ];
 
+const FORMAS_DELIVERY: FormaPagamentoOffline[] = [
+  'dinheiro',
+  'cartao_credito',
+  'cartao_debito',
+  'pix_manual',
+];
+
 export function formasPagamentoPara(tipo: TipoPedidoCheckout) {
-  return tipo === 'retirada' ? FORMAS_RETIRADA : [];
+  return tipo === 'delivery' ? FORMAS_DELIVERY : FORMAS_RETIRADA;
 }
 
 function ehFormaPagamentoOffline(valor: unknown): valor is FormaPagamentoOffline {
@@ -34,14 +41,20 @@ export function nomeFormaPagamento(forma: string | null | undefined) {
   return FORMAS_PAGAMENTO_OFFLINE[forma as FormaPagamentoOffline] || forma;
 }
 
-export function instrucaoPagamento(forma: string) {
+export function instrucaoPagamento(forma: string, tipo: TipoPedidoCheckout = 'retirada') {
   switch (forma) {
     case 'dinheiro':
-      return 'O pagamento em dinheiro será feito diretamente no estabelecimento, no momento da retirada.';
+      return tipo === 'delivery'
+        ? 'O pagamento em dinheiro será feito ao receber o pedido.'
+        : 'O pagamento em dinheiro será feito diretamente no estabelecimento, no momento da retirada.';
     case 'cartao_credito':
-      return 'O pagamento com cartão de crédito será feito na maquininha do estabelecimento, no momento da retirada.';
+      return tipo === 'delivery'
+        ? 'O pagamento com cartão de crédito será feito na entrega.'
+        : 'O pagamento com cartão de crédito será feito na maquininha do estabelecimento, no momento da retirada.';
     case 'cartao_debito':
-      return 'O pagamento com cartão de débito será feito na maquininha do estabelecimento, no momento da retirada.';
+      return tipo === 'delivery'
+        ? 'O pagamento com cartão de débito será feito na entrega.'
+        : 'O pagamento com cartão de débito será feito na maquininha do estabelecimento, no momento da retirada.';
     case 'pix_manual':
       return 'Você será encaminhado pro WhatsApp da loja pra combinar e enviar o Pix — o pedido já está registrado, a confirmação do pagamento é manual.';
     case 'pagamento_retirada':

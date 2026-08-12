@@ -21,14 +21,25 @@ function AvaliacaoLoja() {
   );
 }
 
-export function HeroLoja({ loja }: { loja: LojaPublica }) {
+export function HeroLoja({
+  loja,
+  deliveryAtiva = false,
+}: {
+  loja: LojaPublica;
+  deliveryAtiva?: boolean;
+}) {
   const [infoAberta, setInfoAberta] = useState(false);
-  const aceitando = loja.recebendo_encomendas && loja.retirada_ativa;
+  const aceitando = loja.recebendo_encomendas && (loja.retirada_ativa || deliveryAtiva);
   const tempo = loja.tempo_preparo_min && loja.tempo_preparo_max
     ? `${loja.tempo_preparo_min}–${loja.tempo_preparo_max} min`
     : null;
   const perfilDemo = loja.slug === 'pizzaria-teste';
   const numeroWhats = (loja.whatsapp_numero || '').replace(/\D/g, '');
+  const momentoPagamento = deliveryAtiva && !loja.retirada_ativa
+    ? 'na entrega'
+    : loja.retirada_ativa && !deliveryAtiva
+      ? 'na retirada'
+      : 'na retirada ou entrega';
 
   const logoStyle = loja.logo_url ? { ['--logo' as string]: `url("${loja.logo_url}")` } : undefined;
   const capaStyle = loja.banner_url ? { ['--capa' as string]: `url("${loja.banner_url}")` } : undefined;
@@ -91,9 +102,9 @@ export function HeroLoja({ loja }: { loja: LojaPublica }) {
             <h2>Meios de pagamento</h2>
             <ul className="loja-pagamentos">
               <li>Pix direto para a loja</li>
-              <li>Dinheiro na retirada</li>
-              <li>Cartão de crédito na retirada</li>
-              <li>Cartão de débito na retirada</li>
+              <li>Dinheiro {momentoPagamento}</li>
+              <li>Cartão de crédito {momentoPagamento}</li>
+              <li>Cartão de débito {momentoPagamento}</li>
             </ul>
           </section>
 

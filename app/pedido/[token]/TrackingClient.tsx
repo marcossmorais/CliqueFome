@@ -103,6 +103,12 @@ export function TrackingClient({ token, inicial }: { token: string; inicial: Ped
       )}
 
       <section className="tracking-itens">
+        {pedido.tipo === 'delivery' && pedido.endereco && (
+          <div className="tracking-item">
+            <strong>Endereço de entrega</strong>
+            <div className="tracking-item-opcao">{pedido.endereco}</div>
+          </div>
+        )}
         {pedido.itens.map((item, i) => (
           <div className="tracking-item" key={i}>
             <div className="tracking-item-linha">
@@ -131,6 +137,12 @@ export function TrackingClient({ token, inicial }: { token: string; inicial: Ped
           <span>Subtotal</span>
           <span>{formatBRL(pedido.subtotal)}</span>
         </div>
+        {pedido.tipo === 'delivery' && (
+          <div className="tracking-linha">
+            <span>Taxa de entrega</span>
+            <span>{formatBRL((pedido.delivery_fee_cents ?? 0) / 100)}</span>
+          </div>
+        )}
         <div className="tracking-linha tracking-total">
           <span>Total</span>
           <span>{formatBRL(pedido.total)}</span>

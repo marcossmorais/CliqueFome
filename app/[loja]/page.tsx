@@ -77,6 +77,7 @@ async function carregar(slug: string) {
   const [
     { data: categorias, error: erroCategorias },
     { data: produtos, error: erroProdutos },
+    { data: deliveryAtiva, error: erroDelivery },
   ] = await Promise.all([
     sb.from('categorias').select('id, nome, emoji, icone, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
     sb
@@ -96,6 +97,10 @@ async function carregar(slug: string) {
       // Traz também os inativos: viram card "Esgotado" em vez de sumir, pra
       // o cliente ver que o item existe.
       .order('ordem'),
+    // A função expõe somente um booleano; configuração e preços
+    // continuam privados. Durante deploy gradual, função ausente significa
+    // apenas Delivery desligado — nunca derruba o cardápio de retirada.
+    sb.rpc('delivery_disponibilidade_publica', { p_loja_id: loja.id }),
   ]);
   if (erroCategorias) throw new FalhaAoCarregar(erroCategorias.message);
   if (erroProdutos) throw new FalhaAoCarregar(erroProdutos.message);
@@ -134,6 +139,7 @@ async function carregar(slug: string) {
     loja: loja as LojaPublica,
     categorias: listaCategorias,
     produtos: produtosTratados,
+    deliveryAtiva: !erroDelivery && deliveryAtiva === true,
   };
 }
 
@@ -163,6 +169,7 @@ export default async function CardapioPage({ params }: { params: Promise<{ loja:
       loja={dados.loja}
       categorias={dados.categorias}
       produtos={dados.produtos}
+      deliveryAtiva={dados.deliveryAtiva}
     />
   );
 }

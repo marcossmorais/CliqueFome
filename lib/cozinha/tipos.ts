@@ -43,6 +43,7 @@ export type PedidoCozinha = {
 
 export type DestinoCozinha =
   | 'retirada'
+  | 'delivery'
   | 'balcao'
   | 'salao';
 
@@ -59,6 +60,12 @@ const DESTINOS: Record<DestinoCozinha, InstrucaoDestino> = {
     rotulo: 'Retirada local',
     acaoAoFicarPronto: 'Pedido pronto — retirada local',
     instrucao: 'Aguardar a retirada do cliente no local.',
+  },
+  delivery: {
+    id: 'delivery',
+    rotulo: 'Delivery',
+    acaoAoFicarPronto: 'Pedido pronto — enviar ao Delivery',
+    instrucao: 'Aguardar a atribuição de um entregador na área Delivery.',
   },
   balcao: {
     id: 'balcao',
@@ -82,6 +89,7 @@ const DESTINOS: Record<DestinoCozinha, InstrucaoDestino> = {
 export function destinoDoPedido(
   pedido: Pick<PedidoCozinha, 'tipo'>
 ): InstrucaoDestino {
+  if (pedido.tipo === 'delivery') return DESTINOS.delivery;
   if (pedido.tipo === 'balcao') return DESTINOS.balcao;
   if (pedido.tipo === 'mesa') return DESTINOS.salao;
   return DESTINOS.retirada;

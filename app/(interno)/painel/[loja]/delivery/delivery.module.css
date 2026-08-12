@@ -1,0 +1,75 @@
+.pagina { display: grid; gap: 18px; color: var(--texto); }
+.abas { display: flex; gap: 6px; overflow-x: auto; padding: 4px; border: 1px solid var(--borda); border-radius: 13px; background: var(--fundo-2); }
+.abas button { flex: 1; min-width: max-content; padding: 10px 14px; border: 0; border-radius: 9px; color: var(--texto-suave); background: transparent; cursor: pointer; }
+.abas .abaAtiva { color: #fff; background: var(--verde); }
+.erro, .sucesso { padding: 12px 14px; border-radius: 11px; font-size: 14px; }
+.erro { color: #8c2828; border: 1px solid #efb9b9; background: #fff0f0; }
+.sucesso { color: #11623d; border: 1px solid #b6dfc8; background: #eaf8f0; }
+.colunasEntrega { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.grupo { min-width: 0; padding: 13px; border: 1px solid var(--borda); border-radius: 15px; background: var(--fundo-2); }
+.grupo > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 11px; }
+.grupo > header h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+.grupo > header span { min-width: 24px; padding: 3px 7px; border-radius: 99px; color: var(--texto-suave); background: var(--superficie); text-align: center; font-size: 12px; }
+.lista { display: grid; gap: 10px; }
+.vazio { padding: 22px 10px; color: var(--texto-suave); text-align: center; font-size: 13px; }
+.entregaCard { padding: 14px; border: 1px solid var(--borda); border-radius: 13px; background: var(--superficie); }
+.entregaTopo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.entregaTopo strong { font-size: 13px; }
+.entregaTopo span { padding: 3px 6px; border-radius: 99px; color: #855011; background: #fff2dc; font-size: 10px; font-weight: 700; }
+.entregaTopo span[data-status='OUT_FOR_DELIVERY'] { color: #9b4815; background: #fee9db; }
+.entregaTopo span[data-status='DELIVERED'] { color: #12613e; background: #e5f7ed; }
+.entregaCard h3 { margin: 0 0 6px; font-size: 16px; }
+.entregaCard > p { margin: 2px 0; font-size: 13px; }
+.entregaCard > small { color: var(--texto-suave); font-size: 11px; }
+.entregaResumo { display: grid; gap: 3px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--borda); }
+.entregaResumo span { color: var(--texto-suave); font-size: 11px; }
+.entregaCard .driverAtribuido { margin-top: 10px; padding: 7px; border-radius: 7px; background: var(--verde-tint); font-size: 11px; }
+.atribuir { display: grid; gap: 6px; margin-top: 12px; }
+.atribuir select { margin: 0; padding: 8px; font-size: 12px; }
+.atribuir button, .secaoCabecalho button, .formCard > button, .resetSenha button { padding: 9px 11px; border: 0; border-radius: 9px; color: #fff; background: var(--verde); font-size: 12px; font-weight: 700; cursor: pointer; }
+.atribuir button:disabled { opacity: .55; }
+.atribuir small { color: var(--texto-suave); }
+.secaoSimples, .configForm { display: grid; gap: 14px; }
+.secaoCabecalho { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.secaoCabecalho h2, .formCard h2 { margin: 0 0 4px; font-size: 19px; }
+.secaoCabecalho p, .formCard > p { color: var(--texto-suave); font-size: 13px; }
+.listaDrivers { display: grid; gap: 10px; }
+.driverCard, .formCard { padding: 18px; border: 1px solid var(--borda); border-radius: 14px; background: var(--superficie); }
+.driverCard { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+.driverCard h3 { margin: 0; font-size: 16px; }
+.driverCard p { margin: 4px 0 8px; color: var(--texto-suave); font-size: 13px; }
+.driverCard span { color: var(--texto-suave); font-size: 12px; }
+.driverCard span[data-status='DISPONIVEL'] { color: var(--verde); }
+.driverCard span[data-status='EM_ROTA'] { color: var(--laranja); }
+.driverBotoes { display: flex; gap: 7px; }
+.driverBotoes button { padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; color: var(--texto); background: var(--fundo-2); cursor: pointer; }
+.driverBotoes button:disabled { opacity: .5; }
+.resetSenha { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: end; padding-top: 12px; border-top: 1px solid var(--borda); }
+.resetSenha input { margin: 5px 0 0; }
+.resetSenha button:last-child { color: var(--texto); background: var(--fundo-2); border: 1px solid var(--borda); }
+.grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.formCard small { display: block; margin: -5px 0 14px; color: var(--texto-suave); }
+.formCard > button { font-size: 14px; }
+.linhaToggle { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.toggle { position: relative; width: 48px; height: 27px; margin: 0; }
+.toggle input { position: absolute; opacity: 0; }
+.toggle span { display: block; width: 48px; height: 27px; border-radius: 99px; background: #abb8b0; cursor: pointer; }
+.toggle span::after { content: ''; display: block; width: 21px; height: 21px; margin: 3px; border-radius: 50%; background: #fff; transition: transform .18s; }
+.toggle input:checked + span { background: var(--verde); }
+.toggle input:checked + span::after { transform: translateX(21px); }
+.radios { display: flex; gap: 12px; margin: 16px 0; }
+.radios label { display: flex; align-items: center; gap: 7px; padding: 11px; border: 1px solid var(--borda); border-radius: 10px; color: var(--texto); }
+.radios input, .check input { width: auto; margin: 0; }
+.check { display: flex; align-items: center; gap: 8px; margin: 10px 0 15px; color: var(--texto); }
+.salvarConfig { min-height: 46px; border: 0; border-radius: 11px; color: #fff; background: var(--verde); font-weight: 700; cursor: pointer; }
+.salvarConfig:disabled { opacity: .6; }
+
+@media (max-width: 850px) { .colunasEntrega { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+  .driverCard { grid-template-columns: 1fr; }
+  .driverBotoes { flex-wrap: wrap; }
+  .resetSenha { grid-template-columns: 1fr; }
+  .grade2 { grid-template-columns: 1fr; }
+  .secaoCabecalho { align-items: flex-start; flex-direction: column; }
+  .secaoCabecalho button { width: 100%; }
+}

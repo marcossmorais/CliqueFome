@@ -50,14 +50,18 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  const loginEntregador = pathname === '/entregador/login';
+  const areaEntregador = pathname === '/entregador' ||
+    (pathname.startsWith('/entregador/') && !loginEntregador);
   const areaProtegida =
     pathname.startsWith('/painel') ||
     pathname.startsWith('/superadmin') ||
-    pathname === '/criar-loja';
+    pathname === '/criar-loja' ||
+    areaEntregador;
 
   if (areaProtegida && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/entrar';
+    url.pathname = areaEntregador ? '/entregador/login' : '/entrar';
     // Guarda pra onde a pessoa queria ir, pra devolver depois do login.
     url.searchParams.set('proximo', pathname);
     return NextResponse.redirect(url);
@@ -84,5 +88,12 @@ export const config = {
   // chamada de rede ao Supabase (getUser) a cada visita. Restringir aqui
   // não abre brecha: quem protege a área interna continua sendo este proxy,
   // e o layout do painel revalida a sessão no servidor por cima.
-  matcher: ['/painel/:path*', '/superadmin/:path*', '/entrar', '/criar-loja', '/cardapio.html'],
+  matcher: [
+    '/painel/:path*',
+    '/superadmin/:path*',
+    '/entrar',
+    '/criar-loja',
+    '/entregador/:path*',
+    '/cardapio.html',
+  ],
 };

@@ -12,6 +12,7 @@ export type PedidoTracking = {
   forma_pagamento: string | null;
   subtotal: number;
   total: number;
+  delivery_fee_cents?: number;
   data_hora_agendada: string | null;
   origem: string;
   criado_em: string;
