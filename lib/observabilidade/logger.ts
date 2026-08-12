@@ -56,6 +56,8 @@ export const logger = pino({
       '*.senha',
       '*.password',
       '*.SUPABASE_SERVICE_ROLE_KEY',
+      '*.SUPABASE_SECRET_KEY',
+      '*.RATE_LIMIT_HMAC_SECRET',
     ],
     censor: '[redigido]',
   },

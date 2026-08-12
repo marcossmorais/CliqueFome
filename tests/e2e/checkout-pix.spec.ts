@@ -9,13 +9,41 @@ const LOJA_SLUG = process.env.E2E_LOJA_SLUG || 'lojateste';
 const SUPABASE_CI_CONFIGURADO = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SECRET_KEY
 );
 
 test.skip(
   Boolean(process.env.CI) && !SUPABASE_CI_CONFIGURADO,
   'Configure os secrets do Supabase para executar o checkout E2E no CI.'
 );
+
+/**
+ * Apaga o pedido que o teste criou.
+ *
+ * A chave vem do ambiente do processo Node do Playwright e é usada só neste
+ * `fetch` — que não passa pelo navegador, então não entra em trace, vídeo,
+ * screenshot nem HAR. Nada dela é impresso: o log traz apenas o id e o
+ * status HTTP. E, por contrato do CI, é a chave do projeto de teste.
+ *
+ * Falha aqui não derruba o teste: o objetivo é não sujar a base, e um pedido
+ * órfão é menos grave que um verde perdido por causa da limpeza.
+ */
+async function removerPedidoDeTeste(pedidoId: string | undefined) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const chave = process.env.SUPABASE_SECRET_KEY;
+  if (!pedidoId || !url || !chave) return;
+  try {
+    const resposta = await fetch(`${url}/rest/v1/pedidos?id=eq.${pedidoId}`, {
+      method: 'DELETE',
+      headers: { apikey: chave, Authorization: `Bearer ${chave}` },
+    });
+    if (!resposta.ok) {
+      console.warn(`[e2e] pedido ${pedidoId} não removido: HTTP ${resposta.status}`);
+    }
+  } catch (erro) {
+    console.warn(`[e2e] pedido ${pedidoId} não removido: ${(erro as Error).message}`);
+  }
+}
 
 function valorBRL(texto: string | null) {
   const numero = texto?.match(/R\$\s*([\d.]+,\d{2})/)?.[1];
@@ -162,4 +190,10 @@ test('checkout registra Retirada com Pix sem chamar a API de Delivery', async ({
   const acompanhamento = page.locator('.acompanhar-barra');
   await expect(acompanhamento).toBeVisible();
   await expect(acompanhamento).toContainText('Acompanhando o pedido #');
+
+  // Este teste cria um pedido de verdade. Rodando contra a base real, um por
+  // execução do CI viraria dezenas de linhas falsas na lista do lojista, no
+  // dashboard e no financeiro — some com o que acabou de criar.
+  const { id: pedidoId } = (await respostaPedido.json()) as { id?: string };
+  await removerPedidoDeTeste(pedidoId);
 });

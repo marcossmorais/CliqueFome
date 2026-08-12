@@ -5,10 +5,14 @@ on:
     branches: [main]
   pull_request:
 
+# Todas apontam para o projeto Supabase de TESTE/STAGING, nunca produção.
+# A credencial privilegiada de produção não entra no CI em hipótese alguma:
+# o e2e cria e apaga pedido, e um engano aqui mexe na base real.
 env:
   NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+  RATE_LIMIT_HMAC_SECRET: ${{ secrets.RATE_LIMIT_HMAC_SECRET }}
 
 jobs:
   qualidade:
@@ -72,4 +76,17 @@ jobs:
       - run: npm run build
       # Specs sem credencial configurada (E2E_ADMIN_EMAIL/PASSWORD) pulam
       # sozinhos via test.skip() — não é preciso condicionar o job aqui.
-      - run: npm run test:e2e
+      - name: e2e
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee e2e.log
+      # Job verde com tudo pulado é pior que job vermelho: parece cobertura e
+      # não é. Enquanto faltar secret, o aviso aparece no resumo do run.
+      - name: Avisa quando o e2e não executou nada
+        if: always()
+        shell: bash
+        run: |
+          if ! grep -qE '[0-9]+ (passed|failed)' e2e.log; then
+            echo "::warning title=e2e sem cobertura::Todos os specs pularam por falta de secret. Verde neste job NÃO significa testado."
+          fi
