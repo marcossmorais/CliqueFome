@@ -14,7 +14,6 @@ body{
   color:#171b19;
 }
 
-.cardapio-app .menu-sidebar{ display:none; }
 
 .cardapio-app .menu-section{
   min-height:100vh;
@@ -50,17 +49,26 @@ body{
 .cardapio-app .loja-menu-btn{ gap:4px; }
 .cardapio-app .loja-menu-btn span{ display:block; width:15px; height:1.5px; border-radius:2px; background:currentColor; }
 .cardapio-app .loja-info-btn{ border:1.5px solid #26352e; background:#fff; font-weight:800; font-family:serif; }
+/* A moldura redonda fica no <span>; a foto entra como <img> preenchendo ela.
+   A cor da marca continua atrás, aparecendo enquanto a imagem chega e nas
+   lojas que não cadastraram logo. */
 .cardapio-app .loja-mobile-logo,
-.cardapio-app .sidebar-logo,
 .cardapio-app .loja-logo{
-  background:var(--verde-ui) center/cover no-repeat;
-  background-image:var(--logo, none);
+  position:relative;
+  overflow:hidden;
+  background:var(--verde-ui);
 }
+.cardapio-app .loja-mobile-logo img,
+.cardapio-app .loja-logo img{ width:100%; height:100%; object-fit:cover; }
 .cardapio-app .loja-mobile-logo{ width:42px; height:42px; flex:0 0 42px; border:1px solid #edf0ee; border-radius:50%; }
 .cardapio-app .loja-mobile-identidade{ display:grid; flex:1; min-width:0; gap:4px; }
 .cardapio-app .loja-mobile-identidade strong{ overflow:hidden; font-size:16px; line-height:1.15; text-overflow:ellipsis; white-space:nowrap; }
 .cardapio-app .loja-mobile-identidade small{ overflow:hidden; color:#69736e; font-size:10.5px; text-overflow:ellipsis; white-space:nowrap; }
-.cardapio-app .loja-mobile-identidade b{ color:var(--verde-ui); font-weight:800; }
+/* Aberto/fechado é estado, não marca: verde e vermelho fixos. Quando saía da
+   cor da loja, uma loja de marca laranja anunciava "Aceitando pedidos" em
+   laranja, e o cliente perdia o único sinal de que dá pra pedir. */
+.cardapio-app .loja-mobile-identidade b{ font-weight:800; }
+.cardapio-app .loja-mobile-identidade b.aberto{ color:#127a3e; }
 .cardapio-app .loja-mobile-identidade b.fechado{ color:#a33b34; }
 .cardapio-app .loja-avaliacao{
   display:flex;
@@ -83,10 +91,12 @@ body{
   overflow:hidden;
   border:0;
   border-radius:13px;
-  background:linear-gradient(120deg, color-mix(in srgb, var(--verde-ui) 85%, #061b10), #122d1f) center/cover no-repeat;
-  background-image:var(--capa, linear-gradient(120deg, color-mix(in srgb, var(--verde-ui) 85%, #061b10), #122d1f));
+  /* Fundo de espera e de loja sem capa cadastrada — a capa em si é um <img>
+     dentro, pra ser descoberta no HTML e passar pelo otimizador. */
+  background:linear-gradient(120deg, color-mix(in srgb, var(--verde-ui) 85%, #061b10), #122d1f);
   box-shadow:none;
 }
+.cardapio-app .loja-capa-img{ object-fit:cover; }
 .cardapio-app .loja-capa-sombra{ position:absolute; inset:0; background:linear-gradient(90deg, rgba(5,14,9,.78), rgba(5,14,9,.12) 70%); }
 .cardapio-app .loja-chamada{
   position:absolute;
@@ -307,7 +317,9 @@ body{
 .cardapio-app .menu-card.esgotado .menu-card-photo img{ filter:grayscale(.55); }
 .cardapio-app .menu-status{ grid-column:1/-1; padding:52px 16px; color:#68736d; font-size:13px; }
 
-/* Carrinho inferior — preto no mobile, como a versão moderna. */
+/* Carrinho inferior. Era preto fixo; passa a usar a cor da loja — é o botão
+   mais clicado do cardápio e não fazia sentido ser o único elemento de ação
+   fora da identidade dela. */
 .cardapio-app .floating-cart{
   position:fixed;
   z-index:60;
@@ -321,11 +333,14 @@ body{
   transform:none;
   border:0;
   border-radius:16px;
-  background:#202322;
+  background:var(--verde-ui);
   color:#fff;
   box-shadow:0 10px 28px rgba(0,0,0,.23);
   cursor:pointer;
 }
+.cardapio-app .floating-cart-icon,
+.cardapio-app .floating-cart-label,
+.cardapio-app .floating-cart-total{ color:#fff; }
 .cardapio-app .floating-cart:hover{ transform:none; }
 .cardapio-app .floating-cart-icon svg{ width:21px; height:21px; }
 .cardapio-app .floating-cart .badge{ display:flex; top:-8px; right:-8px; background:#39b957; color:#fff; }
@@ -334,9 +349,7 @@ body{
 .cardapio-app .floating-cart-cta{ display:none; }
 
 .cardapio-app .menu-section button:focus-visible,
-.cardapio-app .menu-section input:focus-visible,
-.cardapio-app .menu-sidebar a:focus-visible,
-.cardapio-app .menu-sidebar button:focus-visible{ outline:3px solid color-mix(in srgb, var(--verde-ui) 25%, transparent); outline-offset:2px; }
+.cardapio-app .menu-section input:focus-visible{ outline:3px solid color-mix(in srgb, var(--verde-ui) 25%, transparent); outline-offset:2px; }
 
 @media (min-width:640px) and (max-width:959px){
   .cardapio-app .menu-conteudo{ padding-inline:24px; }
@@ -344,71 +357,29 @@ body{
   .cardapio-app .menu-list{ grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
-/* Desktop da referência: sidebar fixa dentro do cartão e cards em grade. */
+/* Desktop: uma coluna só, sem cartão flutuante.
+   Antes o cardápio era uma folha de 1240px com cantos, sombra e faixa cinza
+   dos lados, e uma barra lateral de 225px comendo o começo da capa. Agora a
+   capa ocupa a largura inteira da janela e só o conteúdo tem limite. */
 @media (min-width:960px){
-  body{ padding:28px; }
   .cardapio-app{
-    display:grid;
-    grid-template-columns:225px minmax(0,1fr);
-    width:min(1240px, 100%);
-    min-height:calc(100vh - 56px);
-    margin:0 auto;
-    overflow:hidden;
-    border:1px solid #e7ebe8;
-    border-radius:20px;
-    box-shadow:0 12px 42px rgba(20,34,27,.11);
-  }
-  .cardapio-app .menu-sidebar{
-    display:flex;
-    min-height:100%;
-    padding:34px 18px 26px;
-    flex-direction:column;
-    border-right:1px solid #e8ece9;
-    background:#fff;
-  }
-  .cardapio-app .sidebar-marca{ display:flex; align-items:center; gap:12px; padding:0 8px 30px; }
-  .cardapio-app .sidebar-logo{ width:44px; height:44px; flex:0 0 44px; border-radius:50%; }
-  .cardapio-app .sidebar-marca strong{ font-size:15px; line-height:1.25; }
-  .cardapio-app .sidebar-nav{ display:grid; gap:3px; }
-  .cardapio-app .sidebar-nav button,
-  .cardapio-app .sidebar-nav a{
-    display:flex;
+    /* Borda esquerda da coluna de conteúdo. Os elementos que flutuam sobre a
+       capa se alinham por ela, senão encostariam na beirada da tela. */
+    --recuo:max(34px, calc((100% - 1200px) / 2 + 34px));
     width:100%;
-    min-height:44px;
-    padding:0 13px;
-    align-items:center;
-    gap:11px;
-    border:0;
-    border-radius:9px;
-    background:transparent;
-    color:#242c28;
-    font:600 12px inherit;
-    text-align:left;
-    text-decoration:none;
-    cursor:pointer;
+    min-height:100vh;
   }
-  .cardapio-app .sidebar-nav span{ width:21px; color:#17241d; font-size:18px; text-align:center; }
-  .cardapio-app .sidebar-nav .ativo{ background:#f0f2f1; color:var(--verde-ui); }
-  .cardapio-app .sidebar-nav button:disabled{ opacity:.55; cursor:not-allowed; }
-  .cardapio-app .sidebar-info{ margin:42px 4px 0; padding:15px; border:1px solid #e1e6e3; border-radius:10px; }
-  .cardapio-app .sidebar-info>strong{ display:block; margin-bottom:15px; color:var(--verde-ui); font-size:11px; }
-  .cardapio-app .sidebar-info>strong.fechado{ color:#a33b34; }
-  .cardapio-app .sidebar-info i{ display:inline-block; width:7px; height:7px; margin-right:5px; border-radius:50%; background:currentColor; }
-  .cardapio-app .sidebar-info p{ display:grid; gap:4px; margin:12px 0 0; font-size:11px; font-weight:700; }
-  .cardapio-app .sidebar-info p span{ color:#7b8580; font-size:9.5px; font-weight:500; }
-  .cardapio-app .sidebar-ajuda{ display:grid; gap:8px; margin:auto 4px 0; font-size:10px; }
-  .cardapio-app .sidebar-ajuda a{ padding:10px 12px; border:1px solid #dbe2de; border-radius:9px; color:#17241d; font-size:10.5px; font-weight:700; text-align:center; text-decoration:none; }
 
   .cardapio-app .menu-section{ min-width:0; min-height:100%; padding:0 0 100px; }
   .cardapio-app .loja-hero{ padding:0; }
   .cardapio-app .loja-mobile-topo{ display:none; }
-  .cardapio-app .loja-capa{ height:258px; border-radius:0; }
+  .cardapio-app .loja-capa{ height:300px; border-radius:0; }
   .cardapio-app .loja-chamada{ display:none; }
   .cardapio-app .loja-capa-sombra{ background:linear-gradient(90deg,rgba(4,18,10,.8),rgba(4,18,10,.1) 72%); }
   .cardapio-app .loja-hero-base{
     position:absolute;
     z-index:2;
-    left:34px;
+    left:var(--recuo);
     top:50%;
     display:flex;
     align-items:center;
@@ -427,9 +398,9 @@ body{
   .cardapio-app .loja-hero-txt .loja-avaliacao strong,
   .cardapio-app .loja-hero-txt .loja-avaliacao small{ color:#fff; }
   .cardapio-app .loja-mais{ display:block; margin-top:10px; color:#fff; font-size:11px; text-decoration:none; }
-  .cardapio-app .loja-info-caixa{ position:absolute; z-index:5; top:210px; left:34px; width:330px; max-height:420px; margin:0; overflow:auto; box-shadow:0 8px 25px rgba(0,0,0,.18); }
+  .cardapio-app .loja-info-caixa{ position:absolute; z-index:5; top:252px; left:var(--recuo); width:330px; max-height:420px; margin:0; overflow:auto; box-shadow:0 8px 25px rgba(0,0,0,.18); }
 
-  .cardapio-app .menu-conteudo{ padding:26px 34px 10px; }
+  .cardapio-app .menu-conteudo{ max-width:1200px; margin:0 auto; padding:26px 34px 10px; }
   .cardapio-app .menu-search{ margin-bottom:18px; }
   .cardapio-app .menu-search input{ min-height:48px; font-size:12px; }
   .cardapio-app .menu-filters{ gap:10px; margin:0 0 26px; padding:0; }
@@ -464,25 +435,22 @@ body{
   .cardapio-app .btn-add-label{ display:inline; font-size:10.5px; }
   .cardapio-app .menu-qty{ width:100%; justify-content:space-between; border-radius:7px; }
 
+  /* O deslocamento de 112px era metade da barra lateral, pra centralizar a
+     barra na coluna do cardápio. Sem ela, centro é centro. */
   .cardapio-app .floating-cart{
-    left:calc(50% + 112px);
+    left:50%;
     right:auto;
     bottom:18px;
-    width:min(620px, calc(100vw - 310px));
+    width:min(620px, calc(100vw - 68px));
     min-height:60px;
     padding:9px 11px 9px 20px;
     transform:translateX(-50%);
-    border:1px solid #e0e6e2;
+    border:0;
     border-radius:13px;
-    background:#fff;
-    color:#1d2521;
-    box-shadow:0 8px 25px rgba(20,35,27,.14);
+    box-shadow:0 8px 25px rgba(20,35,27,.2);
   }
   .cardapio-app .floating-cart:hover{ transform:translateX(-50%); }
-  .cardapio-app .floating-cart-icon,
-  .cardapio-app .floating-cart-label,
-  .cardapio-app .floating-cart-total{ color:#1d2521; }
-  .cardapio-app .floating-cart-cta{ display:inline-flex; min-height:42px; padding:0 20px; align-items:center; border-radius:8px; background:var(--verde-ui); color:#fff; font-size:11px; font-weight:800; }
+  .cardapio-app .floating-cart-cta{ display:inline-flex; min-height:42px; padding:0 20px; align-items:center; border-radius:8px; background:#fff; color:var(--verde-ui); font-size:11px; font-weight:800; }
 }
 
 @media (min-width:960px) and (max-width:1100px){

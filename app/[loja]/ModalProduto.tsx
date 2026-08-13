@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import {
@@ -62,7 +63,6 @@ export function ModalProduto({
   const [obs, setObs] = useState('');
   const [qtd, setQtd] = useState(1);
   const [tentouAdicionar, setTentouAdicionar] = useState(false);
-  const [imgCarregada, setImgCarregada] = useState(false);
 
   // Lista restrita a outro tipo de pedido não aparece nem conta como
   // obrigatória — senão o produto ficaria impossível de adicionar.
@@ -151,12 +151,15 @@ export function ModalProduto({
         <div className="produto-modal-corpo">
           <div className="produto-modal-photo">
             {produto.imagem_url ? (
-              // eslint-disable-next-line @next/next/no-img-element -- foto do catálogo da loja, vinda do Storage
-              <img
+              // A foto abre junto com o modal, sempre à vista: `priority` tira
+              // ela da fila do lazy-load, que aqui só atrasaria o que a pessoa
+              // acabou de pedir pra ver.
+              <Image
                 src={produto.imagem_url}
                 alt={produto.nome}
-                className={'foto-produto' + (imgCarregada ? ' carregada' : '')}
-                onLoad={() => setImgCarregada(true)}
+                fill
+                priority
+                sizes="(min-width: 720px) 420px, 100vw"
               />
             ) : (
               <span className="menu-emoji">🖼️</span>

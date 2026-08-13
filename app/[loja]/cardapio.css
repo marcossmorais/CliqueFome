@@ -690,6 +690,8 @@
      legível — sem ele, no sheet de 640px a foto viraria 640x640 e jogaria
      nome, preço e complementos pra fora da primeira dobra. */
   .produto-modal-photo{
+    /* `position: relative` sustenta o <Image fill> da foto. */
+    position: relative;
     width: 100%;
     max-width: 360px;
     aspect-ratio: 1 / 1;
@@ -827,7 +829,10 @@
   .checkout-sheet{ position: relative; z-index: 1; width: min(620px,100%); max-height: min(90vh,820px); overflow: hidden; display: flex; flex-direction: column; border-radius: 22px; background: #fff; box-shadow: 0 28px 80px rgba(0,0,0,.3); }
   /* Cabecalho da loja: faixa verde com logo, nome e a modalidade escolhida.
      Antes era uma barra branca so com o titulo da etapa. */
-  .checkout-header{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px 18px; background:linear-gradient(165deg,#0f3d2e,#14543a); color:#fff; }
+  /* A faixa era verde CliqueFome fixa dentro de uma tela whitelabel: a loja
+     escolhia a cor e o carrinho abria na cor de outra marca. O degradê agora
+     sai da própria cor, escurecida — não mistura duas identidades. */
+  .checkout-header{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px 18px; background:linear-gradient(165deg, var(--marca,#0f3d2e), color-mix(in srgb, var(--marca,#0f3d2e) 74%, #000)); color:#fff; }
   .checkout-loja{ display:flex; align-items:center; gap:10px; min-width:0; }
   .checkout-loja-logo{ width:34px; height:34px; flex:0 0 34px; border-radius:9px; object-fit:cover; }
   .checkout-loja-logo-vazio{ background:rgba(255,255,255,.16); }
@@ -955,7 +960,11 @@
   .checkout-total{ display:flex; justify-content:space-between; gap:15px; padding-top:10px; border-top:1px solid #dce3df; color:#183c2c!important; font-size:16px!important; }
   .checkout-pagamento,.checkout-pendente{ margin:12px 0; padding:12px 13px; border:1px solid #f0d099; border-radius:10px; color:#694914; background:#fff8e9; font-size:11.5px; line-height:1.5; }
   .checkout-erro{ margin:10px 0; padding:10px 12px; border-radius:9px; color:#972f29; background:#fff0ef; font-size:12px; }
-  .checkout-acao{ display:flex; width:100%; justify-content:center; min-height:48px; margin-top:10px; }
+  /* A seta precisa de tamanho aqui, na regra base. Ela só existia no bloco
+     do desktop, e no celular um <svg> sem width/height dentro de um flex
+     esticava até virar uma seta gigante ocupando o botão inteiro. */
+  .checkout-acao{ display:flex; width:100%; align-items:center; justify-content:center; gap:10px; min-height:48px; margin-top:10px; }
+  .checkout-acao svg{ width:18px; height:18px; flex-shrink:0; }
   .checkout-sucesso{ text-align:center; }.checkout-sucesso-icone{ display:grid; width:58px; height:58px; margin:4px auto 13px; place-items:center; border-radius:50%; color:#fff; background: var(--marca); font-size:29px; }.checkout-sucesso h3{ margin:0 0 6px; color:#173a2b; }.checkout-sucesso>p{ color:#63736b; font-size:13px; }.checkout-sucesso .checkout-pendente{ display:grid; gap:4px; text-align:left; }
 
   @media(max-width:640px){
@@ -1018,12 +1027,11 @@
   }
   .checkout-modal.saindo .checkout-backdrop{ opacity: 0; transition-duration: .18s; }
 
-  /* ---------- Fade-in de imagem carregada ---------- */
-  .foto-produto{
-    opacity: 0;
-    transition: opacity .25s cubic-bezier(0.16,1,0.3,1);
-  }
-  .foto-produto.carregada{ opacity: 1; }
+  /* O fade-in de imagem saiu daqui. Ele começava em `opacity: 0` e só subia
+     quando o onLoad do <img> disparava — então enquanto a foto original (até
+     3 MB, sem redimensionar) descia, o card ficava vazio, e a impressão era
+     de imagem que não carrega em vez de imagem lenta. Agora as fotos passam
+     pelo next/image e o fundo do slot já serve de espera. */
 
   /* ---------- Spinner de progresso em botão ---------- */
   .btn-spinner{
@@ -1044,7 +1052,6 @@
     .checkout-backdrop,
     .checkout-sheet{ transition: none !important; }
     .checkout-modal .checkout-sheet{ opacity: 1; transform: none; filter: none; }
-    .foto-produto{ transition: none; opacity: 1; }
     .btn-spinner{ animation-duration: 1.4s; }
   }
 
@@ -1088,8 +1095,6 @@
   .checkout-rodape-info b{ color:#173a2b; font-size:13.5px; }
   .checkout-resumo{ min-width:230px; }
   .checkout-rodape-acao{ min-width:230px; }
-  .checkout-acao{ display:flex; align-items:center; justify-content:center; gap:10px; }
-  .checkout-acao svg{ width:18px; height:18px; }
 }
 
 /* ---------------------------------------------------------------------------

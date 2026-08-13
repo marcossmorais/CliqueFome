@@ -3,6 +3,19 @@ import type { NextConfig } from 'next';
 const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 
 /**
+ * Hostname do Supabase, sem protocolo — é o formato que `images.remotePatterns`
+ * espera. Fora de um ambiente configurado a variável vem vazia; devolver '' faz
+ * o padrão ser omitido em vez de derrubar o build.
+ */
+const supabaseHostname = (() => {
+  try {
+    return new URL(supabaseHost).hostname;
+  } catch {
+    return '';
+  }
+})();
+
+/**
  * CSP. 'unsafe-inline' em style-src é necessário porque o Next injeta
  * estilos inline; 'unsafe-eval' fica só em dev (o Fast Refresh usa).
  * connect-src precisa liberar o Supabase (REST + Realtime via wss).
@@ -25,6 +38,26 @@ const nextConfig: NextConfig = {
   // um CLAUDE.md de projeto vira instrucao pra assistentes e conflitaria
   // com o CLAUDE.md global do usuario.
   agentRules: false,
+
+  /**
+   * Sem esta lista o `next/image` recusa qualquer src remoto e o
+   * /_next/image responde 400 — foi por isso que a foto e o logo no
+   * carrinho apareciam quebrados: os dois usam <Image> com URL do Storage.
+   *
+   * Vale também pelo desempenho, que é o motivo de existir: a foto que o
+   * dono sobe pode ter até 3 MB (o teto do bucket) e era servida no
+   * tamanho original dentro de um card de 168px. Passando por aqui ela é
+   * redimensionada, convertida pra webp/avif e fica no cache da CDN.
+   */
+  images: {
+    remotePatterns: [
+      ...(supabaseHostname
+        ? [{ protocol: 'https' as const, hostname: supabaseHostname, pathname: '/storage/v1/object/public/**' }]
+        : []),
+      // Fotos das lojas de demonstração, servidas do próprio site em produção.
+      { protocol: 'https' as const, hostname: 'cliquefome.vercel.app', pathname: '/demo/**' },
+    ],
+  },
 
   async headers() {
     return [
