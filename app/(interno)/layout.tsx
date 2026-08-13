@@ -34,6 +34,19 @@ html,body{max-width:100%;overflow-x:hidden}
 #sidebar{display:flex;flex-direction:column;width:240px;min-width:240px;max-width:240px;overflow:hidden}
 #menu{display:block;width:100%;min-width:0;overflow-x:hidden}
 #main{flex:1;min-width:0}
+#painelTopo{display:none}
+@media(min-width:901px){
+  #appView.ativo{display:grid;grid-template-columns:240px minmax(0,1fr);grid-template-rows:76px minmax(0,1fr);align-items:stretch;height:100vh;height:100dvh;overflow:hidden}
+  #painelTopo{display:flex;grid-column:1/-1;grid-row:1;align-items:center}
+  .painel-topo-marca{display:flex;width:240px;flex:0 0 240px;align-items:center;padding:0 24px}
+  .painel-topo-marca .logo-floufood{width:165px;height:32px;object-fit:contain}
+  .painel-topo-acoes{display:flex;margin-left:auto;align-items:center;gap:12px;padding:0 30px}
+  #sidebar{grid-column:1;grid-row:2;position:relative;top:auto;height:100%}
+  #sidebar>.brand-logo{display:none}
+  #main{grid-column:2;grid-row:2;display:flex;flex-direction:column;height:100%;min-height:0;padding:0;overflow:hidden}
+  .main-top-acoes-mobile{display:none}
+  #mainContent{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:26px 30px 80px}
+}
 @media(max-width:900px){
   #sidebar{position:fixed;left:0;top:0;width:min(240px,calc(100vw - 32px));min-width:0;max-width:calc(100vw - 32px);transform:translateX(-100%)}
   #sidebar.aberto{transform:none}

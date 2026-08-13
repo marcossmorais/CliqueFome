@@ -115,7 +115,13 @@ function ResumoStatus() {
   );
 }
 
-export function StatusOperacional({ variante = 'compacto' }: { variante?: 'compacto' | 'painel' }) {
+export function StatusOperacional({
+  variante = 'compacto',
+  popoverId = 'status-operacional-popover',
+}: {
+  variante?: 'compacto' | 'painel';
+  popoverId?: string;
+}) {
   const [aberto, setAberto] = useState(false);
   const operacao = useOperacao();
 
@@ -144,14 +150,14 @@ export function StatusOperacional({ variante = 'compacto' }: { variante?: 'compa
         type="button"
         className={styles.gatilho}
         aria-expanded={aberto}
-        aria-controls="status-operacional-popover"
+        aria-controls={popoverId}
         onClick={() => setAberto((valor) => !valor)}
       >
         <ResumoStatus />
         <span aria-hidden="true" className={styles.seta}>{aberto ? '▴' : '▾'}</span>
       </button>
       {aberto && (
-        <div id="status-operacional-popover" className={styles.popover}>
+        <div id={popoverId} className={styles.popover}>
           <div className={styles.popoverTitulo}>
             <strong>Status da loja</strong>
             <button type="button" onClick={() => setAberto(false)} aria-label="Fechar status">×</button>

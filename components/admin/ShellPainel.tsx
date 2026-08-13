@@ -96,6 +96,16 @@ export function ShellPainel({
       <div id="sidebarBackdrop" className={aberto ? 'ativo' : ''} onClick={() => setAberto(false)} />
 
       <div id="appView" className="ativo">
+        <header id="painelTopo">
+          <div className="painel-topo-marca">
+            <LogoFlouFood prioridade />
+          </div>
+          <div className="painel-topo-acoes">
+            <StatusOperacional popoverId="status-operacional-topo" />
+            <TemaAdmin />
+          </div>
+        </header>
+
         <aside id="sidebar" className={aberto ? 'aberto' : ''}>
           <div className="brand-logo">
             <LogoFlouFood />
@@ -185,12 +195,16 @@ export function ShellPainel({
             {souAdmin && <span className="badge-admin">Super admin</span>}
           </div>
 
-          <div id="mainTop">
-            <h1>{titulo}</h1>
-            <StatusOperacional />
-            <TemaAdmin />
+          <div id="mainContent">
+            <div id="mainTop">
+              <h1>{titulo}</h1>
+              <div className="main-top-acoes-mobile">
+                <StatusOperacional popoverId="status-operacional-mobile" />
+                <TemaAdmin />
+              </div>
+            </div>
+            {children}
           </div>
-          {children}
         </main>
 
         {/* Só aparece abaixo de 900px, onde a sidebar vira gaveta. Substitui o

@@ -15,6 +15,14 @@ html[data-admin-theme='dark'] .onboarding{
 }
 html[data-admin-theme='dark'] #main{ background:var(--fundo); color:var(--texto); }
 html[data-admin-theme='dark'] #sidebar{ background:#171717; }
+html[data-admin-theme='dark'] #painelTopo{ background:#171717; border-bottom-color:var(--borda); }
+html[data-admin-theme='dark'] .painel-topo-marca .logo-floufood{
+  box-sizing:content-box;
+  padding:6px 10px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:9px;
+  background:#fff;
+}
 html[data-admin-theme='dark'] #sidebar .brand-logo{
   min-height:45px;
   padding:7px 10px;

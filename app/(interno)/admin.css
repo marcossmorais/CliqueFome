@@ -237,7 +237,55 @@
   .pedido-cancelar:hover{ background:#fff0f0; border-color:#bc6666; }
   #main{ flex:1; min-width:0; padding: 26px 30px 80px; background: var(--fundo); min-height:100vh; }
   #mainTop{ display:flex; align-items:center; gap:12px; margin-bottom: 20px; }
+  #painelTopo{ display:none; }
+  .main-top-acoes-mobile{ display:flex; align-items:center; gap:12px; margin-left:auto; }
   #sidebarBackdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:40; }
+
+  /* No desktop a casca ocupa exatamente a viewport. Sidebar e cabeçalho não
+     participam da rolagem: somente o conteúdo da aba usa o eixo vertical. */
+  @media (min-width: 901px){
+    #appView.ativo{
+      display:grid; grid-template-columns:240px minmax(0,1fr);
+      grid-template-rows:76px minmax(0,1fr);
+      align-items:stretch; height:100vh; height:100dvh; overflow:hidden;
+    }
+    #painelTopo{
+      display:flex; grid-column:1 / -1; grid-row:1;
+      align-items:center; min-width:0;
+      border-bottom:1px solid var(--borda);
+      background:var(--superficie); z-index:35;
+    }
+    .painel-topo-marca{
+      display:flex; width:240px; flex:0 0 240px;
+      align-items:center; padding:0 24px;
+    }
+    .painel-topo-marca .logo-floufood{
+      width:165px; height:32px; object-fit:contain;
+    }
+    .painel-topo-acoes{
+      display:flex; min-width:0; margin-left:auto; padding:0 30px;
+      align-items:center; justify-content:flex-end; gap:12px;
+    }
+    #sidebar{
+      grid-column:1; grid-row:2;
+      position:relative; top:auto; height:100%; min-height:0;
+    }
+    #sidebar > .brand-logo{ display:none; }
+    #main{
+      grid-column:2; grid-row:2;
+      display:flex; flex-direction:column; height:100%; min-height:0;
+      padding:0; overflow:hidden;
+    }
+    #mainTop{
+      margin-bottom:20px;
+    }
+    #mainContent{
+      flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
+      overscroll-behavior:contain; scrollbar-gutter:stable;
+      padding:26px 30px 80px;
+    }
+    .main-top-acoes-mobile{ display:none; }
+  }
 
   .conteudo-carregando{
     display:grid; min-height:calc(100dvh - 150px); place-items:center;
