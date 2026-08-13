@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import Image from 'next/image';
 import { formatBRL, precoBase, precoMinimo, type ProdutoPublico } from '@/lib/cardapio/tipos';
+
+/** Larguras reais do slot da foto em cada faixa — 1 card no celular, 2 no
+ *  tablet, 4 no desktop. Sem isto o navegador baixa a maior versão sempre. */
+const TAMANHOS_FOTO = '(min-width: 960px) 300px, (min-width: 640px) 220px, 96px';
 
 const ETIQUETAS: Record<string, string> = {
   mais_pedido: 'Mais pedido',
@@ -26,7 +30,6 @@ export function CartaoProduto({
   const base = precoBase(produto);
   const preco = minimo > base ? minimo : base;
   const permiteContadorDireto = produto.grupos.length === 0;
-  const [imgCarregada, setImgCarregada] = useState(false);
 
   return (
     <article className={'menu-card' + (esgotado ? ' esgotado' : '')}>
@@ -39,14 +42,7 @@ export function CartaoProduto({
       >
         <span className="menu-card-photo">
           {produto.imagem_url ? (
-            // eslint-disable-next-line @next/next/no-img-element -- imagem cadastrada pela loja
-            <img
-              src={produto.imagem_url}
-              alt=""
-              loading="lazy"
-              className={'foto-produto' + (imgCarregada ? ' carregada' : '')}
-              onLoad={() => setImgCarregada(true)}
-            />
+            <Image src={produto.imagem_url} alt="" fill sizes={TAMANHOS_FOTO} />
           ) : (
             <span className="menu-emoji" aria-hidden="true">🍽️</span>
           )}

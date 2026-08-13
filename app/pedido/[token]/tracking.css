@@ -23,7 +23,10 @@
   padding: 22px;
   border-radius: 16px;
   color: #fff;
-  background: linear-gradient(135deg, var(--marca), #0f3d2e);
+  /* O degradê ia da cor da loja até o verde CliqueFome. Numa loja vermelha
+     ou laranja o topo virava um borrão de duas marcas brigando. Agora as
+     duas pontas saem da mesma cor, só com profundidade. */
+  background: linear-gradient(135deg, var(--marca), color-mix(in srgb, var(--marca) 72%, #000));
   margin-bottom: 18px;
 }
 

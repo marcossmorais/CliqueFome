@@ -1,7 +1,27 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { formatBRL, type LojaPublica } from '@/lib/cardapio/tipos';
+
+/**
+ * Logo da loja. Era um `background-image` numa variável CSS, e por isso o
+ * navegador só descobria a URL depois de baixar e aplicar o CSS — tarde, e
+ * sem passar pelo otimizador: a imagem que o dono sobe pode ter 3 MB e
+ * aparecia num círculo de 42px. Como <img>, ela é encontrada no HTML e
+ * chega redimensionada.
+ */
+function LogoLoja({ url, className, lado }: { url: string | null; className: string; lado: number }) {
+  return (
+    <span className={className} aria-hidden="true">
+      {/* Largura fixa em vez de `fill`+`sizes`: o topo do celular continua no
+          DOM no desktop, só escondido por CSS, e um <img> em display:none não
+          consegue resolver `sizes` — o navegador caía no maior candidato do
+          srcset e baixava o logo em 3840px. */}
+      {url && <Image src={url} alt="" width={lado} height={lado} />}
+    </span>
+  );
+}
 
 const AVALIACOES_DEMO = [5, 5, 5, 4, 5, 5, 4, 5, 5, 5, 4, 5];
 const MEDIA_AVALIACOES_DEMO = AVALIACOES_DEMO.reduce((total, nota) => total + nota, 0) / AVALIACOES_DEMO.length;
@@ -41,8 +61,6 @@ export function HeroLoja({
       ? 'na retirada'
       : 'na retirada ou entrega';
 
-  const logoStyle = loja.logo_url ? { ['--logo' as string]: `url("${loja.logo_url}")` } : undefined;
-  const capaStyle = loja.banner_url ? { ['--capa' as string]: `url("${loja.banner_url}")` } : undefined;
 
   return (
     <header className="loja-hero">
@@ -57,7 +75,7 @@ export function HeroLoja({
         >
           <span /> <span /> <span />
         </button>
-        <span className="loja-mobile-logo" style={logoStyle} aria-hidden="true" />
+        <LogoLoja url={loja.logo_url} className="loja-mobile-logo" lado={42} />
         <div className="loja-mobile-identidade">
           <strong>{loja.nome}</strong>
           <small><b className={aceitando ? 'aberto' : 'fechado'}>{aceitando ? 'Aceitando pedidos' : 'Pedidos pausados'}</b>{tempo && <> · {tempo}</>}</small>
@@ -65,11 +83,16 @@ export function HeroLoja({
         </div>
       </div>
 
-      <div className="loja-capa" style={capaStyle}>
+      <div className="loja-capa">
+        {/* Maior imagem da página e a primeira que a pessoa vê: `priority`
+            tira ela da fila do lazy-load e o Next a pré-carrega. */}
+        {loja.banner_url && (
+          <Image src={loja.banner_url} alt="" fill priority sizes="100vw" className="loja-capa-img" />
+        )}
         <div className="loja-capa-sombra" />
         <p className="loja-chamada">{loja.sobre || 'Os seus favoritos, preparados com carinho.'}</p>
         <div className="loja-hero-base">
-          <span className="loja-logo" style={logoStyle} aria-hidden="true" />
+          <LogoLoja url={loja.logo_url} className="loja-logo" lado={92} />
           <div className="loja-hero-txt">
             <h1 className="loja-hero-nome">{loja.nome}</h1>
             <div className="loja-hero-meta">

@@ -161,6 +161,11 @@ export function CardapioClient({
   }, [linhas, produtosPorTipo]);
 
   const termoBusca = busca.trim().toLowerCase();
+  // O chip só existe quando há o que mostrar — senão levaria a uma tela vazia.
+  const temPromocoes = useMemo(
+    () => produtosPorTipo.some((p) => p.preco_promocional != null),
+    [produtosPorTipo]
+  );
   const categoriasVisiveis = useMemo(
     () => categorias.filter((c) => produtosPorTipo.some((p) => p.categoria_id === c.id)),
     [categorias, produtosPorTipo]
@@ -452,8 +457,6 @@ export function CardapioClient({
     }
   }
 
-  const numeroWhats = (loja.whatsapp_numero || '').replace(/\D/g, '');
-
   function selecionarCategoria(id: string) {
     setBusca('');
     setCategoriaId(id);
@@ -472,39 +475,12 @@ export function CardapioClient({
         </a>
       )}
       <div className="cardapio-app" style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
-      <aside className="menu-sidebar" aria-label="Navegação da loja">
-        <div className="sidebar-marca">
-          <span
-            className="sidebar-logo"
-            style={loja.logo_url ? { ['--logo' as string]: `url("${loja.logo_url}")` } : undefined}
-            aria-hidden="true"
-          />
-          <strong>{loja.nome}</strong>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button type="button" className="ativo" onClick={() => selecionarCategoria('todos')}><span>▦</span> Cardápio</button>
-          <button type="button" onClick={() => selecionarCategoria('promocoes')}><span>◇</span> Promoções</button>
-          <button type="button" disabled title="Em breve"><span>☆</span> Avaliações</button>
-        </nav>
-
-        <div id="info-loja" className="sidebar-info">
-          <strong className={loja.recebendo_encomendas && (loja.retirada_ativa || deliveryAtiva) ? 'aberto' : 'fechado'}>
-            <i /> {loja.recebendo_encomendas && (loja.retirada_ativa || deliveryAtiva) ? 'Aceitando pedidos' : 'Loja fechada'}
-          </strong>
-          {loja.tempo_preparo_min && loja.tempo_preparo_max && (
-            <p><span>Tempo de preparo</span>{loja.tempo_preparo_min}–{loja.tempo_preparo_max} min</p>
-          )}
-        </div>
-
-        {numeroWhats && (
-          <div className="sidebar-ajuda">
-            <span>Precisa de ajuda?</span>
-            <a href={`https://wa.me/${numeroWhats}`} target="_blank" rel="noopener noreferrer">◉ Falar no WhatsApp</a>
-          </div>
-        )}
-      </aside>
-
+      {/* A barra lateral do desktop saiu: ela empurrava a capa pra 3/4 da
+          largura e repetia o que o cabeçalho já diz (logo, nome, status,
+          tempo de preparo) — o WhatsApp e o resto vivem em "Mais
+          informações", que existe nos dois tamanhos de tela. O único item
+          que só existia lá era Promoções, agora um chip entre as
+          categorias, onde o celular também alcança. */}
       <section id="cardapio" className="menu-section">
         <HeroLoja loja={loja} deliveryAtiva={deliveryAtiva} />
 
@@ -541,6 +517,11 @@ export function CardapioClient({
             <button type="button" className={'filter-btn' + (categoriaId === 'todos' && !termoBusca ? ' active' : '')} onClick={() => selecionarCategoria('todos')}>
               <span className="filter-emoji"><IconeCategoria nome="Todos" icone="generico" /></span><span>Todos</span>
             </button>
+            {temPromocoes && (
+              <button type="button" className={'filter-btn' + (categoriaId === 'promocoes' && !termoBusca ? ' active' : '')} onClick={() => selecionarCategoria('promocoes')}>
+                <span className="filter-emoji">%</span><span>Promoções</span>
+              </button>
+            )}
             {categoriasVisiveis.map((c) => (
               <button key={`icone-${c.id}`} type="button" className={'filter-btn' + (categoriaId === c.id && !termoBusca ? ' active' : '')} onClick={() => selecionarCategoria(c.id)}>
                 <span className="filter-emoji"><IconeCategoria nome={c.nome} icone={c.icone} /></span><span>{c.nome}</span>
