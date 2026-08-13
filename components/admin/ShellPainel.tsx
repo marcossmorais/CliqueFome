@@ -83,7 +83,12 @@ export function ShellPainel({
   const segmentos = pathname.slice(base.length).split('/').filter(Boolean);
   const titulo = segmentos[0] === 'config' && segmentos[1]
     ? TITULOS_CONFIG[segmentos[1]] ?? 'Configurações'
+    : segmentos[0] === 'pedidos' && segmentos[1] === 'historico'
+    ? 'Gestão de pedidos · Histórico'
     : TITULOS_ROTAS[segmentos[0] ?? 'inicio'] ?? 'Painel';
+  const subtitulo = segmentos[0] === 'pedidos' && !segmentos[1]
+    ? 'Acompanhe e gerencie todos os pedidos em tempo real'
+    : null;
   async function sair() {
     const sb = criarClientNavegador();
     await sb.auth.signOut();
@@ -197,7 +202,10 @@ export function ShellPainel({
 
           <div id="mainContent">
             <div id="mainTop">
-              <h1>{titulo}</h1>
+              <div className="main-top-titulo">
+                <h1>{titulo}</h1>
+                {subtitulo && <p>{subtitulo}</p>}
+              </div>
               <div className="main-top-acoes-mobile">
                 <StatusOperacional popoverId="status-operacional-mobile" />
                 <TemaAdmin />

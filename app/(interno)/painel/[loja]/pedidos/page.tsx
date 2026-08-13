@@ -20,7 +20,12 @@ export default async function PedidosPage({
   const sb = await criarClientServidor();
 
   const [{ data: pedidos }, { data: categorias }, { data: produtosBrutos }] = await Promise.all([
-    sb.from('pedidos').select('*, pedido_itens(id)').eq('loja_id', loja.id).order('criado_em', { ascending: false }),
+    sb
+      .from('pedidos')
+      .select('*, pedido_itens(id, nome, quantidade, produto_id)')
+      .eq('loja_id', loja.id)
+      .is('historico_oculto_em', null)
+      .order('criado_em', { ascending: false }),
     sb.from('categorias').select('id, nome, emoji, icone, ordem').eq('loja_id', loja.id).eq('ativo', true).order('ordem'),
     // Mesma consulta do cardápio público (app/[loja]/page.tsx): o pedido
     // manual do painel precisa das mesmas listas de complemento pra não

@@ -79,6 +79,10 @@ html[data-admin-theme='dark'] .pedido-manual-sugestao{ background:var(--superfic
 html[data-admin-theme='dark'] .pedido-card.selecionado,
 html[data-admin-theme='dark'] .cat-item.ativo,
 html[data-admin-theme='dark'] .btn-ghost.ativo{ background:var(--verde-tint); }
+html[data-admin-theme='dark'] .pedido-cliente-contatos a:last-child{
+  background:#172d20;
+  color:#72d394;
+}
 html[data-admin-theme='dark'] .tag-ativo{
   background:#193d2a;
   border-color:#29523b;

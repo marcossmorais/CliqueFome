@@ -27,6 +27,14 @@ export type PedidoItem = {
   opcoes: PedidoItemOpcao[];
 };
 
+export type PedidoItemResumo = {
+  id: string;
+  nome?: string;
+  quantidade?: number;
+  produto_id?: string | null;
+  produto?: { imagem_url: string | null } | null;
+};
+
 /** Formato da lista (leve — sem itens, só a contagem via pedido_itens(id)). */
 export type PedidoResumo = {
   id: string;
@@ -58,7 +66,7 @@ export type PedidoResumo = {
   criado_em: string;
   confirmado_em: string | null;
   concluido_em: string | null;
-  pedido_itens: { id: string }[];
+  pedido_itens: PedidoItemResumo[];
 };
 
 /** Ícone (path de svg 24x24, stroke) e cor por etapa — usado tanto no

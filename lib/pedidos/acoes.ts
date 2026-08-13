@@ -7,7 +7,7 @@ type Sb = ReturnType<typeof criarClientNavegador>;
 export async function buscarPedidos(sb: Sb, lojaId: string): Promise<PedidoResumo[]> {
   const { data, error } = await sb
     .from('pedidos')
-    .select('*, pedido_itens(id)')
+    .select('*, pedido_itens(id, nome, quantidade, produto_id)')
     .eq('loja_id', lojaId)
     .is('historico_oculto_em', null)
     .order('criado_em', { ascending: false });

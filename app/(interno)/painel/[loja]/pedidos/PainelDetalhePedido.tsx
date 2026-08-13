@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import {
@@ -16,20 +17,22 @@ import { numeroPedido } from '@/lib/pedidos/numero';
 import {
   COR_STATUS,
   formatBRL,
-  ICONE_STATUS,
   NOMES_ORIGEM,
   NOMES_STATUS,
-  NOMES_TIPO,
   proximoStatus,
   rotuloAvancar,
   type PedidoItem,
   type PedidoResumo,
 } from '@/lib/pedidos/tipos';
 
-function IconeStatus({ status }: { status: PedidoResumo['status'] }) {
+function IconeContato({ tipo }: { tipo: 'telefone' | 'whatsapp' }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={ICONE_STATUS[status]} />
+      {tipo === 'telefone' ? (
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.35 1.9.65 2.8a2 2 0 01-.45 2.11L8.04 9.9a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.9.3 1.84.52 2.8.65A2 2 0 0122 16.92z" />
+      ) : (
+        <><path d="M21 11.5a8.4 8.4 0 01-9 8.5 9.5 9.5 0 01-4.2-1L3 20l1.2-4.3A8.5 8.5 0 1112 20" /><path d="M8.8 8.2c.4 3 2 4.6 5 5" /></>
+      )}
     </svg>
   );
 }
@@ -146,7 +149,12 @@ export function PainelDetalhePedido({
       ? 'Consumo no local (mesa)'
       : pedido.tipo === 'balcao'
       ? 'Balcão'
+      : pedido.tipo === 'delivery'
+      ? 'Delivery'
       : 'Retirada no local';
+  const telefone = pedido.cliente_telefone.replace(/\D/g, '');
+  const telefoneComPais = telefone.length <= 11 ? `55${telefone}` : telefone;
+  const taxaEntrega = Number(pedido.delivery_fee_cents || 0) / 100;
 
   return (
     <>
@@ -158,7 +166,6 @@ export function PainelDetalhePedido({
           <div className="modal-titulo">
             Pedido {numeroPedido(pedido.numero)}{' '}
             <span className="pedido-chip-status" style={{ ['--cor-status' as string]: COR_STATUS[pedido.status] }}>
-              <IconeStatus status={pedido.status} />
               {NOMES_STATUS[pedido.status]}
             </span>
           </div>
@@ -168,104 +175,99 @@ export function PainelDetalhePedido({
         </div>
 
         <div className="pedido-painel-corpo">
-          <div className="pedido-detalhe-bloco">
-            <div className="pedido-detalhe-linha">
+          <div className="pedido-detalhe-cliente">
+            <span className="pedido-cliente-avatar" aria-hidden="true">{pedido.cliente_nome.slice(0, 1).toUpperCase()}</span>
+            <div className="pedido-cliente-identidade">
               <strong>{pedido.cliente_nome}</strong>
               <span>{pedido.cliente_telefone}</span>
             </div>
-            <p className="dica" style={{ margin: '4px 0 0' }}>
-              Pedido feito {agora ? textoTempo(pedido, agora) : '—'} · {NOMES_TIPO[pedido.tipo]}
-              {pedido.origem !== 'site' && ` · via ${NOMES_ORIGEM[pedido.origem]}`}
-            </p>
+            <div className="pedido-cliente-contatos">
+              <a href={`tel:${telefone}`} aria-label={`Ligar para ${pedido.cliente_nome}`} title="Ligar">
+                <IconeContato tipo="telefone" />
+              </a>
+              <a href={`https://wa.me/${telefoneComPais}`} target="_blank" rel="noopener noreferrer" aria-label={`Conversar com ${pedido.cliente_nome} no WhatsApp`} title="WhatsApp">
+                <IconeContato tipo="whatsapp" />
+              </a>
+            </div>
           </div>
+          <p className="pedido-detalhe-horario">Pedido feito {agora ? textoTempo(pedido, agora) : '—'}</p>
 
           <div className="pedido-detalhe-bloco">
-            <span className="usos-titulo">Local</span>
-            <p style={{ margin: 0 }}>{local}</p>
+            <h3>Informações</h3>
+            <div className="pedido-informacao-linha"><span>Tipo de pedido</span><strong>{local}</strong></div>
+            <div className="pedido-informacao-linha"><span>Pagamento</span><strong>{nomeFormaPagamento(pedido.forma_pagamento)}</strong></div>
+            <div className="pedido-informacao-linha"><span>Origem</span><strong>{NOMES_ORIGEM[pedido.origem]}</strong></div>
+            {pedido.tipo === 'delivery' && pedido.endereco && (
+              <div className="pedido-informacao-endereco"><span>Endereço</span><strong>{pedido.endereco}</strong></div>
+            )}
             {pedido.tipo === 'encomenda' && pedido.data_hora_agendada && (
-              <p className="dica" style={{ marginBottom: 0 }}>
-                Combinado pra{' '}
-                {new Date(pedido.data_hora_agendada).toLocaleString('pt-BR', {
+              <div className="pedido-informacao-endereco">
+                <span>Agendado para</span>
+                <strong>{new Date(pedido.data_hora_agendada).toLocaleString('pt-BR', {
                   day: '2-digit',
                   month: '2-digit',
                   hour: '2-digit',
                   minute: '2-digit',
-                })}
-              </p>
+                })}</strong>
+              </div>
+            )}
+            {pedido.observacao && (
+              <div className="pedido-observacao"><span>Observação</span><p>{pedido.observacao}</p></div>
             )}
           </div>
 
           <div className="pedido-detalhe-bloco">
-            <span className="usos-titulo">Itens</span>
+            <h3>Itens do pedido</h3>
             {carregando ? (
               <p className="dica">Carregando...</p>
             ) : (
-              (itens || []).map((item) => (
-                <div key={item.id} className="pedido-item-linha">
-                  <div className="pedido-item-topo">
-                    <span>
-                      {item.quantidade}x {item.nome}
-                    </span>
-                    <span>{formatBRL(item.subtotal)}</span>
+              (itens || []).map((item) => {
+                const resumo = pedido.pedido_itens.find((pedidoItem) => pedidoItem.id === item.id);
+                return (
+                  <div key={item.id} className="pedido-item-linha">
+                    <div className="pedido-item-miniatura">
+                      {resumo?.produto?.imagem_url ? (
+                        <Image src={resumo.produto.imagem_url} alt="" fill sizes="48px" />
+                      ) : <span aria-hidden="true">{item.nome.slice(0, 1).toUpperCase()}</span>}
+                    </div>
+                    <div className="pedido-item-conteudo">
+                      <div className="pedido-item-topo">
+                        <span>{item.quantidade}x {item.nome}</span>
+                        <span>{formatBRL(item.subtotal)}</span>
+                      </div>
+                      {item.opcoes.length > 0 && (
+                        <ul className="pedido-item-opcoes">
+                          {item.opcoes.map((opcao, indice) => (
+                            <li key={indice}>
+                              {opcao.quantidade > 1 ? `${opcao.quantidade}x ` : ''}
+                              {opcao.nome} <span>({opcao.grupo})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {item.observacao && <p className="pedido-item-obs">Obs: {item.observacao}</p>}
+                    </div>
                   </div>
-                  {item.opcoes.length > 0 && (
-                    <ul className="pedido-item-opcoes">
-                      {item.opcoes.map((o, i) => (
-                        <li key={i}>
-                          {o.quantidade > 1 ? `${o.quantidade}x ` : ''}
-                          {o.nome} <span>({o.grupo})</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {item.observacao && <p className="pedido-item-obs">Obs: {item.observacao}</p>}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
-
-          {pedido.observacao && (
-            <div className="pedido-detalhe-bloco">
-              <span className="usos-titulo">Observação do pedido</span>
-              <p style={{ margin: 0 }}>{pedido.observacao}</p>
-            </div>
-          )}
 
           <div className="pedido-detalhe-bloco">
             <div className="pedido-total-linha">
               <span>Subtotal</span>
               <span>{formatBRL(pedido.subtotal)}</span>
             </div>
+            {taxaEntrega > 0 && (
+              <div className="pedido-total-linha">
+                <span>Taxa de entrega</span>
+                <span>{formatBRL(taxaEntrega)}</span>
+              </div>
+            )}
             <div className="pedido-total-linha pedido-total-final">
               <span>Total</span>
               <span>{formatBRL(pedido.total)}</span>
             </div>
-          </div>
-
-          <div className="pedido-detalhe-bloco">
-            <span className="usos-titulo">Pagamento</span>
-            <div className="pedido-detalhe-linha">
-              <span>{nomeFormaPagamento(pedido.forma_pagamento)}</span>
-              {/* Pedido cancelado não recebe confirmação de pagamento — mas se
-                  já estava pago quando foi cancelado, desmarcar continua
-                  liberado, que é como a loja registra a devolução. */}
-              <button
-                type="button"
-                className="btn-ghost btn-small"
-                disabled={pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado'}
-                title={
-                  pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado'
-                    ? 'Pedido cancelado não pode ser marcado como pago.'
-                    : undefined
-                }
-                onClick={alternarPagamento}
-              >
-                {pedido.pagamento_status === 'confirmado' ? '✓ Pago manualmente — desmarcar' : 'Confirmar pagamento recebido'}
-              </button>
-            </div>
-            {pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado' && (
-              <p className="pedido-detalhe-aviso">Este pedido foi cancelado — não dá pra registrar pagamento.</p>
-            )}
           </div>
         </div>
 
@@ -277,6 +279,20 @@ export function PainelDetalhePedido({
               {avancando ? 'Salvando...' : rotulo}
             </button>
           )}
+          <button
+            type="button"
+            className="btn-ghost btn-small pedido-pagamento-acao"
+            disabled={pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado'}
+            title={
+              pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado'
+                ? 'Pedido cancelado não pode ser marcado como pago.'
+                : undefined
+            }
+            onClick={alternarPagamento}
+          >
+            <span aria-hidden="true">$</span>
+            {pedido.pagamento_status === 'confirmado' ? 'Pagamento recebido ✓' : 'Pagamento recebido'}
+          </button>
           {ativo && (
             <button type="button" className="btn-ghost btn-small pedido-cancelar" onClick={cancelar}>
               Cancelar pedido
