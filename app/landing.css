@@ -27,7 +27,7 @@
 
   /* Logo */
   .brand-logo{ display:flex; align-items:center; color: var(--preto); text-decoration:none; }
-  .brand-logo svg{ width:176px; height:30px; flex-shrink:0; }
+  .brand-logo .logo-floufood{ width:169px; height:33px; flex-shrink:0; object-fit:contain; }
 
   /* Nav */
   nav{

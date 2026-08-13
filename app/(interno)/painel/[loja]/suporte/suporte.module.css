@@ -1,6 +1,6 @@
 .central {
-  --ajuda-verde: #176a45;
-  --ajuda-verde-escuro: #0f3d2e;
+  --ajuda-verde: #ff5a00;
+  --ajuda-verde-escuro: #d94800;
   --ajuda-laranja: #b65e08;
   max-width: 1160px;
   padding-bottom: 48px;
@@ -19,7 +19,7 @@
   color: #fff;
   background:
     radial-gradient(circle at 88% 10%, rgba(242, 140, 40, .32), transparent 28%),
-    linear-gradient(135deg, #0f3d2e, #176a45);
+    linear-gradient(135deg, #1b1a1f, #2b292d);
 }
 
 .hero::after {

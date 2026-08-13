@@ -1,25 +1,24 @@
-/* Estilos do painel administrativo do CliqueFome.
-   Vindos do admin.html original sem alteracao visual — a unica mudanca e
-   que as familias de fonte chegam por variavel CSS (next/font, self-host). */
+/* Estilos do painel administrativo da FlouFood. A navegação e os fluxos
+   permanecem os mesmos; a paleta segue a referência visual aprovada. */
 
   :root{
-    /* Identidade visual CliqueFome (marca da plataforma — só usada aqui no
+    /* Identidade visual FlouFood (marca da plataforma — só usada aqui no
        admin e no site institucional, nunca no cardápio de cada loja, que
        é whitelabel). */
-    --verde-escuro: #0F3D2E;
-    --verde: #1E7A4E;
-    --verde-claro: #2FA968;
-    --laranja: #F28C28;
-    --erro: #B23B3B;
+    --verde-escuro: #D94800;
+    --verde: #FF5A00;
+    --verde-claro: #FF7A33;
+    --laranja: #FF5A00;
+    --erro: #E53935;
 
     /* Tema claro do painel */
     --fundo: #FFFFFF;        /* área de conteúdo */
-    --fundo-2: #FAFBFA;      /* sidebar e faixas sutis */
+    --fundo-2: #FAFAFA;      /* sidebar e faixas sutis */
     --superficie: #FFFFFF;   /* cards, modais */
-    --borda: #E4E7E6;
-    --texto: #222629;
-    --texto-suave: #6B7472;
-    --verde-tint: #E9F5EE;   /* fundo de item ativo / selo positivo */
+    --borda: #ECECEC;
+    --texto: #161616;
+    --texto-suave: #6B6B6B;
+    --verde-tint: #FFF1EA;   /* fundo de item ativo da marca */
   }
   /* O painel é claro: sem isso o popup nativo do <select> e os controles
      podem sair escuros em quem usa o SO em dark mode. */
@@ -41,7 +40,7 @@
 
   /* A marca da plataforma não interfere na identidade dos cardápios. */
   .brand-logo{ display:flex; align-items:center; color: #1B1A1F; }
-  .brand-logo svg{ width:158px; height:30px; flex-shrink:0; }
+  .brand-logo .logo-floufood{ width:159px; height:31px; flex-shrink:0; object-fit:contain; }
 
   .badge-admin{
     display:inline-block;
@@ -79,7 +78,7 @@
     margin-bottom: 16px;
   }
   input:focus, textarea:focus, select:focus{
-    outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(30,122,78,0.12);
+    outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(255,90,0,0.14);
   }
   textarea{ min-height: 80px; resize: vertical; }
   select option{ background: var(--superficie); color: var(--texto); }
@@ -129,7 +128,7 @@
 
   .msg{ font-size: 13px; margin-bottom: 16px; padding: 10px 12px; border-radius: 10px; }
   .msg-erro{ background: #FDECEC; color: #90302F; border: 1px solid #F3CFCF; }
-  .msg-ok{ background: var(--verde-tint); color: #15703F; border: 1px solid #BCE3CC; }
+  .msg-ok{ background: #EDF8EF; color: #177A35; border: 1px solid #BFE5C8; }
 
   /* ---------- CONTA SEM LOJA (/admin/criar-loja) ---------- */
   .onboarding{
@@ -170,42 +169,38 @@
 
   #sidebar{
     width: 252px; flex-shrink: 0;
-    /* Fundo sólido (gradiente, não translúcido) pelo mesmo motivo de
-       sempre: no mobile a sidebar vira drawer por cima do conteúdo, e um
-       fundo translúcido deixava o formulário de baixo aparecendo atrás.
-       O verde é a identidade visual da plataforma — mesmo gradiente usado
-       nos cabeçalhos das áreas administrativas. */
-    background: linear-gradient(165deg, var(--verde-escuro), var(--verde));
+    background: var(--superficie);
+    border-right: 1px solid var(--borda);
     padding: 22px 14px;
     display:flex; flex-direction:column;
     position: sticky; top: 0; height: 100vh; overflow: hidden;
   }
-  #sidebar .brand-logo{ padding: 0 8px; margin-bottom: 20px; color: #fff; }
+  #sidebar .brand-logo{ padding: 0 8px; margin-bottom: 20px; color: var(--texto); }
 
   .loja-chip{
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.16);
+    background: var(--superficie);
+    border: 1px solid var(--borda);
     border-radius: 12px;
     padding: 11px 12px;
     margin-bottom: 8px;
   }
-  .loja-chip .loja-nome{ font-size: 14px; font-weight: 600; font-family: var(--fonte-titulo), sans-serif; color: #fff; }
-  .loja-chip .loja-slug{ font-size: 11.5px; color: rgba(255,255,255,0.68); margin-top: 3px; word-break: break-all; }
+  .loja-chip .loja-nome{ font-size: 14px; font-weight: 600; font-family: var(--fonte-titulo), sans-serif; color: var(--texto); }
+  .loja-chip .loja-slug{ font-size: 11.5px; color: var(--texto-suave); margin-top: 3px; word-break: break-all; }
   .loja-chip .badge-admin{ margin-top: 8px; }
 
   #menu{ flex: 1; min-height:0; padding-bottom:12px; overflow-y:auto; }
   .nav-grupo-titulo{
     font-size: 10px; text-transform: uppercase; letter-spacing: .7px;
-    color: rgba(255,255,255,0.6); font-weight: 700; margin: 16px 0 6px 10px;
+    color: #8A8A8A; font-weight: 700; margin: 16px 0 6px 10px;
   }
   .nav-item{
     display:flex; align-items:center; gap:10px; width:100%;
     text-align:left; background:transparent; border:none; border-radius:9px;
     padding: 9px 10px; font-size: 13.5px; font-weight: 500;
-    color: rgba(255,255,255,0.86);
+    color: #2C2C2C;
   }
-  .nav-item:hover{ background: rgba(255,255,255,0.1); }
-  .nav-item.ativo{ background: #fff; color: var(--verde-escuro); font-weight: 700; }
+  .nav-item:hover{ background: #F7F7F7; }
+  .nav-item.ativo{ background: var(--verde-tint); color: var(--verde); font-weight: 700; }
   .nav-item svg{ width:16px; height:16px; flex-shrink:0; }
   /* nowrap + reticências: sem isso nomes longos ("Histórico de pedidos")
      quebravam em duas linhas e desalinhavam o menu. */
@@ -218,13 +213,13 @@
   }
   .menu-legenda{
     display:flex; align-items:center; gap:7px;
-    font-size: 10.5px; color: rgba(255,255,255,0.6); margin: 14px 0 0 10px;
+    font-size: 10.5px; color: #8A8A8A; margin: 14px 0 0 10px;
   }
   .menu-legenda .ponto{ width:6px; height:6px; border-radius:50%; background: var(--laranja); }
 
-  .sidebar-bottom{ display:flex; flex-direction:column; gap:8px; border-top:1px solid rgba(255,255,255,0.16); padding-top: 14px; }
+  .sidebar-bottom{ display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--borda); padding-top: 14px; }
   .sidebar-bottom button{ width:100%; }
-  .sidebar-bottom .btn-ghost{ background: rgba(255,255,255,0.94); }
+  .sidebar-bottom .btn-ghost{ background: var(--superficie); }
   .pedido-cancelar{ color:#a52f2f; border-color:#d9a2a2; }
   .pedido-cancelar:hover{ background:#fff0f0; border-color:#bc6666; }
   .perfil-menu summary{ cursor:pointer; list-style:none; }
@@ -232,8 +227,8 @@
   .perfil-seta{ transition:transform .18s ease; }
   .perfil-menu[open] .perfil-seta{ transform:rotate(180deg); }
   .perfil-opcoes{ display:grid; gap:3px; margin:6px 0 2px 26px; }
-  .perfil-opcoes a{ display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; color:rgba(255,255,255,.82); font-size:12.5px; }
-  .perfil-opcoes a:hover{ color:#fff; background:rgba(255,255,255,.1); }
+  .perfil-opcoes a{ display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; color:var(--texto-suave); font-size:12.5px; }
+  .perfil-opcoes a:hover{ color:var(--texto); background:#F7F7F7; }
   .perfil-opcoes svg{ width:14px; height:14px; }
 
   #main{ flex:1; min-width:0; padding: 26px 30px 80px; background: var(--fundo); min-height:100vh; }
@@ -283,16 +278,17 @@
     #topoMarca{
       display:flex; align-items:center; justify-content:space-between; gap:12px;
       margin: 0 -16px; padding: 12px 16px calc(12px + env(safe-area-inset-top, 0px));
-      background: linear-gradient(165deg, var(--verde-escuro), #14543a);
-      color:#fff;
+      background: var(--superficie);
+      border-bottom: 1px solid var(--borda);
+      color:var(--texto);
     }
     #topoMarca .topo-marca-logo{ display:flex; align-items:center; font-weight:800; }
-    #topoMarca .topo-marca-logo svg{ width:140px; height:26px; }
+    #topoMarca .topo-marca-logo .logo-floufood{ width:138px; height:27px; object-fit:contain; }
     .topo-sino{
       position:relative; display:grid; place-items:center;
       width:38px; height:38px; flex:0 0 38px;
-      border:1px solid rgba(255,255,255,.22); border-radius:11px;
-      background:rgba(255,255,255,.08); color:#fff; cursor:not-allowed;
+      border:1px solid var(--borda); border-radius:11px;
+      background:var(--superficie); color:var(--texto); cursor:not-allowed;
     }
     .topo-sino svg{ width:19px; height:19px; }
     /* O estilo de .marca-breve é escopado em .nav-item, então aqui a bolinha
@@ -301,19 +297,20 @@
     .topo-sino .marca-breve{
       position:absolute; top:7px; right:8px;
       width:7px; height:7px; border-radius:50%;
-      background: var(--laranja); box-shadow: 0 0 0 2px var(--verde-escuro);
+      background: var(--laranja); box-shadow: 0 0 0 2px var(--superficie);
     }
     .topo-sino:disabled{ opacity:.85; }
 
     #lojaTopo{
       display:flex; align-items:center; justify-content:space-between; gap:12px;
       margin: 0 -16px 18px; padding: 12px 16px 14px;
-      background: linear-gradient(165deg, #14543a, var(--verde));
-      color:#fff;
+      background: var(--superficie);
+      border-bottom: 1px solid var(--borda);
+      color:var(--texto);
     }
     #lojaTopo .loja-topo-id{ display:grid; gap:2px; min-width:0; }
     #lojaTopo .loja-topo-id strong{ font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    #lojaTopo .loja-topo-id span{ color:rgba(255,255,255,.72); font-size:12.5px; }
+    #lojaTopo .loja-topo-id span{ color:var(--texto-suave); font-size:12.5px; }
     #lojaTopo .badge-admin{ flex:0 0 auto; }
 
     /* O título da tela vinha colado na faixa verde. */
@@ -569,7 +566,7 @@
 
   /* Prévia do hero da loja (Minha empresa) */
   .hero-preview{ border:1px solid var(--borda); border-radius:14px; overflow:hidden; background:var(--superficie); }
-  .hero-faixa{ height:26px; background:#1E7A4E; }
+  .hero-faixa{ height:26px; background:var(--verde); }
   .hero-capa{
     height:150px; margin:0 10px; border-radius:10px; background:#EDF0EE center/cover no-repeat;
     display:flex; align-items:center; justify-content:center;

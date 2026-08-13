@@ -2,20 +2,26 @@
    sempre light, fixadas pelo layout de (auth). */
 html[data-admin-theme='dark'] #appView,
 html[data-admin-theme='dark'] .onboarding{
-  --fundo:#0d1511;
-  --fundo-2:#121d17;
-  --superficie:#17231d;
-  --borda:#2c3b33;
-  --texto:#edf3ef;
-  --texto-suave:#9ba9a1;
-  --verde-tint:#193a29;
+  --fundo:#101010;
+  --fundo-2:#161616;
+  --superficie:#1d1d1d;
+  --borda:#333333;
+  --texto:#f5f5f5;
+  --texto-suave:#a8a8a8;
+  --verde-tint:#3a2116;
   color-scheme:dark;
   background:var(--fundo);
   color:var(--texto);
 }
 html[data-admin-theme='dark'] #main{ background:var(--fundo); color:var(--texto); }
-html[data-admin-theme='dark'] #sidebar{ background:linear-gradient(165deg,#071e16,#124e35); }
-html[data-admin-theme='dark'] .nav-item.ativo{ background:#e8f2ec; color:#0f3d2e; }
+html[data-admin-theme='dark'] #sidebar{ background:#171717; }
+html[data-admin-theme='dark'] #sidebar .brand-logo{ padding:6px 8px; border-radius:9px; background:#fff; }
+html[data-admin-theme='dark'] .loja-chip .loja-nome{ color:var(--texto); }
+html[data-admin-theme='dark'] .nav-grupo-titulo,
+html[data-admin-theme='dark'] .menu-legenda{ color:#8f8f8f; }
+html[data-admin-theme='dark'] .nav-item{ color:#dedede; }
+html[data-admin-theme='dark'] .nav-item.ativo{ background:#3a2116; color:#ff7a33; }
+html[data-admin-theme='dark'] .perfil-opcoes a{ color:#b7b7b7; }
 html[data-admin-theme='dark'] .card,
 html[data-admin-theme='dark'] .modal-sheet,
 html[data-admin-theme='dark'] .painel-col,
@@ -32,7 +38,7 @@ html[data-admin-theme='dark'] .onboarding-caixa{
    resolvia pro valor claro do :root e o que era digitado sumia (1.16:1). */
 html[data-admin-theme='dark'] #appView :is(input,textarea,select),
 html[data-admin-theme='dark'] .onboarding :is(input,textarea,select){
-  background:#111b16;
+  background:#151515;
   border-color:var(--borda);
   color:var(--texto);
 }
@@ -50,7 +56,7 @@ html[data-admin-theme='dark'] .lista-linha:hover,
 html[data-admin-theme='dark'] .cat-item:hover,
 html[data-admin-theme='dark'] .opcao-card:hover,
 html[data-admin-theme='dark'] .pedido-manual-sugestao:hover{
-  background:#1c2b23;
+  background:#262626;
 }
 html[data-admin-theme='dark'] .modal-rodape,
 html[data-admin-theme='dark'] .pedido-painel-rodape,
@@ -71,10 +77,10 @@ html[data-admin-theme='dark'] .pedido-chip-status{
   background:color-mix(in srgb,var(--cor-status) 22%, var(--superficie));
 }
 html[data-admin-theme='dark'] .esqueleto{
-  background:linear-gradient(90deg,#17231d 25%,#213129 50%,#17231d 75%);
+  background:linear-gradient(90deg,#1d1d1d 25%,#292929 50%,#1d1d1d 75%);
   background-size:200% 100%;
 }
-html[data-admin-theme='dark'] ::-webkit-scrollbar-thumb{ background:#405148; }
+html[data-admin-theme='dark'] ::-webkit-scrollbar-thumb{ background:#484848; }
 /* Barra inferior do mobile: a --superficie do dark já vem do bloco de tokens,
    mas a borda de topo e a sombra precisam de contraste próprio sobre o fundo
    escuro, senão a barra encosta no conteúdo sem separação visível. */
@@ -88,7 +94,7 @@ html[data-admin-theme='dark'] #navInferior{
 html[data-admin-theme='dark'] #appView :is(input,textarea,select):focus,
 html[data-admin-theme='dark'] .onboarding :is(input,textarea,select):focus{
   border-color:var(--verde-claro);
-  box-shadow:0 0 0 3px rgba(47,169,104,.35);
+  box-shadow:0 0 0 3px rgba(255,90,0,.35);
 }
 /* Botão desabilitado: só a opacidade herdada deixava o rótulo ilegível
    sobre o fundo escuro. */
