@@ -98,7 +98,7 @@ export function ShellPainel({
       <div id="appView" className="ativo">
         <header id="painelTopo">
           <div className="painel-topo-marca">
-            <LogoFlouFood prioridade />
+            <LogoFlouFood />
           </div>
           <div className="painel-topo-acoes">
             <StatusOperacional popoverId="status-operacional-topo" />

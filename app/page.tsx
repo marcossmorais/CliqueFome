@@ -72,7 +72,7 @@ export default function Home() {
     <div className="wrap">
       <nav>
         <Link href="/" className="brand-logo">
-          <LogoFlouFood prioridade />
+          <LogoFlouFood />
         </Link>
         <div className="nav-links">
           <a href="#funcionalidades">Funcionalidades</a>
