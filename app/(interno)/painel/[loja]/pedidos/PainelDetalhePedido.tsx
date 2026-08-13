@@ -12,6 +12,7 @@ import {
 } from '@/lib/pedidos/acoes';
 import { textoTempo } from '@/lib/pedidos/prioridade';
 import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
+import { numeroPedido } from '@/lib/pedidos/numero';
 import {
   COR_STATUS,
   formatBRL,
@@ -112,13 +113,13 @@ export function PainelDetalhePedido({
   }
 
   async function cancelar() {
-    const motivo = prompt(`Por que o pedido #${pedido.numero} será cancelado?`);
+    const motivo = prompt(`Por que o pedido ${numeroPedido(pedido.numero)} será cancelado?`);
     if (motivo === null) return;
     if (motivo.trim().length < 3 || motivo.trim().length > 300) {
       onErro('Informe um motivo entre 3 e 300 caracteres.');
       return;
     }
-    if (!confirm(`Confirmar o cancelamento do pedido #${pedido.numero}?`)) return;
+    if (!confirm(`Confirmar o cancelamento do pedido ${numeroPedido(pedido.numero)}?`)) return;
     try {
       const sb = criarClientNavegador();
       await cancelarPedido(sb, pedido.id, pedido.status, motivo.trim());
@@ -155,7 +156,7 @@ export function PainelDetalhePedido({
       <aside className="pedido-painel">
         <div className="modal-topo">
           <div className="modal-titulo">
-            Pedido #{pedido.numero}{' '}
+            Pedido {numeroPedido(pedido.numero)}{' '}
             <span className="pedido-chip-status" style={{ ['--cor-status' as string]: COR_STATUS[pedido.status] }}>
               <IconeStatus status={pedido.status} />
               {NOMES_STATUS[pedido.status]}

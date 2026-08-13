@@ -19,6 +19,7 @@ import {
   type ModoTaxaDelivery,
 } from '@/lib/delivery/tipos-operacao';
 import styles from './delivery.module.css';
+import { numeroPedido } from '@/lib/pedidos/numero';
 
 type Secao = 'entregas' | 'entregadores' | 'configuracoes';
 type Mensagem = { tipo: 'erro' | 'sucesso'; texto: string } | null;
@@ -240,7 +241,7 @@ function CartaoEntrega({
   return (
     <article className={styles.entregaCard}>
       <div className={styles.entregaTopo}>
-        <strong>Pedido #{entrega.pedido.numero}</strong>
+        <strong>Pedido {numeroPedido(entrega.pedido.numero)}</strong>
         <span data-status={entrega.status}>
           {entrega.status === 'ASSIGNED' ? 'Atribuída' : entrega.status === 'OUT_FOR_DELIVERY' ? 'Em rota' : entrega.status === 'DELIVERED' ? 'Entregue' : 'Aguardando'}
         </span>
@@ -255,7 +256,7 @@ function CartaoEntrega({
       {entrega.entregador && <p className={styles.driverAtribuido}>Entregador: <b>{entrega.entregador.name}</b></p>}
       {entrega.status === 'WAITING_DRIVER' && (
         <div className={styles.atribuir}>
-          <select aria-label={`Entregador do pedido ${entrega.pedido.numero}`} value={driverId} onChange={(e) => setDriverId(e.target.value)}>
+          <select aria-label={`Entregador do pedido ${numeroPedido(entrega.pedido.numero)}`} value={driverId} onChange={(e) => setDriverId(e.target.value)}>
             <option value="">Selecione o entregador</option>
             {entregadores.map((driver) => <option key={driver.id} value={driver.id}>{driver.name}</option>)}
           </select>

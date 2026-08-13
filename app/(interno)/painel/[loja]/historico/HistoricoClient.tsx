@@ -13,6 +13,7 @@ import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
 import { arquivarPedidosHistorico } from '@/lib/pedidos/acoes';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import styles from './historico.module.css';
+import { numeroPedido, numeroPedidoComData } from '@/lib/pedidos/numero';
 
 function formatarData(valor: string) {
   return new Date(valor).toLocaleString('pt-BR', {
@@ -140,7 +141,7 @@ export function HistoricoClient({
   function exportarCsv() {
     const cabecalho = ['Número', 'Data', 'Cliente', 'Telefone', 'Status', 'Origem', 'Tipo', 'Pagamento', 'Total', 'Motivo do cancelamento'];
     const linhas = pedidosSelecionados.map((pedido) => [
-      pedido.numero, formatarData(pedido.criado_em), pedido.cliente_nome, pedido.cliente_telefone,
+      numeroPedido(pedido.numero), formatarData(pedido.criado_em), pedido.cliente_nome, pedido.cliente_telefone,
       pedido.status === 'cancelado' ? 'Cancelado' : 'Entregue/Retirado', origemDoPedido(pedido),
       NOMES_TIPO[pedido.tipo], nomeFormaPagamento(pedido.forma_pagamento), Number(pedido.total).toFixed(2).replace('.', ','),
       pedido.motivo_cancelamento ?? '',
@@ -310,12 +311,12 @@ export function HistoricoClient({
                   key={pedido.id}
                   className={`${styles.pedido} ${pedidoAbertoId === pedido.id ? styles.selecionado : ''} ${selecionados.size > 0 && !selecionados.has(pedido.id) ? styles.naoSelecionadoPrint : ''}`}
                 >
-                  <label className={styles.seletor} title={`Selecionar pedido ${pedido.numero}`}>
+                  <label className={styles.seletor} title={`Selecionar pedido ${numeroPedido(pedido.numero)}`}>
                     <input type="checkbox" checked={selecionados.has(pedido.id)} onChange={() => alternarSelecao(pedido.id)} />
                   </label>
-                  <button type="button" className={styles.pedidoAbrir} onClick={() => setPedidoAbertoId(pedido.id)} aria-label={`Abrir detalhes do pedido ${pedido.numero}, ${pedido.cliente_nome}`}>
+                  <button type="button" className={styles.pedidoAbrir} onClick={() => setPedidoAbertoId(pedido.id)} aria-label={`Abrir detalhes do pedido ${numeroPedido(pedido.numero)}, ${pedido.cliente_nome}`}>
                     <span className={styles.pedidoPrincipal}>
-                    <span className={styles.numero}>#{pedido.numero}</span>
+                    <span className={styles.numero}>{numeroPedidoComData(pedido.numero, pedido.criado_em)}</span>
                     <span className={styles.cliente}>
                       <strong>{pedido.cliente_nome}</strong>
                       <small>{pedido.cliente_telefone}</small>
@@ -331,7 +332,6 @@ export function HistoricoClient({
                       {pedido.status === 'cancelado' ? 'Cancelado' : 'Entregue/Retirado'}
                     </span>
                     <strong>{formatBRL(pedido.total)}</strong>
-                    <small>{formatarData(pedido.criado_em)}</small>
                   </span>
                     {pedido.status === 'cancelado' && pedido.motivo_cancelamento && (
                       <span className={styles.motivo}>Motivo: {pedido.motivo_cancelamento}</span>

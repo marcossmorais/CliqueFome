@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { criarClientNavegador } from '@/lib/supabase/client';
+import { numeroPedido } from '@/lib/pedidos/numero';
 import {
   enderecoResumido,
   resumoPagamentoEntrega,
@@ -154,7 +155,7 @@ function CartaoEntrega({
     <article className="driverEntrega" aria-labelledby="entrega-atual">
       <div className="driverEntregaCabecalho">
         <span>{entrega.status === 'OUT_FOR_DELIVERY' ? 'EM ROTA' : 'NOVA ENTREGA'}</span>
-        <h2 id="entrega-atual">ENTREGA #{pedido.numero}</h2>
+        <h2 id="entrega-atual">ENTREGA {numeroPedido(pedido.numero)}</h2>
       </div>
 
       <section className="driverDestino">
