@@ -5,6 +5,7 @@ import { criarClientNavegador } from '@/lib/supabase/client';
 import { subirImagemCatalogo } from '@/lib/catalogo/upload';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import { ChipsToggle } from '@/components/admin/ChipsToggle';
+import { DialogoConfirmar } from '@/components/admin/DialogoConfirmar';
 import { DIAS, TIPOS_PEDIDO, type Categoria, type GrupoComplemento, type Produto } from '@/lib/catalogo/tipos';
 
 type Pane = 'info' | 'compl' | 'disp';
@@ -29,7 +30,8 @@ export function ModalProduto({
   grupos: GrupoComplemento[];
   onFechar: () => void;
   onSalvo: () => void;
-  onApagado: () => void;
+  /** Recebe o id pra lista tirar o card na hora, sem esperar o recarregamento. */
+  onApagado: (produtoId: string) => void;
   onErro: (msg: string) => void;
 }) {
   useEscFechar(onFechar);
@@ -65,6 +67,9 @@ export function ModalProduto({
   const fotoInputRef = useRef<HTMLInputElement>(null);
 
   const [salvando, setSalvando] = useState(false);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [apagando, setApagando] = useState(false);
+  const [erroApagar, setErroApagar] = useState<string | null>(null);
 
   function onEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -173,15 +178,24 @@ export function ModalProduto({
   }
 
   async function apagar() {
-    if (!produto) return;
-    if (!confirm(`Apagar "${produto.nome}"? Não tem como desfazer.`)) return;
+    if (!produto || apagando) return;
+    setApagando(true);
+    setErroApagar(null);
     const sb = criarClientNavegador();
-    const { error } = await sb.from('produtos').delete().eq('id', produto.id);
+    // `returning=representation` é o que separa "apagou" de "não achou nada
+    // pra apagar": um delete barrado pela RLS volta 204 sem erro nenhum, e
+    // sem as linhas de volta não dava pra distinguir um do outro.
+    const { data, error } = await sb.from('produtos').delete().eq('id', produto.id).select('id');
+    setApagando(false);
     if (error) {
-      onErro('Erro ao apagar: ' + error.message);
+      setErroApagar('Não deu pra apagar: ' + error.message);
       return;
     }
-    onApagado();
+    if (!data || data.length === 0) {
+      setErroApagar('O produto não foi apagado. Recarregue a página e tente de novo.');
+      return;
+    }
+    onApagado(produto.id);
   }
 
   return (
@@ -366,7 +380,15 @@ export function ModalProduto({
 
         <div className="modal-rodape">
           {produto && (
-            <button type="button" className="btn-danger" style={{ marginRight: 'auto' }} onClick={apagar}>
+            <button
+              type="button"
+              className="btn-danger"
+              style={{ marginRight: 'auto' }}
+              onClick={() => {
+                setErroApagar(null);
+                setConfirmandoExclusao(true);
+              }}
+            >
               Apagar
             </button>
           )}
@@ -378,6 +400,19 @@ export function ModalProduto({
           </button>
         </div>
       </div>
+
+      {confirmandoExclusao && produto && (
+        <DialogoConfirmar
+          titulo="Apagar este produto?"
+          mensagem={`“${produto.nome}” sai do cardápio na hora. Os pedidos que já levaram esse item continuam no histórico, com o nome e o preço da época.`}
+          aviso="Não tem como desfazer."
+          erro={erroApagar}
+          textoConfirmar="Apagar produto"
+          emAndamento={apagando}
+          onConfirmar={() => void apagar()}
+          onCancelar={() => setConfirmandoExclusao(false)}
+        />
+      )}
     </div>
   );
 }

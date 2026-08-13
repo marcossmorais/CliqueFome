@@ -183,22 +183,31 @@ export function CardapioClient({
    * sobremesa embaralhados por destaque, e o cliente não tinha como saber
    * onde uma coisa terminava e outra começava.
    *
-   * Dentro de cada seção a ordem cadastrada pelo dono é respeitada; o
-   * destaque deixa de reordenar porque aqui ele reordenaria dentro da
-   * categoria, o que não ajuda ninguém a encontrar nada.
+   * O destaque ganha a primeira seção, e o item sai da categoria dele. É a
+   * única marcação que muda o produto de lugar, justamente porque é a que o
+   * dono liga quando quer aquele item na frente de tudo. Repetir o mesmo
+   * produto em Destaques e de novo na categoria era o desenho antigo, e
+   * confundia — além de fazer o contador de itens somar duas vezes.
+   *
+   * Dentro das outras seções a ordem cadastrada pelo dono é respeitada.
    *
    * Busca, promoções e categoria específica continuam em lista única: ali o
-   * recorte já é o assunto, e um título por categoria só faria ruído.
+   * recorte já é o assunto, e um título por categoria só faria ruído. Nelas
+   * o destaque volta a ser só ordenação, no topo da lista.
    */
   const secoes = useMemo(() => {
     const listaUnica = [{ id: 'unica', titulo: null as string | null, produtos: produtosExibidos }];
     if (termoBusca || categoriaId !== 'todos') return listaUnica;
 
+    const destaques = produtosExibidos.filter((p) => p.destaque);
+    const idsEmDestaque = new Set(destaques.map((p) => p.id));
+    const restante = produtosExibidos.filter((p) => !idsEmDestaque.has(p.id));
+
     const porCategoria = categoriasVisiveis
       .map((categoria) => ({
         id: categoria.id,
         titulo: categoria.nome,
-        produtos: produtosExibidos
+        produtos: restante
           .filter((p) => p.categoria_id === categoria.id)
           .sort((a, b) => a.ordem - b.ordem),
       }))
@@ -207,10 +216,14 @@ export function CardapioClient({
     // Produto sem categoria, ou de categoria que sumiu do cardápio, cairia
     // fora de todas as seções e simplesmente não apareceria.
     const idsAgrupados = new Set(porCategoria.flatMap((s) => s.produtos.map((p) => p.id)));
-    const soltos = produtosExibidos.filter((p) => !idsAgrupados.has(p.id));
+    const soltos = restante.filter((p) => !idsAgrupados.has(p.id));
     if (soltos.length > 0) porCategoria.push({ id: 'outros', titulo: 'Outros', produtos: soltos });
 
-    return porCategoria.length > 0 ? porCategoria : listaUnica;
+    const comDestaques = destaques.length > 0
+      ? [{ id: 'destaques', titulo: 'Destaques 🔥', produtos: destaques }, ...porCategoria]
+      : porCategoria;
+
+    return comDestaques.length > 0 ? comDestaques : listaUnica;
   }, [produtosExibidos, categoriasVisiveis, termoBusca, categoriaId]);
 
   const tituloVitrine = termoBusca
@@ -218,7 +231,7 @@ export function CardapioClient({
     : categoriaId === 'promocoes'
       ? 'Promoções'
       : categoriaId === 'todos'
-        ? 'Destaques do cardápio'
+        ? 'Cardápio'
         : categoriasVisiveis.find((c) => c.id === categoriaId)?.nome || 'Cardápio';
 
   const totalItens = linhas.reduce((s, l) => s + l.qty, 0);
@@ -536,7 +549,7 @@ export function CardapioClient({
           </nav>
 
           <div className="menu-vitrine-topo">
-            <h2>{tituloVitrine}{categoriaId === 'todos' && !termoBusca ? ' 🔥' : ''}</h2>
+            <h2>{tituloVitrine}</h2>
             <span>{produtosExibidos.length} {produtosExibidos.length === 1 ? 'item' : 'itens'}</span>
           </div>
 

@@ -360,7 +360,12 @@ export function CatalogoClient({
             mostrarMsg('Produto salvo.', 'ok');
             await recarregarProdutos();
           }}
-          onApagado={async () => {
+          onApagado={async (produtoId) => {
+            // Tira o card antes de qualquer ida ao servidor. O delete já
+            // confirmou a linha removida; esperar o recarregamento deixava o
+            // produto visível por mais um instante, e dava a impressão de
+            // que nada tinha acontecido.
+            setProdutos((atual) => atual.filter((p) => p.id !== produtoId));
             setModalProduto({ aberto: false, produto: null });
             mostrarMsg('Produto apagado.', 'ok');
             await recarregarProdutos();
