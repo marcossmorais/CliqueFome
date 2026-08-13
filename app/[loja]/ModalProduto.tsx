@@ -226,7 +226,12 @@ export function ModalProduto({
                     }
 
                     const marcado = qtdEscolhida > 0;
-                    const desabilitado = !marcado && noLimite;
+                    // Numa lista de escolha única o teto é 1, então assim que
+                    // a pessoa marcava a primeira opção `noLimite` desabilitava
+                    // todas as outras e não dava mais pra trocar — a lista
+                    // travava na primeira escolha. Aqui marcar outra substitui,
+                    // que é justamente o que `alternar` faz.
+                    const desabilitado = !unica && !marcado && noLimite;
                     return (
                       // Nome e preço empilhados à esquerda, controle à direita:
                       // o input vem depois no DOM para a ordem de leitura e a
