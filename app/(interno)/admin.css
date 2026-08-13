@@ -239,6 +239,18 @@
   #mainTop{ display:flex; align-items:center; gap:12px; margin-bottom: 20px; }
   #sidebarBackdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:40; }
 
+  .conteudo-carregando{
+    display:grid; min-height:calc(100dvh - 150px); place-items:center;
+    color:var(--verde);
+  }
+  .conteudo-carregando-icone{
+    width:58px; height:58px; overflow:visible;
+    stroke:currentColor; stroke-width:4; stroke-linecap:round; stroke-linejoin:round;
+    animation:conteudo-carregando-giro .9s linear infinite;
+  }
+  @keyframes conteudo-carregando-giro{ to{ transform:rotate(360deg); } }
+  @media(prefers-reduced-motion:reduce){ .conteudo-carregando-icone{ animation-duration:1.8s; } }
+
   .area{ display:none; max-width: 900px; }
   .area.ativo{ display:block; }
 

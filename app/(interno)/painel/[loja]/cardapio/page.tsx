@@ -1,6 +1,5 @@
 import { obterLojaPorSlug } from '@/lib/loja';
 import { criarClientServidor } from '@/lib/supabase/server';
-import { ShellPainel } from '@/components/admin/ShellPainel';
 import { CatalogoClient } from '../catalogo/CatalogoClient';
 import type { Categoria, Produto, GrupoComplemento } from '@/lib/catalogo/tipos';
 
@@ -10,7 +9,7 @@ export default async function CardapioPage({
   params: Promise<{ loja: string }>;
 }) {
   const { loja: slug } = await params;
-  const { loja, souAdmin } = await obterLojaPorSlug(slug);
+  const { loja } = await obterLojaPorSlug(slug);
   if (!loja) return null;
 
   const sb = await criarClientServidor();
@@ -27,14 +26,12 @@ export default async function CardapioPage({
   }));
 
   return (
-    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Cardápio">
-      <CatalogoClient
-        lojaId={loja.id}
-        nicho={loja.nicho}
-        categoriasIniciais={(categorias as Categoria[]) || []}
-        produtosIniciais={(produtos as Produto[]) || []}
-        gruposIniciais={gruposOrdenados}
-      />
-    </ShellPainel>
+    <CatalogoClient
+      lojaId={loja.id}
+      nicho={loja.nicho}
+      categoriasIniciais={(categorias as Categoria[]) || []}
+      produtosIniciais={(produtos as Produto[]) || []}
+      gruposIniciais={gruposOrdenados}
+    />
   );
 }

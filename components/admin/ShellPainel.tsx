@@ -21,6 +21,35 @@ const ATALHOS = [
   { id: 'delivery', nome: 'Delivery', icone: 'delivery' },
 ] as const;
 
+const TITULOS_ROTAS: Record<string, string> = {
+  inicio: 'Início',
+  pedidos: 'Gestão de pedidos',
+  historico: 'Gestão de pedidos · Histórico',
+  kds: 'Cozinha',
+  delivery: 'Delivery',
+  cardapio: 'Cardápio',
+  pdv: 'PDV',
+  desempenho: 'Desempenho',
+  clientes: 'Clientes',
+  config: 'Configurações',
+  links: 'Links do cardápio',
+  avaliacoes: 'Avaliações',
+  integracoes: 'Integrações',
+  suporte: 'Ajuda e suporte',
+  mesas: 'Mesas e comandas',
+  financeiro: 'Financeiro',
+  caixa: 'Caixa',
+  estoque: 'Estoque',
+  fiscal: 'Nota fiscal',
+};
+
+const TITULOS_CONFIG: Record<string, string> = {
+  perfil: 'Meu perfil',
+  loja: 'Minha loja',
+  funcionamento: 'Funcionamento',
+  assinatura: 'Plano e assinatura',
+};
+
 function Icone({ chave }: { chave: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -38,13 +67,11 @@ export function ShellPainel({
   lojaNome,
   lojaSlug,
   souAdmin,
-  titulo,
   children,
 }: {
   lojaNome: string;
   lojaSlug: string;
   souAdmin: boolean;
-  titulo: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -53,6 +80,10 @@ export function ShellPainel({
   // Toda rota do painel é prefixada pela loja atual — a loja é segmento da
   // URL, não mais um cookie.
   const base = `/painel/${lojaSlug}`;
+  const segmentos = pathname.slice(base.length).split('/').filter(Boolean);
+  const titulo = segmentos[0] === 'config' && segmentos[1]
+    ? TITULOS_CONFIG[segmentos[1]] ?? 'Configurações'
+    : TITULOS_ROTAS[segmentos[0] ?? 'inicio'] ?? 'Painel';
   async function sair() {
     const sb = criarClientNavegador();
     await sb.auth.signOut();

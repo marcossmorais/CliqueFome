@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ShellPainel } from '@/components/admin/ShellPainel';
 import { obterLojaPorSlug, obterUsuario } from '@/lib/loja';
 import { criarClientServidor } from '@/lib/supabase/server';
 import {
@@ -122,7 +121,7 @@ export default async function InicioPage({
   params: Promise<{ loja: string }>;
 }) {
   const { loja: slug } = await params;
-  const [{ loja, souAdmin }, usuario] = await Promise.all([
+  const [{ loja }, usuario] = await Promise.all([
     obterLojaPorSlug(slug),
     obterUsuario(),
   ]);
@@ -161,8 +160,7 @@ export default async function InicioPage({
   }
 
   return (
-    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Início">
-      <div className={styles.dashboard}>
+    <div className={styles.dashboard}>
         <section className={styles.boasVindas}>
           <div>
             <span className={styles.dataHoje}>Central do dia · {new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'long' }).format(agora)}</span>
@@ -268,7 +266,6 @@ export default async function InicioPage({
             <p className={styles.fonte}>Dados dos pedidos desta loja · atualizados às {atualizado}</p>
           </>
         )}
-      </div>
-    </ShellPainel>
+    </div>
   );
 }

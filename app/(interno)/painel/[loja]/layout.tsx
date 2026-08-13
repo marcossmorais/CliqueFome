@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { obterLojaPorSlug, obterUsuario } from '@/lib/loja';
 import { OperacaoProvider } from '@/components/admin/StatusOperacional';
+import { ShellPainel } from '@/components/admin/ShellPainel';
 
 /**
  * Layout do painel de UMA loja. O login fica fora desta subárvore — se
@@ -18,8 +19,9 @@ import { OperacaoProvider } from '@/components/admin/StatusOperacional';
  * MESMO 404, pra não confirmar quais lojas existem. A fronteira de
  * segurança de verdade continua sendo a RLS no banco.
  *
- * A casca (menu lateral) fica em cada página e não aqui porque o título do
- * cabeçalho muda por área.
+ * A casca fica neste layout para sobreviver às navegações entre áreas. O
+ * título é resolvido no cliente pelo pathname; assim sidebar, cabeçalho,
+ * estado do drawer e controles operacionais não são remontados a cada clique.
  */
 export default async function PainelLojaLayout({
   children,
@@ -32,7 +34,7 @@ export default async function PainelLojaLayout({
   if (!user) redirect('/entrar');
 
   const { loja: slug } = await params;
-  const { loja } = await obterLojaPorSlug(slug);
+  const { loja, souAdmin } = await obterLojaPorSlug(slug);
   if (!loja) notFound();
 
   return (
@@ -43,7 +45,9 @@ export default async function PainelLojaLayout({
         retirada: loja.retirada_ativa,
       }}
     >
-      {children}
+      <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin}>
+        {children}
+      </ShellPainel>
     </OperacaoProvider>
   );
 }

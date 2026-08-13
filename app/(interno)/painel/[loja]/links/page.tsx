@@ -1,6 +1,5 @@
 import { headers } from 'next/headers';
 import { obterLojaPorSlug } from '@/lib/loja';
-import { ShellPainel } from '@/components/admin/ShellPainel';
 import { CaixaLink } from './CaixaLink';
 
 export default async function LinksPage({
@@ -9,7 +8,7 @@ export default async function LinksPage({
   params: Promise<{ loja: string }>;
 }) {
   const { loja: slug } = await params;
-  const { loja, souAdmin } = await obterLojaPorSlug(slug);
+  const { loja } = await obterLojaPorSlug(slug);
   if (!loja) return null;
 
   // A URL base vem do host da requisição — assim o link sai certo em
@@ -20,22 +19,15 @@ export default async function LinksPage({
   const linkCardapio = `${protocolo}://${host}/${loja.slug}`;
 
   return (
-    <ShellPainel
-      lojaNome={loja.nome}
-      lojaSlug={loja.slug}
-      souAdmin={souAdmin}
-      titulo="Links do cardápio"
-    >
-      <div className="area ativo">
-        <div className="card">
-          <h2>Links do cardápio</h2>
-          <p className="sub">
-            Compartilhe com seus clientes. O link muda junto se você trocar o endereço da loja.
-          </p>
-          <label>Cardápio público</label>
-          <CaixaLink url={linkCardapio} />
-        </div>
+    <div className="area ativo">
+      <div className="card">
+        <h2>Links do cardápio</h2>
+        <p className="sub">
+          Compartilhe com seus clientes. O link muda junto se você trocar o endereço da loja.
+        </p>
+        <label>Cardápio público</label>
+        <CaixaLink url={linkCardapio} />
       </div>
-    </ShellPainel>
+    </div>
   );
 }

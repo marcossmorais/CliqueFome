@@ -1,4 +1,3 @@
-import { ShellPainel } from '@/components/admin/ShellPainel';
 import {
   normalizarPlano,
   obterConfiguracaoEfetiva,
@@ -14,7 +13,7 @@ export default async function AvaliacoesPage({
   params: Promise<{ loja: string }>;
 }) {
   const { loja: slug } = await params;
-  const { loja, souAdmin } = await obterLojaPorSlug(slug);
+  const { loja } = await obterLojaPorSlug(slug);
   if (!loja) return null;
 
   const sb = await criarClientServidor();
@@ -36,13 +35,11 @@ export default async function AvaliacoesPage({
   const configuracaoDisponivel = !resultadoPlano.error && !resultadoConfiguracao.error;
 
   return (
-    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Avaliações">
-      <ConfiguracaoAvaliacoesForm
-        lojaId={loja.id}
-        plano={plano}
-        configuracaoInicial={configuracao}
-        configuracaoDisponivel={configuracaoDisponivel}
-      />
-    </ShellPainel>
+    <ConfiguracaoAvaliacoesForm
+      lojaId={loja.id}
+      plano={plano}
+      configuracaoInicial={configuracao}
+      configuracaoDisponivel={configuracaoDisponivel}
+    />
   );
 }

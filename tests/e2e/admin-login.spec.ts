@@ -36,6 +36,22 @@ test('login abre pedidos, dashboard, configurações e financeiro sem depender d
     await expect(page.locator('#appView')).toBeVisible();
   });
 
+  await test.step('sidebar e cabeçalho persistem na navegação interna', async () => {
+    await page.locator('#sidebar').evaluate((elemento) => {
+      elemento.setAttribute('data-e2e-casca-persistente', 'sidebar');
+    });
+    await page.locator('#mainTop').evaluate((elemento) => {
+      elemento.setAttribute('data-e2e-casca-persistente', 'cabecalho');
+    });
+
+    await page.getByRole('link', { name: 'Gestão de pedidos', exact: true }).click();
+    await page.waitForURL(`/painel/${slug}/pedidos`);
+    await expect(page.locator('.pedidos-topo')).toBeVisible();
+    await expect(page.locator('#sidebar')).toHaveAttribute('data-e2e-casca-persistente', 'sidebar');
+    await expect(page.locator('#mainTop')).toHaveAttribute('data-e2e-casca-persistente', 'cabecalho');
+    await expect(page.locator('#mainTop h1')).toHaveText('Gestão de pedidos');
+  });
+
   await test.step('configurações gerais continuam acessíveis', async () => {
     await page.goto(`/painel/${slug}/config`, { waitUntil: 'networkidle' });
     await expect(page.locator('#mainTop h1')).toHaveText('Configurações');

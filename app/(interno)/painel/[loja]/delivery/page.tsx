@@ -1,6 +1,5 @@
 import { obterLojaPorSlug } from '@/lib/loja';
 import { criarClientServidor } from '@/lib/supabase/server';
-import { ShellPainel } from '@/components/admin/ShellPainel';
 import type {
   ConfiguracaoDelivery,
   EntregaDeliveryAdmin,
@@ -28,7 +27,7 @@ export default async function DeliveryPage({
   params: Promise<{ loja: string }>;
 }) {
   const { loja: slug } = await params;
-  const { loja, souAdmin } = await obterLojaPorSlug(slug);
+  const { loja } = await obterLojaPorSlug(slug);
   if (!loja) return null;
 
   const sb = await criarClientServidor();
@@ -78,20 +77,13 @@ export default async function DeliveryPage({
   ];
 
   return (
-    <ShellPainel
-      lojaNome={loja.nome}
+    <DeliveryClient
       lojaSlug={loja.slug}
-      souAdmin={souAdmin}
-      titulo="Delivery"
-    >
-      <DeliveryClient
-        lojaSlug={loja.slug}
-        dataHoje={hoje.data}
-        configuracaoInicial={(configuracao.data as ConfiguracaoDelivery | null) ?? null}
-        entregadoresIniciais={(entregadores.data as EntregadorDelivery[]) || []}
-        entregasIniciais={entregas}
-        indisponivel={houveErro}
-      />
-    </ShellPainel>
+      dataHoje={hoje.data}
+      configuracaoInicial={(configuracao.data as ConfiguracaoDelivery | null) ?? null}
+      entregadoresIniciais={(entregadores.data as EntregadorDelivery[]) || []}
+      entregasIniciais={entregas}
+      indisponivel={houveErro}
+    />
   );
 }

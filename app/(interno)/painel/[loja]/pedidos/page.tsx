@@ -1,6 +1,5 @@
 import { obterLojaPorSlug } from '@/lib/loja';
 import { criarClientServidor } from '@/lib/supabase/server';
-import { ShellPainel } from '@/components/admin/ShellPainel';
 import { PedidosClient } from './PedidosClient';
 import type { PedidoResumo } from '@/lib/pedidos/tipos';
 import type { CategoriaPublica, GrupoPublico, ProdutoPublico } from '@/lib/cardapio/tipos';
@@ -15,7 +14,7 @@ export default async function PedidosPage({
   params: Promise<{ loja: string }>;
 }) {
   const { loja: slug } = await params;
-  const { loja, souAdmin } = await obterLojaPorSlug(slug);
+  const { loja } = await obterLojaPorSlug(slug);
   if (!loja) return null;
 
   const sb = await criarClientServidor();
@@ -54,14 +53,12 @@ export default async function PedidosPage({
     .sort((a, b) => a.ordem - b.ordem);
 
   return (
-    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Gestão de pedidos">
-      <PedidosClient
-        lojaId={loja.id}
-        lojaSlug={loja.slug}
-        pedidosIniciais={(pedidos as PedidoResumo[]) || []}
-        categorias={(categorias as CategoriaPublica[]) || []}
-        produtos={produtos}
-      />
-    </ShellPainel>
+    <PedidosClient
+      lojaId={loja.id}
+      lojaSlug={loja.slug}
+      pedidosIniciais={(pedidos as PedidoResumo[]) || []}
+      categorias={(categorias as CategoriaPublica[]) || []}
+      produtos={produtos}
+    />
   );
 }
