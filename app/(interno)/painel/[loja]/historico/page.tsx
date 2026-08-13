@@ -1,6 +1,5 @@
 import { obterLojaPorSlug } from '@/lib/loja';
 import { criarClientServidor } from '@/lib/supabase/server';
-import { ShellPainel } from '@/components/admin/ShellPainel';
 import {
   fimExclusivoIso,
   inicioDoDiaIso,
@@ -33,7 +32,7 @@ export default async function HistoricoPage({
   searchParams: Promise<SearchParams>;
 }) {
   const { loja: slug } = await paramsRota;
-  const { loja, souAdmin } = await obterLojaPorSlug(slug);
+  const { loja } = await obterLojaPorSlug(slug);
   if (!loja) return null;
   const lojaId = loja.id;
 
@@ -137,17 +136,15 @@ export default async function HistoricoPage({
   const totalPaginas = Math.max(1, Math.ceil(quantidade / POR_PAGINA));
 
   return (
-    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Gestão de pedidos · Histórico">
-      <HistoricoClient
-        lojaId={lojaId}
-        lojaSlug={loja.slug}
-        pedidos={(resultado.data as PedidoHistorico[]) ?? []}
-        filtros={filtros}
-        pagina={pagina}
-        totalPaginas={totalPaginas}
-        quantidade={quantidade}
-        valorTotal={valorTotal}
-      />
-    </ShellPainel>
+    <HistoricoClient
+      lojaId={lojaId}
+      lojaSlug={loja.slug}
+      pedidos={(resultado.data as PedidoHistorico[]) ?? []}
+      filtros={filtros}
+      pagina={pagina}
+      totalPaginas={totalPaginas}
+      quantidade={quantidade}
+      valorTotal={valorTotal}
+    />
   );
 }

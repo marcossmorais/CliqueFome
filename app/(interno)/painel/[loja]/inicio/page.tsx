@@ -1,6 +1,4 @@
 import Link from 'next/link';
-import { ShellPainel } from '@/components/admin/ShellPainel';
-import { StatusOperacional } from '@/components/admin/StatusOperacional';
 import { obterLojaPorSlug, obterUsuario } from '@/lib/loja';
 import { criarClientServidor } from '@/lib/supabase/server';
 import {
@@ -93,8 +91,8 @@ function GraficoVendas({ resumo }: { resumo: ResumoDashboard }) {
       <svg viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Vendas dos últimos sete dias">
         <defs>
           <linearGradient id="dashboardArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#2fa968" stopOpacity=".28" />
-            <stop offset="1" stopColor="#2fa968" stopOpacity=".02" />
+            <stop offset="0" stopColor="#ff5a00" stopOpacity=".28" />
+            <stop offset="1" stopColor="#ff5a00" stopOpacity=".02" />
           </linearGradient>
         </defs>
         <line x1={margem} x2={largura - margem} y1={altura - margem} y2={altura - margem} className={styles.eixo} />
@@ -123,7 +121,7 @@ export default async function InicioPage({
   params: Promise<{ loja: string }>;
 }) {
   const { loja: slug } = await params;
-  const [{ loja, souAdmin }, usuario] = await Promise.all([
+  const [{ loja }, usuario] = await Promise.all([
     obterLojaPorSlug(slug),
     obterUsuario(),
   ]);
@@ -162,8 +160,7 @@ export default async function InicioPage({
   }
 
   return (
-    <ShellPainel lojaNome={loja.nome} lojaSlug={loja.slug} souAdmin={souAdmin} titulo="Início">
-      <div className={styles.dashboard}>
+    <div className={styles.dashboard}>
         <section className={styles.boasVindas}>
           <div>
             <span className={styles.dataHoje}>Central do dia · {new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'long' }).format(agora)}</span>
@@ -172,8 +169,6 @@ export default async function InicioPage({
           </div>
           <Link href={`/${loja.slug}`} target="_blank" className={styles.verCardapio}>Ver cardápio ↗</Link>
         </section>
-
-        <StatusOperacional variante="painel" />
 
         {falhou || !resumo ? (
           <section className={styles.erroCarga} role="alert">
@@ -271,7 +266,6 @@ export default async function InicioPage({
             <p className={styles.fonte}>Dados dos pedidos desta loja · atualizados às {atualizado}</p>
           </>
         )}
-      </div>
-    </ShellPainel>
+    </div>
   );
 }

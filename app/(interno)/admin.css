@@ -1,25 +1,24 @@
-/* Estilos do painel administrativo do CliqueFome.
-   Vindos do admin.html original sem alteracao visual — a unica mudanca e
-   que as familias de fonte chegam por variavel CSS (next/font, self-host). */
+/* Estilos do painel administrativo da FlouFood. A navegação e os fluxos
+   permanecem os mesmos; a paleta segue a referência visual aprovada. */
 
   :root{
-    /* Identidade visual CliqueFome (marca da plataforma — só usada aqui no
+    /* Identidade visual FlouFood (marca da plataforma — só usada aqui no
        admin e no site institucional, nunca no cardápio de cada loja, que
        é whitelabel). */
-    --verde-escuro: #0F3D2E;
-    --verde: #1E7A4E;
-    --verde-claro: #2FA968;
-    --laranja: #F28C28;
-    --erro: #B23B3B;
+    --verde-escuro: #D94800;
+    --verde: #FF5A00;
+    --verde-claro: #FF7A33;
+    --laranja: #FF5A00;
+    --erro: #E53935;
 
     /* Tema claro do painel */
     --fundo: #FFFFFF;        /* área de conteúdo */
-    --fundo-2: #FAFBFA;      /* sidebar e faixas sutis */
+    --fundo-2: #FAFAFA;      /* sidebar e faixas sutis */
     --superficie: #FFFFFF;   /* cards, modais */
-    --borda: #E4E7E6;
-    --texto: #222629;
-    --texto-suave: #6B7472;
-    --verde-tint: #E9F5EE;   /* fundo de item ativo / selo positivo */
+    --borda: #ECECEC;
+    --texto: #161616;
+    --texto-suave: #6B6B6B;
+    --verde-tint: #FFF1EA;   /* fundo de item ativo da marca */
   }
   /* O painel é claro: sem isso o popup nativo do <select> e os controles
      podem sair escuros em quem usa o SO em dark mode. */
@@ -30,20 +29,19 @@
     background: var(--fundo);
     color: var(--texto);
     min-height: 100vh;
+    overflow-x: hidden;
   }
   /* No admin.html os itens de menu eram <button>; na migração viraram
      <Link> (= <a>), que o navegador sublinha por padrão. Sem este reset o
      menu inteiro aparece sublinhado. */
   a{ color: inherit; text-decoration: none; }
-  h1, h2, label, button, .brand-logo{ font-family: var(--fonte-titulo), sans-serif; }
+  h1, h2, h3, label, button, .brand-logo{ font-family: var(--fonte-corpo), sans-serif; }
   h1{ font-weight: 700; font-size: clamp(20px, 4vw, 26px); }
   .sub{ color: var(--texto-suave); font-size: 14px; margin-bottom: 16px; }
 
-  /* Logo CliqueFome: ícone (aro + garfo + cursor + ponto laranja) + nome */
-  .brand-logo{ display:flex; align-items:center; gap:10px; color: var(--verde-escuro); }
-  .brand-logo svg{ width:30px; height:30px; flex-shrink:0; }
-  .brand-logo .wordmark{ font-size:17px; font-weight:700; letter-spacing:-0.2px; }
-  .brand-logo .wordmark .fome{ color: var(--laranja); }
+  /* A marca da plataforma não interfere na identidade dos cardápios. */
+  .brand-logo{ display:flex; align-items:center; color: #1B1A1F; }
+  .brand-logo .logo-floufood{ width:159px; height:31px; flex-shrink:0; object-fit:contain; }
 
   .badge-admin{
     display:inline-block;
@@ -81,7 +79,7 @@
     margin-bottom: 16px;
   }
   input:focus, textarea:focus, select:focus{
-    outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(30,122,78,0.12);
+    outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(255,90,0,0.14);
   }
   textarea{ min-height: 80px; resize: vertical; }
   select option{ background: var(--superficie); color: var(--texto); }
@@ -125,13 +123,13 @@
     border: 1px solid var(--borda);
     color: var(--texto);
   }
-  .btn-ghost:hover{ background: #F1F4F2; }
+  .btn-ghost:hover{ background: #F3F3F3; }
   .btn-danger{ background: var(--erro); color: #fff; }
   .btn-small{ padding: 7px 14px; font-size: 13px; }
 
   .msg{ font-size: 13px; margin-bottom: 16px; padding: 10px 12px; border-radius: 10px; }
   .msg-erro{ background: #FDECEC; color: #90302F; border: 1px solid #F3CFCF; }
-  .msg-ok{ background: var(--verde-tint); color: #15703F; border: 1px solid #BCE3CC; }
+  .msg-ok{ background: #EDF8EF; color: #177A35; border: 1px solid #BFE5C8; }
 
   /* ---------- CONTA SEM LOJA (/admin/criar-loja) ---------- */
   .onboarding{
@@ -167,80 +165,139 @@
   #loginCard{ max-width: 380px; }
 
   /* ---------- SHELL DO PAINEL (menu lateral + conteúdo) ---------- */
-  #appView{ display:none; }
+  #appView{ display:none; width:100%; min-width:0; max-width:100vw; overflow-x:clip; }
   #appView.ativo{ display:flex; align-items:flex-start; }
 
   #sidebar{
-    width: 252px; flex-shrink: 0;
-    /* Fundo sólido (gradiente, não translúcido) pelo mesmo motivo de
-       sempre: no mobile a sidebar vira drawer por cima do conteúdo, e um
-       fundo translúcido deixava o formulário de baixo aparecendo atrás.
-       O verde é a identidade visual da plataforma — mesmo gradiente usado
-       nos cabeçalhos das áreas administrativas. */
-    background: linear-gradient(165deg, var(--verde-escuro), var(--verde));
-    padding: 22px 14px;
+    width: 240px; min-width:240px; max-width:240px; flex-shrink: 0;
+    background: var(--superficie);
+    border-right: 1px solid var(--borda);
+    padding: 18px 14px 14px;
     display:flex; flex-direction:column;
-    position: sticky; top: 0; height: 100vh; overflow: hidden;
+    position: sticky; top: 0; height: 100vh; height:100dvh;
+    overflow:hidden; overscroll-behavior:contain; isolation:isolate;
   }
-  #sidebar .brand-logo{ padding: 0 8px; margin-bottom: 20px; color: #fff; }
+  #sidebar .brand-logo{ min-height:45px; padding: 0 8px; margin-bottom: 16px; color: var(--texto); justify-content:center; }
 
   .loja-chip{
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.16);
+    background: var(--superficie);
+    border: 1px solid var(--borda);
     border-radius: 12px;
-    padding: 11px 12px;
-    margin-bottom: 8px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
   }
-  .loja-chip .loja-nome{ font-size: 14px; font-weight: 600; font-family: var(--fonte-titulo), sans-serif; color: #fff; }
-  .loja-chip .loja-slug{ font-size: 11.5px; color: rgba(255,255,255,0.68); margin-top: 3px; word-break: break-all; }
+  .loja-chip .loja-nome{ font-size: 14px; font-weight: 600; font-family: var(--fonte-corpo), sans-serif; color: var(--texto); }
+  .loja-chip .loja-slug{ font-size: 11.5px; color: var(--texto-suave); margin-top: 3px; word-break: break-all; }
   .loja-chip .badge-admin{ margin-top: 8px; }
 
-  #menu{ flex: 1; min-height:0; padding-bottom:12px; overflow-y:auto; }
+  #menu{
+    display:block; width:100%; min-width:0; flex:1;
+    padding:0 0 14px; overflow-y:auto; overflow-x:hidden;
+    overscroll-behavior:contain; scrollbar-width:none;
+  }
+  #menu::-webkit-scrollbar{ display:none; }
+  .nav-grupo{ display:block; width:100%; min-width:0; }
   .nav-grupo-titulo{
-    font-size: 10px; text-transform: uppercase; letter-spacing: .7px;
-    color: rgba(255,255,255,0.6); font-weight: 700; margin: 16px 0 6px 10px;
+    font-size: 9.5px; text-transform: uppercase; letter-spacing: .75px;
+    color: #7A7A7A; font-weight: 750; margin: 17px 0 6px 10px;
   }
   .nav-item{
-    display:flex; align-items:center; gap:10px; width:100%;
+    display:flex; align-items:center; gap:10px; width:100%; min-width:0; max-width:100%;
+    min-height:38px; flex:0 0 auto; overflow:hidden;
     text-align:left; background:transparent; border:none; border-radius:9px;
-    padding: 9px 10px; font-size: 13.5px; font-weight: 500;
-    color: rgba(255,255,255,0.86);
+    padding: 9px 10px; font-size: 13px; font-weight: 550;
+    color: #2C2C2C;
   }
-  .nav-item:hover{ background: rgba(255,255,255,0.1); }
-  .nav-item.ativo{ background: #fff; color: var(--verde-escuro); font-weight: 700; }
+  .nav-item:hover{ background: #F7F7F7; }
+  .nav-item.ativo{
+    background:var(--verde-tint); color:var(--verde-escuro); font-weight:700;
+    box-shadow:inset 2px 0 var(--verde);
+  }
   .nav-item svg{ width:16px; height:16px; flex-shrink:0; }
   /* nowrap + reticências: sem isso nomes longos ("Histórico de pedidos")
      quebravam em duas linhas e desalinhavam o menu. */
   .nav-item .rotulo{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  /* Bolinha discreta marcando as áreas ainda não construídas (legenda abaixo
-     do menu explica). Texto "em breve" em cada item ocupava espaço demais. */
-  .nav-item .marca-breve{
-    width:6px; height:6px; border-radius:50%; flex-shrink:0;
-    background: var(--laranja);
+  .sidebar-bottom{ display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--borda); padding-top:12px; }
+  .sidebar-ajuda{
+    display:flex; min-height:38px; align-items:center; justify-content:center; gap:9px;
+    padding:8px 12px; border:1px solid var(--borda); border-radius:999px;
+    background:var(--superficie); color:var(--texto); font-size:12.5px; font-weight:650;
   }
-  .menu-legenda{
-    display:flex; align-items:center; gap:7px;
-    font-size: 10.5px; color: rgba(255,255,255,0.6); margin: 14px 0 0 10px;
+  .sidebar-ajuda:hover{ border-color:#D5D5D5; background:var(--fundo-2); }
+  .sidebar-ajuda svg{ width:15px; height:15px; }
+  .sidebar-acoes{ display:flex; justify-content:center; gap:7px; }
+  .sidebar-acao{
+    display:grid; width:32px; height:32px; place-items:center; padding:0;
+    border:1px solid var(--borda); border-radius:9px; background:transparent;
+    color:var(--texto-suave);
   }
-  .menu-legenda .ponto{ width:6px; height:6px; border-radius:50%; background: var(--laranja); }
-
-  .sidebar-bottom{ display:flex; flex-direction:column; gap:8px; border-top:1px solid rgba(255,255,255,0.16); padding-top: 14px; }
-  .sidebar-bottom button{ width:100%; }
-  .sidebar-bottom .btn-ghost{ background: rgba(255,255,255,0.94); }
+  .sidebar-acao:hover{ background:var(--fundo-2); color:var(--texto); }
+  .sidebar-acao svg{ width:15px; height:15px; }
   .pedido-cancelar{ color:#a52f2f; border-color:#d9a2a2; }
   .pedido-cancelar:hover{ background:#fff0f0; border-color:#bc6666; }
-  .perfil-menu summary{ cursor:pointer; list-style:none; }
-  .perfil-menu summary::-webkit-details-marker{ display:none; }
-  .perfil-seta{ transition:transform .18s ease; }
-  .perfil-menu[open] .perfil-seta{ transform:rotate(180deg); }
-  .perfil-opcoes{ display:grid; gap:3px; margin:6px 0 2px 26px; }
-  .perfil-opcoes a{ display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; color:rgba(255,255,255,.82); font-size:12.5px; }
-  .perfil-opcoes a:hover{ color:#fff; background:rgba(255,255,255,.1); }
-  .perfil-opcoes svg{ width:14px; height:14px; }
-
   #main{ flex:1; min-width:0; padding: 26px 30px 80px; background: var(--fundo); min-height:100vh; }
   #mainTop{ display:flex; align-items:center; gap:12px; margin-bottom: 20px; }
+  #painelTopo{ display:none; }
+  .main-top-acoes-mobile{ display:flex; align-items:center; gap:12px; margin-left:auto; }
   #sidebarBackdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:40; }
+
+  /* No desktop a casca ocupa exatamente a viewport. Sidebar e cabeçalho não
+     participam da rolagem: somente o conteúdo da aba usa o eixo vertical. */
+  @media (min-width: 901px){
+    #appView.ativo{
+      display:grid; grid-template-columns:240px minmax(0,1fr);
+      grid-template-rows:76px minmax(0,1fr);
+      align-items:stretch; height:100vh; height:100dvh; overflow:hidden;
+    }
+    #painelTopo{
+      display:flex; grid-column:1 / -1; grid-row:1;
+      align-items:center; min-width:0;
+      border-bottom:1px solid var(--borda);
+      background:var(--superficie); z-index:35;
+    }
+    .painel-topo-marca{
+      display:flex; width:240px; flex:0 0 240px;
+      align-items:center; padding:0 24px;
+    }
+    .painel-topo-marca .logo-floufood{
+      width:165px; height:32px; object-fit:contain;
+    }
+    .painel-topo-acoes{
+      display:flex; min-width:0; margin-left:auto; padding:0 30px;
+      align-items:center; justify-content:flex-end; gap:12px;
+    }
+    #sidebar{
+      grid-column:1; grid-row:2;
+      position:relative; top:auto; height:100%; min-height:0;
+    }
+    #sidebar > .brand-logo{ display:none; }
+    #main{
+      grid-column:2; grid-row:2;
+      display:flex; flex-direction:column; height:100%; min-height:0;
+      padding:0; overflow:hidden;
+    }
+    #mainTop{
+      margin-bottom:20px;
+    }
+    #mainContent{
+      flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
+      overscroll-behavior:contain; scrollbar-gutter:stable;
+      padding:26px 30px 80px;
+    }
+    .main-top-acoes-mobile{ display:none; }
+  }
+
+  .conteudo-carregando{
+    display:grid; min-height:calc(100dvh - 150px); place-items:center;
+    color:var(--verde);
+  }
+  .conteudo-carregando-icone{
+    width:58px; height:58px; overflow:visible;
+    stroke:currentColor; stroke-width:4; stroke-linecap:round; stroke-linejoin:round;
+    animation:conteudo-carregando-giro .9s linear infinite;
+  }
+  @keyframes conteudo-carregando-giro{ to{ transform:rotate(360deg); } }
+  @media(prefers-reduced-motion:reduce){ .conteudo-carregando-icone{ animation-duration:1.8s; } }
 
   .area{ display:none; max-width: 900px; }
   .area.ativo{ display:block; }
@@ -272,6 +329,7 @@
   @media (max-width: 900px){
     #sidebar{
       position: fixed; left:0; top:0; z-index:50;
+      width:min(240px, calc(100vw - 32px)); min-width:0; max-width:calc(100vw - 32px);
       transform: translateX(-100%); transition: transform .2s;
       box-shadow: 0 0 24px rgba(0,0,0,0.12);
     }
@@ -285,16 +343,17 @@
     #topoMarca{
       display:flex; align-items:center; justify-content:space-between; gap:12px;
       margin: 0 -16px; padding: 12px 16px calc(12px + env(safe-area-inset-top, 0px));
-      background: linear-gradient(165deg, var(--verde-escuro), #14543a);
-      color:#fff;
+      background: var(--superficie);
+      border-bottom: 1px solid var(--borda);
+      color:var(--texto);
     }
-    #topoMarca .topo-marca-logo{ display:flex; align-items:center; gap:8px; font-weight:800; }
-    #topoMarca .topo-marca-logo svg{ width:26px; height:26px; }
+    #topoMarca .topo-marca-logo{ display:flex; align-items:center; font-weight:800; }
+    #topoMarca .topo-marca-logo .logo-floufood{ width:138px; height:27px; object-fit:contain; }
     .topo-sino{
       position:relative; display:grid; place-items:center;
       width:38px; height:38px; flex:0 0 38px;
-      border:1px solid rgba(255,255,255,.22); border-radius:11px;
-      background:rgba(255,255,255,.08); color:#fff; cursor:not-allowed;
+      border:1px solid var(--borda); border-radius:11px;
+      background:var(--superficie); color:var(--texto); cursor:not-allowed;
     }
     .topo-sino svg{ width:19px; height:19px; }
     /* O estilo de .marca-breve é escopado em .nav-item, então aqui a bolinha
@@ -303,19 +362,20 @@
     .topo-sino .marca-breve{
       position:absolute; top:7px; right:8px;
       width:7px; height:7px; border-radius:50%;
-      background: var(--laranja); box-shadow: 0 0 0 2px var(--verde-escuro);
+      background: var(--laranja); box-shadow: 0 0 0 2px var(--superficie);
     }
     .topo-sino:disabled{ opacity:.85; }
 
     #lojaTopo{
       display:flex; align-items:center; justify-content:space-between; gap:12px;
       margin: 0 -16px 18px; padding: 12px 16px 14px;
-      background: linear-gradient(165deg, #14543a, var(--verde));
-      color:#fff;
+      background: var(--superficie);
+      border-bottom: 1px solid var(--borda);
+      color:var(--texto);
     }
     #lojaTopo .loja-topo-id{ display:grid; gap:2px; min-width:0; }
     #lojaTopo .loja-topo-id strong{ font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    #lojaTopo .loja-topo-id span{ color:rgba(255,255,255,.72); font-size:12.5px; }
+    #lojaTopo .loja-topo-id span{ color:var(--texto-suave); font-size:12.5px; }
     #lojaTopo .badge-admin{ flex:0 0 auto; }
 
     /* O título da tela vinha colado na faixa verde. */
@@ -327,7 +387,7 @@
       padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
       border-top: 1px solid var(--borda);
       background: var(--superficie);
-      box-shadow: 0 -2px 14px rgba(15,61,46,.06);
+      box-shadow: 0 -2px 14px rgba(0,0,0,.08);
     }
     .nav-inferior-item{
       display:flex; flex-direction:column; align-items:center; gap:3px;
@@ -376,7 +436,7 @@
   .col-header{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     padding:12px 14px; border-bottom:1px solid var(--borda);
-    font-family: var(--fonte-titulo), sans-serif; font-size:11.5px; font-weight:700;
+    font-family: var(--fonte-corpo), sans-serif; font-size:11.5px; font-weight:700;
     text-transform:uppercase; letter-spacing:.6px; color:var(--texto-suave);
   }
   .col-header .titulo-cat{ font-size:14px; text-transform:none; letter-spacing:0; color:var(--texto); }
@@ -385,7 +445,7 @@
     border-radius:8px; width:26px; height:26px; padding:0; flex-shrink:0;
     display:flex; align-items:center; justify-content:center; font-size:15px; line-height:1;
   }
-  .col-header .btn-icone:hover{ background:#F1F4F2; }
+  .col-header .btn-icone:hover{ background:#F3F3F3; }
 
   /* Lista de categorias */
   .cat-item{
@@ -394,7 +454,7 @@
     border-left:3px solid transparent; border-bottom:1px solid var(--borda);
     color:var(--texto); font-size:13.5px; font-weight:500; text-align:left;
   }
-  .cat-item:hover{ background:#F5F7F6; }
+  .cat-item:hover{ background:#F7F7F7; }
   .cat-item.ativo{ background:var(--verde-tint); border-left-color:var(--verde); font-weight:600; color:var(--verde); }
   .cat-item .cat-nome{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cat-item.oculta .cat-nome{ color:var(--texto-suave); }
@@ -402,7 +462,7 @@
     background:transparent; border:none; padding:3px; color:var(--texto-suave);
     display:flex; align-items:center; border-radius:5px; flex-shrink:0;
   }
-  .cat-btn:hover{ color:var(--texto); background:#E7EBE9; }
+  .cat-btn:hover{ color:var(--texto); background:#ECECEC; }
   .cat-btn svg{ width:15px; height:15px; }
   .lista-vazia{ padding:20px 14px; font-size:13px; color:var(--texto-suave); }
 
@@ -410,10 +470,10 @@
   #produtosGrid{ display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--borda); }
   @media (max-width:1180px){ #produtosGrid{ grid-template-columns:1fr; } }
   .prod-card{ display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--superficie); min-width:0; cursor:pointer; }
-  .prod-card:hover{ background:#F5F7F6; }
+  .prod-card:hover{ background:#F7F7F7; }
   .prod-thumb{
     width:52px; height:52px; border-radius:9px; object-fit:cover; flex-shrink:0;
-    background:#F1F4F2; border:1px solid var(--borda);
+    background:#F3F3F3; border:1px solid var(--borda);
     display:flex; align-items:center; justify-content:center; font-size:20px;
   }
   .prod-info{ flex:1; min-width:0; }
@@ -431,14 +491,14 @@
     font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
     padding:2px 7px; border-radius:999px; white-space:nowrap;
   }
-  .tag-ativo{ background:var(--verde-tint); color:#15703F; border:1px solid #BCE3CC; }
+  .tag-ativo{ background:#EDF8EF; color:#177A35; border:1px solid #BFE5C8; }
   .tag-inativo{ background:#FDECEC; color:#A32F2F; border:1px solid #F3CFCF; }
   .tag-etiqueta{ background:#FEF1E3; color:#B4650F; border:1px solid #F8D8B4; }
   .prod-menu-btn{
     background:transparent; border:none; color:var(--texto-suave); padding:4px 6px;
     border-radius:6px; flex-shrink:0; font-size:15px; line-height:1;
   }
-  .prod-menu-btn:hover{ color:var(--texto); background:#E7EBE9; }
+  .prod-menu-btn:hover{ color:var(--texto); background:#ECECEC; }
 
   /* Linhas das abas Complementos / Opções */
   .lista-linha{
@@ -446,7 +506,7 @@
     border-bottom:1px solid var(--borda); cursor:pointer;
   }
   .lista-linha:last-child{ border-bottom:none; }
-  .lista-linha:hover{ background:#F5F7F6; }
+  .lista-linha:hover{ background:#F7F7F7; }
   .li-info{ flex:1; min-width:0; }
   .li-nome{ font-size:13.5px; font-weight:600; }
   .li-meta{ font-size:12px; color:var(--texto-suave); margin-top:3px; }
@@ -455,7 +515,7 @@
   /* ---------- MODAIS ---------- */
   .modal{ position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
   .modal.aberto{ display:flex; }
-  .modal-backdrop{ position:absolute; inset:0; background:rgba(20,30,26,0.45); }
+  .modal-backdrop{ position:absolute; inset:0; background:rgba(16,16,16,0.45); }
   .modal-sheet{
     position:relative; z-index:1; width:100%; max-width:740px; max-height:88vh;
     background:var(--superficie); border:1px solid var(--borda); border-radius:16px;
@@ -475,7 +535,7 @@
   }
   .modal-tab:hover{ color:var(--texto); }
   .modal-tab.ativo{ color:var(--verde); border-bottom-color:var(--verde); }
-  .modal-titulo{ padding:16px 18px; font-family: var(--fonte-titulo), sans-serif; font-weight:700; font-size:16px; }
+  .modal-titulo{ padding:16px 18px; font-family: var(--fonte-corpo), sans-serif; font-weight:700; font-size:16px; }
   .modal-fechar{
     background:transparent; border:none; color:var(--texto-suave);
     font-size:17px; padding:14px 18px; line-height:1;
@@ -504,7 +564,7 @@
   .avancado-corpo.aberto{ display:block; }
   .foto-slot{
     width:132px; height:132px; border-radius:12px; overflow:hidden; flex-shrink:0;
-    background:#F5F7F6; border:1px dashed #C9D0CC;
+    background:#F7F7F7; border:1px dashed #D3D3D3;
     display:flex; align-items:center; justify-content:center; font-size:26px; cursor:pointer;
   }
   .foto-slot:hover{ border-color:var(--verde); }
@@ -534,7 +594,7 @@
   /* Miniatura da foto da opção — aparece no cardápio ao lado do nome */
   .op-foto{
     width:42px; height:42px; border-radius:8px; flex-shrink:0; cursor:pointer;
-    background:#F1F4F2 center/cover no-repeat; border:1px dashed #C9D0CC;
+    background:#F3F3F3 center/cover no-repeat; border:1px dashed #D3D3D3;
     display:flex; align-items:center; justify-content:center; font-size:15px;
     margin-bottom:4px;
   }
@@ -553,10 +613,10 @@
     border:1.5px solid var(--borda); border-radius:12px; padding:12px 14px;
     color:var(--texto); font-family: var(--fonte-corpo), sans-serif;
   }
-  .escolha-card:hover{ border-color:#C2CCC7; background:#FAFBFA; }
+  .escolha-card:hover{ border-color:#D5D5D5; background:#FAFAFA; }
   .escolha-card.on{ border-color:var(--verde); background:var(--verde-tint); }
   .escolha-card strong{
-    display:block; font-family: var(--fonte-titulo), sans-serif; font-size:13px;
+    display:block; font-family: var(--fonte-corpo), sans-serif; font-size:13px;
     font-weight:600; margin-bottom:4px;
   }
   .escolha-card.on strong{ color:var(--verde); }
@@ -571,22 +631,22 @@
 
   /* Prévia do hero da loja (Minha empresa) */
   .hero-preview{ border:1px solid var(--borda); border-radius:14px; overflow:hidden; background:var(--superficie); }
-  .hero-faixa{ height:26px; background:#1E7A4E; }
+  .hero-faixa{ height:26px; background:var(--verde); }
   .hero-capa{
-    height:150px; margin:0 10px; border-radius:10px; background:#EDF0EE center/cover no-repeat;
+    height:150px; margin:0 10px; border-radius:10px; background:#F0F0F0 center/cover no-repeat;
     display:flex; align-items:center; justify-content:center;
     color:var(--texto-suave); font-size:12.5px; margin-top:-14px; border:3px solid #fff;
   }
   .hero-capa.tem-img span{ display:none; }
   .hero-base{ display:flex; align-items:center; gap:14px; padding:0 18px 16px; margin-top:-34px; }
   .hero-logo{
-    width:78px; height:78px; border-radius:12px; background:#EDF0EE center/cover no-repeat;
+    width:78px; height:78px; border-radius:12px; background:#F0F0F0 center/cover no-repeat;
     border:3px solid #fff; flex-shrink:0; box-shadow:0 2px 10px rgba(0,0,0,0.14);
     display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--texto-suave);
   }
   .hero-logo.tem-img span{ display:none; }
   .hero-txt{ padding-top:32px; min-width:0; }
-  .hero-nome{ font-family: var(--fonte-titulo), sans-serif; font-size:19px; font-weight:700; }
+  .hero-nome{ font-family: var(--fonte-corpo), sans-serif; font-size:19px; font-weight:700; }
   .hero-meta{ font-size:12.5px; color:var(--texto-suave); margin-top:3px; }
 
   .cor-linha{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
@@ -609,10 +669,10 @@
     background:var(--superficie); border:1px solid var(--borda); border-radius:12px;
     padding:13px 14px; cursor:pointer; min-width:0;
   }
-  .opcao-card:hover{ border-color:#C2CCC7; background:#FAFBFA; }
+  .opcao-card:hover{ border-color:#D5D5D5; background:#FAFAFA; }
   .opcao-card-topo{ display:flex; align-items:flex-start; gap:8px; margin-bottom:6px; }
   .opcao-card-nome{
-    flex:1; min-width:0; font-family: var(--fonte-titulo), sans-serif; font-size:13.5px; font-weight:600;
+    flex:1; min-width:0; font-family: var(--fonte-corpo), sans-serif; font-size:13.5px; font-weight:600;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .opcao-card-usos{
@@ -630,7 +690,7 @@
     background:var(--fundo-2); border:1px solid var(--borda);
     border-radius:12px; padding:14px; position:sticky; top:0;
   }
-  .usos-titulo{ font-family: var(--fonte-titulo), sans-serif; font-size:13px; font-weight:600; margin-bottom:6px; }
+  .usos-titulo{ font-family: var(--fonte-corpo), sans-serif; font-size:13px; font-weight:600; margin-bottom:6px; }
   .usos-aviso{ font-size:11.5px; color:#B4650F; line-height:1.45; margin-bottom:12px; }
   .uso-item{
     background:var(--superficie); border:1px solid var(--borda); border-radius:9px;
@@ -643,7 +703,7 @@
      touch-action:none é obrigatório: sem isso o navegador trata o gesto
      como rolagem e o pointermove nunca chega no handler. */
   .grip{
-    cursor:grab; color:#B9C1BD; display:flex; align-items:center;
+    cursor:grab; color:#BDBDBD; display:flex; align-items:center;
     padding:2px; flex-shrink:0; touch-action:none;
   }
   .grip:hover{ color:var(--texto-suave); }
@@ -688,7 +748,7 @@
   }
   .pedidos-coluna-topo{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
-    font-family:var(--fonte-titulo), sans-serif; font-size:11.5px; font-weight:700;
+    font-family:var(--fonte-corpo), sans-serif; font-size:11.5px; font-weight:700;
     text-transform:uppercase; letter-spacing:.6px; color:var(--texto-suave);
     margin-bottom:10px; padding:0 2px;
   }
@@ -735,7 +795,7 @@
       max-height:88vh; border-radius:16px 16px 0 0;
     }
     .pedido-painel-backdrop{
-      display:block; position:fixed; inset:0; z-index:205; background:rgba(20,30,26,0.45);
+      display:block; position:fixed; inset:0; z-index:205; background:rgba(16,16,16,0.45);
     }
   }
   .pedido-card{
@@ -743,7 +803,7 @@
     background:var(--superficie); border:1px solid var(--borda); border-radius:12px;
     padding:12px; cursor:pointer;
   }
-  .pedido-card:hover{ border-color:#C2CCC7; }
+  .pedido-card:hover{ border-color:#D5D5D5; }
   .pedido-card.selecionado{ border-color:var(--verde); background:var(--verde-tint); }
 
   /* Pedido que acabou de chegar: entra com um leve slide+fade e um
@@ -772,7 +832,7 @@
   .pedido-dot-amarelo{ background:#E0A020; }
   .pedido-dot-vermelho{ background:var(--erro); }
   .pedido-numero{
-    font-family:var(--fonte-titulo), sans-serif; font-weight:700; font-size:13px;
+    font-family:var(--fonte-corpo), sans-serif; font-weight:700; font-size:13px;
     flex-shrink:0; font-variant-numeric:tabular-nums;
   }
   .pedido-cliente{
@@ -834,7 +894,7 @@
     padding:9px 12px; font-size:13px; text-align:left; color:var(--texto);
   }
   .pedido-manual-sugestao:last-child{ border-bottom:none; }
-  .pedido-manual-sugestao:hover{ background:#F5F7F6; }
+  .pedido-manual-sugestao:hover{ background:#F7F7F7; }
   .pedido-manual-item{
     display:flex; align-items:center; gap:12px; padding:8px 0;
     border-bottom:1px solid var(--borda); font-size:13.5px;
@@ -843,7 +903,7 @@
 
   /* ---------- ESQUELETO DE CARREGAMENTO ---------- */
   .esqueleto{
-    background: linear-gradient(90deg, #EEF1EF 25%, #F6F8F7 50%, #EEF1EF 75%);
+    background: linear-gradient(90deg, #EEEEEE 25%, #F7F7F7 50%, #EEEEEE 75%);
     background-size: 200% 100%;
     animation: esqueleto-brilho 1.2s ease-in-out infinite;
     border-radius: 8px;
@@ -890,7 +950,7 @@
     position: fixed; inset: 0; z-index: 300;
     display: flex; align-items: center; justify-content: center; padding: 20px;
   }
-  .confirmar-backdrop{ position: absolute; inset: 0; background: rgba(20,30,26,0.55); }
+  .confirmar-backdrop{ position: absolute; inset: 0; background: rgba(16,16,16,0.55); }
   .confirmar-caixa{
     position: relative; z-index: 1; width: 100%; max-width: 420px;
     background: var(--superficie);

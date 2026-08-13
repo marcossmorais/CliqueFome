@@ -1,10 +1,10 @@
 .pagina { max-width:900px; }
 .pagina header { margin-bottom:18px; padding:28px; border-radius:18px; color:#fff; background:linear-gradient(135deg,var(--verde-escuro),var(--verde)); }
 .pagina header span { color:#ffc485; font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
-.pagina h2 { margin:5px 0; font:700 30px/1.2 var(--fonte-titulo),sans-serif; }
+.pagina h2 { margin:5px 0; font:700 30px/1.2 var(--fonte-corpo),sans-serif; }
 .pagina header p { margin:0; color:rgba(255,255,255,.8); }
 .grade { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-.card { display:grid; grid-template-columns:auto 1fr; gap:12px; min-width:0; padding:20px; border:1px solid var(--borda); border-radius:15px; color:var(--texto); background:var(--superficie); box-shadow:0 5px 16px rgba(20,37,30,.04); }
+.card { display:grid; grid-template-columns:auto 1fr; gap:12px; min-width:0; padding:20px; border:1px solid var(--borda); border-radius:15px; color:var(--texto); background:var(--superficie); box-shadow:0 5px 16px rgba(0,0,0,.05); }
 .card:hover { border-color:var(--verde); transform:translateY(-1px); }
 /* Era --verde sobre --verde-claro: dois verdes de luminância parecida, o
    ícone quase sumia nos dois temas. --verde-tint é o fundo que o resto do

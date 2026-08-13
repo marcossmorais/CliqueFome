@@ -19,7 +19,7 @@ test('busca vazia não elimina conteúdo', () => {
 
 test('documento legal só é publicável com todos os dados obrigatórios', () => {
   const completo = {
-    razaoSocial: 'CliqueFome Tecnologia Ltda.',
+    razaoSocial: 'FlouFood Tecnologia Ltda.',
     cnpj: '00.000.000/0001-00',
     endereco: 'Rua Exemplo, 100, São Paulo - SP',
     emailPrivacidade: 'privacidade@example.com',

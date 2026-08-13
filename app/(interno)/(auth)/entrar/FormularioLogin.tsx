@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { criarClientNavegador } from '@/lib/supabase/client';
-import { LogoCliqueFome } from '@/components/LogoCliqueFome';
+import { LogoFlouFood } from '@/components/LogoFlouFood';
 
 export function FormularioLogin() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export function FormularioLogin() {
     <div id="authView">
       <div className="wrap">
         <div className="brand-logo">
-          <LogoCliqueFome />
+          <LogoFlouFood />
         </div>
 
         <div id="loginCard" className="card">

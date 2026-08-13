@@ -30,7 +30,7 @@ export default async function CriarLojaPage() {
         <h1>Sua conta ainda não tem uma loja</h1>
         <p>
           O acesso está certo — o que falta é uma loja ligada a <strong>{user.email}</strong>. Quem
-          cria a loja é a equipe do CliqueFome.
+          cria a loja é a equipe da FlouFood.
         </p>
         <p className="onboarding-ajuda">
           Se você já pediu a criação, fale com quem está te atendendo e informe este e-mail. Assim

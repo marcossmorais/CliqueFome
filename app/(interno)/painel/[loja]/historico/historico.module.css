@@ -39,7 +39,7 @@
 .campoBusca input[type='search']:focus {
   outline: none;
   border-color: var(--verde);
-  box-shadow: 0 0 0 3px rgba(30, 122, 78, .12);
+  box-shadow: 0 0 0 3px rgba(255, 90, 0, .14);
 }
 .campoBusca input[type='search']::placeholder { color: var(--texto-suave); }
 .campoBusca input[type='search']::-webkit-search-cancel-button,
@@ -63,7 +63,7 @@
 .periodo input[type='date']:focus {
   outline: none;
   border-color: var(--verde);
-  box-shadow: 0 0 0 3px rgba(30, 122, 78, .12);
+  box-shadow: 0 0 0 3px rgba(255, 90, 0, .14);
 }
 .periodo input[type='date']::-webkit-calendar-picker-indicator {
   cursor: pointer;
@@ -91,7 +91,7 @@
 .resumo > div { padding: 16px 18px; border: 1px solid var(--borda); border-radius: 13px; background: var(--fundo-2); }
 .resumo span, .resumo strong { display: block; }
 .resumo span { margin-bottom: 5px; color: var(--texto-suave); font-size: 11.5px; }
-.resumo strong { color: var(--verde-escuro); font-family: var(--fonte-titulo), sans-serif; font-size: 21px; font-variant-numeric: tabular-nums; }
+.resumo strong { color: var(--verde-escuro); font-family: var(--fonte-corpo), sans-serif; font-size: 21px; font-variant-numeric: tabular-nums; }
 .acoesMassa { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; padding:12px 14px; border:1px solid var(--borda); border-radius:12px; background:var(--superficie); }
 .acoesMassa > label { display:flex; align-items:center; gap:8px; color:var(--texto); font-size:12.5px; font-weight:700; }
 .acoesMassa > span { flex:1; color:var(--texto-suave); font-size:11.5px; }
@@ -111,7 +111,7 @@
   background:var(--superficie);
 }
 .pedido:last-child { border-bottom: 0; }
-.pedido:hover { background: #f7faf8; }
+.pedido:hover { background: #f7f7f7; }
 .pedido.selecionado { background: var(--verde-tint); box-shadow: inset 3px 0 var(--verde); }
 .seletor { position:absolute; z-index:2; left:17px; top:50%; transform:translateY(-50%); display:grid; place-items:center; width:22px; height:32px; cursor:pointer; }
 .seletor input, .acoesMassa input { width:16px; height:16px; accent-color:var(--verde); }
@@ -132,14 +132,14 @@
   background: transparent;
   text-align: left;
 }
-.pedidoAbrir:focus-visible { position: relative; z-index: 1; outline: 3px solid rgba(30, 122, 78, .22); outline-offset: -3px; }
+.pedidoAbrir:focus-visible { position: relative; z-index: 1; outline: 3px solid rgba(255, 90, 0, .26); outline-offset: -3px; }
 
 .pedidoPrincipal, .pedidoInfo, .pedidoFinal { display: flex; min-width: 0; }
 .pedidoPrincipal { align-items: center; gap: 11px; }
 /* Aqui convivem pedidos de dias diferentes, e a numeração operacional
    reinicia todo dia — o número sozinho voltaria a ser ambíguo. Por isso data e
    hora vêm coladas nele, e não soltas na outra ponta da linha. */
-.numero { color: var(--verde); font-family: var(--fonte-titulo), sans-serif; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+.numero { color: var(--verde); font-family: var(--fonte-corpo), sans-serif; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
 .cliente { min-width: 0; }
 .cliente strong, .cliente small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cliente strong { margin-bottom: 3px; font-size: 13.5px; }

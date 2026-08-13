@@ -19,9 +19,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'CliqueFome — Cardápio digital pro seu negócio',
+  title: 'FlouFood — Cardápio digital pro seu negócio',
   description:
-    'CliqueFome — cardápio digital, pedidos pelo WhatsApp e painel de gestão pra lanchonetes, hamburguerias, pizzarias e açaiterias.',
+    'FlouFood — cardápio digital, pedidos pelo WhatsApp e painel de gestão pra lanchonetes, hamburguerias, pizzarias e açaiterias.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

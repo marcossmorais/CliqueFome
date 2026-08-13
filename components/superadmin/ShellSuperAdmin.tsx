@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LogoCliqueFome } from '@/components/LogoCliqueFome';
+import { LogoFlouFood } from '@/components/LogoFlouFood';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { TemaAdmin } from '@/components/admin/TemaAdmin';
 
@@ -40,7 +40,7 @@ export function ShellSuperAdmin({ email, children }: { email: string; children: 
       <div id="appView" className="ativo">
         <aside id="sidebar" className={aberto ? 'aberto' : ''}>
           <div className="brand-logo">
-            <LogoCliqueFome />
+            <LogoFlouFood />
           </div>
 
           <div className="loja-chip">

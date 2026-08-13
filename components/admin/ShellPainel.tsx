@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MENU, ICONES } from '@/lib/menu';
-import { LogoCliqueFome } from '@/components/LogoCliqueFome';
+import { LogoFlouFood } from '@/components/LogoFlouFood';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { StatusOperacional } from '@/components/admin/StatusOperacional';
 import { TemaAdmin } from '@/components/admin/TemaAdmin';
@@ -20,6 +20,35 @@ const ATALHOS = [
   { id: 'cardapio', nome: 'Cardápio', icone: 'catalogo' },
   { id: 'delivery', nome: 'Delivery', icone: 'delivery' },
 ] as const;
+
+const TITULOS_ROTAS: Record<string, string> = {
+  inicio: 'Início',
+  pedidos: 'Gestão de pedidos',
+  historico: 'Gestão de pedidos · Histórico',
+  kds: 'Cozinha',
+  delivery: 'Delivery',
+  cardapio: 'Cardápio',
+  pdv: 'PDV',
+  desempenho: 'Desempenho',
+  clientes: 'Clientes',
+  config: 'Configurações',
+  links: 'Links do cardápio',
+  avaliacoes: 'Avaliações',
+  integracoes: 'Integrações',
+  suporte: 'Ajuda e suporte',
+  mesas: 'Mesas e comandas',
+  financeiro: 'Financeiro',
+  caixa: 'Caixa',
+  estoque: 'Estoque',
+  fiscal: 'Nota fiscal',
+};
+
+const TITULOS_CONFIG: Record<string, string> = {
+  perfil: 'Meu perfil',
+  loja: 'Minha loja',
+  funcionamento: 'Funcionamento',
+  assinatura: 'Plano e assinatura',
+};
 
 function Icone({ chave }: { chave: string }) {
   return (
@@ -38,13 +67,11 @@ export function ShellPainel({
   lojaNome,
   lojaSlug,
   souAdmin,
-  titulo,
   children,
 }: {
   lojaNome: string;
   lojaSlug: string;
   souAdmin: boolean;
-  titulo: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -53,10 +80,10 @@ export function ShellPainel({
   // Toda rota do painel é prefixada pela loja atual — a loja é segmento da
   // URL, não mais um cookie.
   const base = `/painel/${lojaSlug}`;
-  const perfilAtivo = [`${base}/config`, `${base}/links`, `${base}/avaliacoes`].some(
-    (rota) => pathname === rota || pathname.startsWith(`${rota}/`)
-  );
-
+  const segmentos = pathname.slice(base.length).split('/').filter(Boolean);
+  const titulo = segmentos[0] === 'config' && segmentos[1]
+    ? TITULOS_CONFIG[segmentos[1]] ?? 'Configurações'
+    : TITULOS_ROTAS[segmentos[0] ?? 'inicio'] ?? 'Painel';
   async function sair() {
     const sb = criarClientNavegador();
     await sb.auth.signOut();
@@ -69,9 +96,19 @@ export function ShellPainel({
       <div id="sidebarBackdrop" className={aberto ? 'ativo' : ''} onClick={() => setAberto(false)} />
 
       <div id="appView" className="ativo">
+        <header id="painelTopo">
+          <div className="painel-topo-marca">
+            <LogoFlouFood prioridade />
+          </div>
+          <div className="painel-topo-acoes">
+            <StatusOperacional popoverId="status-operacional-topo" />
+            <TemaAdmin />
+          </div>
+        </header>
+
         <aside id="sidebar" className={aberto ? 'aberto' : ''}>
           <div className="brand-logo">
-            <LogoCliqueFome />
+            <LogoFlouFood />
           </div>
 
           <div className="loja-chip">
@@ -82,52 +119,47 @@ export function ShellPainel({
 
           <nav id="menu">
             {MENU.map((grupo) => (
-              <div key={grupo.grupo}>
+              <div key={grupo.grupo} className="nav-grupo">
                 <div className="nav-grupo-titulo">{grupo.grupo}</div>
                 {grupo.itens.map((item) => {
-                  const href = `${base}/${item.id}`;
+                  const href = `${base}/${item.rota ?? item.id}`;
                   return (
                     <Link
                       key={item.id}
                       href={href}
                       className={'nav-item' + (pathname === href || pathname.startsWith(`${href}/`) ? ' ativo' : '')}
-                      title={item.pronta ? undefined : 'Em breve'}
+                      title={item.pronta ? undefined : `${item.nome} — em breve`}
                       onClick={() => setAberto(false)}
                     >
                       <Icone chave={item.icone} />
                       <span className="rotulo">{item.nome}</span>
-                      {!item.pronta && <span className="marca-breve" />}
                     </Link>
                   );
                 })}
               </div>
             ))}
-            <div className="menu-legenda">
-              <span className="ponto" /> em breve
-            </div>
           </nav>
 
           <div className="sidebar-bottom">
-            <details className="perfil-menu" open={perfilAtivo || undefined}>
-              <summary className={'nav-item' + (perfilAtivo ? ' ativo' : '')}>
+            <Link href={`${base}/suporte`} className="sidebar-ajuda" onClick={() => setAberto(false)}>
+              <Icone chave="suporte" />
+              <span>Ajuda e suporte</span>
+            </Link>
+            <div className="sidebar-acoes">
+              <Link href={`${base}/config/perfil`} className="sidebar-acao" title="Meu perfil" aria-label="Conta do usuário" onClick={() => setAberto(false)}>
                 <Icone chave="empresa" />
-                <span className="rotulo">Perfil</span>
-                <span className="perfil-seta" aria-hidden="true">⌃</span>
-              </summary>
-              <div className="perfil-opcoes">
-                <Link href={`${base}/config`} onClick={() => setAberto(false)}><Icone chave="config" /> Configurações</Link>
-                <Link href={`${base}/links`} onClick={() => setAberto(false)}><Icone chave="links" /> Links</Link>
-                <Link href={`${base}/avaliacoes`} onClick={() => setAberto(false)}><Icone chave="avaliacoes" /> Avaliações</Link>
-              </div>
-            </details>
-            {souAdmin && (
-              <Link href="/superadmin" className="btn-ghost btn-small" style={{ textAlign: 'center' }}>
-                Painel da plataforma
               </Link>
-            )}
-            <button type="button" className="btn-ghost btn-small" onClick={sair}>
-              Sair
-            </button>
+              {souAdmin && (
+                <Link href="/superadmin" className="sidebar-acao" title="Painel da plataforma" aria-label="Painel da plataforma">
+                  <Icone chave="config" />
+                </Link>
+              )}
+              <button type="button" className="sidebar-acao" title="Sair" aria-label="Sair" onClick={sair}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M10 17l5-5-5-5M15 12H3M15 3h5v18h-5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </aside>
 
@@ -136,7 +168,7 @@ export function ShellPainel({
               vivem no topo da sidebar, sempre visíveis. */}
           <div id="topoMarca">
             <div className="topo-marca-logo">
-              <LogoCliqueFome />
+              <LogoFlouFood />
             </div>
             <button
               type="button"
@@ -163,12 +195,16 @@ export function ShellPainel({
             {souAdmin && <span className="badge-admin">Super admin</span>}
           </div>
 
-          <div id="mainTop">
-            <h1>{titulo}</h1>
-            <StatusOperacional />
-            <TemaAdmin />
+          <div id="mainContent">
+            <div id="mainTop">
+              <h1>{titulo}</h1>
+              <div className="main-top-acoes-mobile">
+                <StatusOperacional popoverId="status-operacional-mobile" />
+                <TemaAdmin />
+              </div>
+            </div>
+            {children}
           </div>
-          {children}
         </main>
 
         {/* Só aparece abaixo de 900px, onde a sidebar vira gaveta. Substitui o

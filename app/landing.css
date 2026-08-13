@@ -1,24 +1,23 @@
-/* Estilos da landing institucional do CliqueFome.
-   Vindos do index.html original sem alteracao visual — as unicas mudancas
-   sao: as familias de fonte agora chegam por variavel CSS (next/font, que
-   faz self-host e tira o Google Fonts da CSP). */
+/* Landing institucional da FlouFood. A estrutura permanece igual à versão
+   anterior; somente a paleta acompanha a nova identidade da marca. */
 
   :root{
-    --verde-escuro: #0F3D2E;
-    --verde: #1E7A4E;
-    --verde-claro: #2FA968;
-    --laranja: #F28C28;
-    --branco-gelo: #F7F7F5;
-    --cinza-claro: #E6E8EA;
-    --preto: #222629;
+    --laranja-escuro: #D94C00;
+    --laranja: #FF5A00;
+    --laranja-claro: #FF7A2E;
+    --branco: #FFFFFF;
+    --branco-gelo: #FAFAF9;
+    --cinza-claro: #E8E7E4;
+    --cinza: #625F64;
+    --preto: #1B1A1F;
   }
-  :root{ color-scheme: dark; }
+  :root{ color-scheme: light; }
   *{ margin:0; padding:0; box-sizing:border-box; }
   html{ scroll-behavior: smooth; }
   body{
     font-family: var(--fonte-corpo), sans-serif;
-    background: linear-gradient(160deg, var(--verde-escuro) 0%, var(--preto) 100%);
-    color: var(--branco-gelo);
+    background: linear-gradient(160deg, var(--branco) 0%, #FFF8F4 100%);
+    color: var(--preto);
     overflow-x: hidden;
   }
   h1, h2, h3, .brand-logo, button, .plano-preco{ font-family: var(--fonte-titulo), sans-serif; }
@@ -27,10 +26,8 @@
   section{ padding: 72px 0; }
 
   /* Logo */
-  .brand-logo{ display:flex; align-items:center; gap:10px; color: var(--branco-gelo); text-decoration:none; }
-  .brand-logo svg{ width:30px; height:30px; flex-shrink:0; }
-  .brand-logo .wordmark{ font-size:18px; font-weight:700; letter-spacing:-0.2px; }
-  .brand-logo .wordmark .fome{ color: var(--laranja); }
+  .brand-logo{ display:flex; align-items:center; color: var(--preto); text-decoration:none; }
+  .brand-logo .logo-floufood{ width:169px; height:33px; flex-shrink:0; object-fit:contain; }
 
   /* Nav */
   nav{
@@ -47,17 +44,17 @@
     padding: 13px 26px; font-size: 14.5px; font-weight: 600;
     text-decoration:none; text-align:center;
   }
-  .btn-primary{ background: var(--verde); color: var(--branco-gelo); }
-  .btn-primary:hover{ background: var(--verde-claro); }
-  .btn-ghost{ background: transparent; color: var(--branco-gelo); border: 1px solid rgba(255,255,255,0.3); padding: 12px 25px; }
-  .btn-ghost:hover{ border-color: rgba(255,255,255,0.6); }
+  .btn-primary{ background: var(--laranja); color: var(--branco); }
+  .btn-primary:hover{ background: var(--laranja-escuro); }
+  .btn-ghost{ background: var(--branco); color: var(--preto); border: 1px solid rgba(27,26,31,0.22); padding: 12px 25px; }
+  .btn-ghost:hover{ border-color: rgba(255,90,0,0.65); color: var(--laranja-escuro); }
   .btn-small{ padding: 9px 18px; font-size: 13.5px; }
 
   /* Hero */
   .hero{ padding: 56px 0 84px; text-align:center; }
   .hero .badge{
-    display:inline-block; background: rgba(242,140,40,0.15); color: var(--laranja);
-    border: 1px solid rgba(242,140,40,0.35); border-radius: 999px;
+    display:inline-block; background: rgba(255,90,0,0.1); color: var(--laranja-escuro);
+    border: 1px solid rgba(255,90,0,0.3); border-radius: 999px;
     padding: 6px 16px; font-size: 12.5px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 22px;
   }
@@ -75,20 +72,21 @@
   /* Mockup */
   .mockup{
     max-width: 720px; margin: 56px auto 0;
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.82); border: 1px solid var(--cinza-claro);
     border-radius: 20px; padding: 22px; text-align:left;
+    box-shadow: 0 24px 70px rgba(54,35,24,0.09);
   }
   .mockup-bar{ display:flex; gap:6px; margin-bottom: 16px; }
-  .mockup-bar span{ width:10px; height:10px; border-radius:50%; background: rgba(255,255,255,0.15); }
+  .mockup-bar span{ width:10px; height:10px; border-radius:50%; background: rgba(255,90,0,0.22); }
   .mockup-row{
     display:flex; align-items:center; gap:14px;
-    background: rgba(255,255,255,0.04); border-radius: 12px;
+    background: var(--branco-gelo); border-radius: 12px;
     padding: 12px 14px; margin-bottom: 10px;
   }
   .mockup-row:last-child{ margin-bottom: 0; }
   .mockup-thumb{
     width: 44px; height: 44px; border-radius: 9px; flex-shrink:0;
-    background: linear-gradient(135deg, var(--verde) 0%, var(--verde-claro) 100%);
+    background: linear-gradient(135deg, var(--laranja) 0%, var(--laranja-claro) 100%);
   }
   .mockup-info{ flex:1; }
   .mockup-info strong{ display:block; font-size: 14px; font-weight:600; }
@@ -106,7 +104,7 @@
 
   .grupos-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
   .grupo-card{
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.78); border: 1px solid var(--cinza-claro);
     border-radius: 16px; padding: 26px 24px;
   }
   .grupo-card > h3{
@@ -117,7 +115,7 @@
   .func:last-child{ margin-bottom: 0; }
   .func .ico{
     width:34px; height:34px; border-radius:9px; flex-shrink:0;
-    background: rgba(30,122,78,0.25); color: var(--verde-claro);
+    background: rgba(255,90,0,0.11); color: var(--laranja);
     display:flex; align-items:center; justify-content:center;
   }
   .func .ico svg{ width:17px; height:17px; }
@@ -130,8 +128,8 @@
   .step .num{
     counter-increment: step;
     width: 38px; height:38px; border-radius:50%;
-    background: rgba(242,140,40,0.15); color: var(--laranja);
-    border: 1px solid rgba(242,140,40,0.4);
+    background: rgba(255,90,0,0.1); color: var(--laranja);
+    border: 1px solid rgba(255,90,0,0.3);
     display:flex; align-items:center; justify-content:center;
     font-weight:700; font-size:15px; margin: 0 auto 16px;
   }
@@ -142,31 +140,31 @@
   /* Pricing */
   .toggle-wrap{ display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom: 44px; }
   .toggle-wrap span{ font-size: 14px; font-weight:600; opacity:.6; }
-  .toggle-wrap span.active{ opacity:1; color: var(--branco-gelo); }
+  .toggle-wrap span.active{ opacity:1; color: var(--preto); }
   .switch{ position:relative; display:inline-block; width:44px; height:24px; }
   .switch input{ opacity:0; width:0; height:0; }
   .switch-track{
-    position:absolute; inset:0; background: rgba(255,255,255,0.18);
+    position:absolute; inset:0; background: rgba(27,26,31,0.18);
     border-radius: 999px; cursor:pointer; transition: background .15s;
   }
   .switch-track::before{
     content:''; position:absolute; width:18px; height:18px; left:3px; top:3px;
     background:#fff; border-radius:50%; transition: transform .15s;
   }
-  .switch input:checked ~ .switch-track{ background: var(--verde); }
+  .switch input:checked ~ .switch-track{ background: var(--laranja); }
   .switch input:checked ~ .switch-track::before{ transform: translateX(20px); }
   .save-badge{
-    background: rgba(242,140,40,0.18); color: var(--laranja);
-    border: 1px solid rgba(242,140,40,0.4); border-radius: 999px;
+    background: rgba(255,90,0,0.1); color: var(--laranja-escuro);
+    border: 1px solid rgba(255,90,0,0.3); border-radius: 999px;
     padding: 3px 10px; font-size: 11px; font-weight: 700;
   }
 
   .planos-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 22px; max-width: 720px; margin: 0 auto; }
   .plano-card{
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.8); border: 1px solid var(--cinza-claro);
     border-radius: 18px; padding: 32px 28px; position:relative;
   }
-  .plano-card.destaque{ border-color: rgba(242,140,40,0.5); background: rgba(242,140,40,0.06); }
+  .plano-card.destaque{ border-color: rgba(255,90,0,0.5); background: rgba(255,90,0,0.05); }
   .plano-tag{
     position:absolute; top:-13px; left:28px;
     background: var(--laranja); color: var(--preto);
@@ -182,11 +180,11 @@
     display:flex; align-items:flex-start; gap:9px;
     font-size: 13.5px; opacity:.85; margin-bottom: 11px; line-height: 1.4;
   }
-  .plano-lista svg{ width:16px; height:16px; flex-shrink:0; margin-top:2px; color: var(--verde-claro); }
+  .plano-lista svg{ width:16px; height:16px; flex-shrink:0; margin-top:2px; color: var(--laranja); }
   .plano-card .btn{ width:100%; }
 
   /* Footer */
-  footer{ padding: 40px 0; border-top: 1px solid rgba(255,255,255,0.08); }
+  footer{ padding: 40px 0; border-top: 1px solid rgba(27,26,31,0.1); }
   footer .foot-row{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
   footer p{ font-size: 12.5px; opacity: .5; }
 

@@ -136,7 +136,7 @@ export function MinhaLojaForm({ loja }: { loja: Loja }) {
       <form onSubmit={salvar}>
         <label htmlFor="lojaLink">Link do cardápio</label>
         <p className="dica">
-          <a href={`/${loja.slug}`} target="_blank" rel="noopener noreferrer">cliquefome.com/{loja.slug}</a>
+          <a href={`/${loja.slug}`} target="_blank" rel="noopener noreferrer">/{loja.slug}</a>
           {' '}— pra trocar o endereço, fale com o suporte.
         </p>
 

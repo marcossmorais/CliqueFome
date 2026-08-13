@@ -131,7 +131,7 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
     categoria: 'conta',
     pergunta: 'Quem é responsável pelos dados dos clientes da minha loja?',
     resposta:
-      'Em regra, a loja decide por que e como usa os dados dos próprios clientes e atua como controladora. O CliqueFome processa os dados necessários para prestar a plataforma, conforme o contrato e as instruções aplicáveis. Cada caso deve respeitar a LGPD e as obrigações de informação ao titular.',
+      'Em regra, a loja decide por que e como usa os dados dos próprios clientes e atua como controladora. A FlouFood processa os dados necessários para prestar a plataforma, conforme o contrato e as instruções aplicáveis. Cada caso deve respeitar a LGPD e as obrigações de informação ao titular.',
     observacao:
       'Evite copiar dados de clientes para planilhas ou canais sem proteção e mantenha o acesso ao painel restrito a pessoas autorizadas.',
     palavrasChave: ['LGPD', 'privacidade', 'cliente', 'controlador', 'operador', 'dados pessoais'],
@@ -153,7 +153,7 @@ export const PERGUNTAS_FREQUENTES: PerguntaFrequente[] = [
     resposta:
       'A base de ajuda já pode ser consultada e pesquisada nesta página. O chatbot e o atendimento humano estão sinalizados como “Em breve” porque os canais ainda não foram habilitados.',
     observacao:
-      'Enquanto os canais não forem publicados, não envie dados pessoais, senhas ou informações de pagamento para contatos não confirmados pelo CliqueFome.',
+      'Enquanto os canais não forem publicados, não envie dados pessoais, senhas ou informações de pagamento para contatos não confirmados pela FlouFood.',
     palavrasChave: ['ajuda', 'chatbot', 'humano', 'atendimento', 'falar', 'contato'],
   },
 ];

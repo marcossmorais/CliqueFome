@@ -36,6 +36,48 @@ test('login abre pedidos, dashboard, configurações e financeiro sem depender d
     await expect(page.locator('#appView')).toBeVisible();
   });
 
+  await test.step('sidebar e cabeçalho persistem na navegação interna', async () => {
+    await page.locator('#sidebar').evaluate((elemento) => {
+      elemento.setAttribute('data-e2e-casca-persistente', 'sidebar');
+    });
+    await page.locator('#mainTop').evaluate((elemento) => {
+      elemento.setAttribute('data-e2e-casca-persistente', 'cabecalho');
+    });
+
+    await page.getByRole('link', { name: 'Gestão de pedidos', exact: true }).click();
+    await page.waitForURL(`/painel/${slug}/pedidos`);
+    await expect(page.locator('.pedidos-topo')).toBeVisible();
+    await expect(page.locator('#sidebar')).toHaveAttribute('data-e2e-casca-persistente', 'sidebar');
+    await expect(page.locator('#mainTop')).toHaveAttribute('data-e2e-casca-persistente', 'cabecalho');
+    await expect(page.locator('#mainTop h1')).toHaveText('Gestão de pedidos');
+
+    const posicoes = await page.locator('#mainContent').evaluate(async (conteudo) => {
+      const espacoDeTeste = document.createElement('div');
+      espacoDeTeste.style.height = '1600px';
+      espacoDeTeste.setAttribute('aria-hidden', 'true');
+      conteudo.appendChild(espacoDeTeste);
+      conteudo.scrollTo({ top: 500 });
+      await new Promise<void>((resolver) => requestAnimationFrame(() => resolver()));
+
+      const topo = document.querySelector('#painelTopo');
+      const sidebar = document.querySelector('#sidebar');
+      return {
+        scrollConteudo: conteudo.scrollTop,
+        scrollDocumento: window.scrollY,
+        alturaTopo: topo?.getBoundingClientRect().height,
+        topoDoTopo: topo?.getBoundingClientRect().top,
+        topoSidebar: sidebar?.getBoundingClientRect().top,
+        separadorTopo: topo ? getComputedStyle(topo).borderBottomWidth : null,
+      };
+    });
+
+    expect(posicoes.scrollConteudo).toBeGreaterThan(0);
+    expect(posicoes.scrollDocumento).toBe(0);
+    expect(posicoes.topoDoTopo).toBe(0);
+    expect(posicoes.topoSidebar).toBe(posicoes.alturaTopo);
+    expect(posicoes.separadorTopo).toBe('1px');
+  });
+
   await test.step('configurações gerais continuam acessíveis', async () => {
     await page.goto(`/painel/${slug}/config`, { waitUntil: 'networkidle' });
     await expect(page.locator('#mainTop h1')).toHaveText('Configurações');

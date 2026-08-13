@@ -27,7 +27,7 @@ export default async function SuperAdminDashboard() {
       <header className={styles.cabecalho}>
         <span>Plataforma</span>
         <h2>Visão do negócio</h2>
-        <p>Faturamento do CliqueFome — separado do financeiro de cada restaurante.</p>
+        <p>Faturamento da FlouFood — separado do financeiro de cada restaurante.</p>
       </header>
 
       {!resumo.temPagamentos && (
