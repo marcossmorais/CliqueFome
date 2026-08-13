@@ -83,15 +83,14 @@ async function carregar(slug: string) {
     sb
       .from('produtos')
       .select(
-        // `sugestao_carrinho` (produtos e complementos) está fora da lista de
-        // propósito: schema-migracao-seguranca.sql revoga o SELECT da tabela
-        // inteira pro papel `anon` e concede coluna a coluna, e essas colunas
-        // novas nunca entraram no grant — uma só coluna sem permissão derruba
-        // a consulta inteira ("permission denied for table produtos"), o que
-        // tirou TODO cardápio público do ar. Pra reativar as sugestões no
-        // carrinho, rodar schema-migracao-grant-sugestao-carrinho.sql primeiro
-        // e só então voltar as colunas aqui.
-        'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, ordem, dias_semana, tipos_pedido, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, tipos_pedido, ordem, ativo, complementos(id, nome, preco, qtd_max, imagem_url, ativo, ordem)))'
+        // `sugestao_carrinho` só pode entrar aqui depois de
+        // schema-migracao-grant-sugestao-carrinho.sql: schema-migracao-seguranca.sql
+        // revoga o SELECT da tabela inteira pro papel `anon` e concede coluna a
+        // coluna, e uma só coluna sem permissão derruba a consulta inteira
+        // ("permission denied for table produtos") — o que já tirou TODO o
+        // cardápio público do ar uma vez. Sem esta coluna as sugestões do
+        // carrinho ficam sempre vazias, porque o filtro é por ela.
+        'id, categoria_id, nome, descricao, preco, preco_promocional, imagem_url, etiqueta, destaque, esconder_observacao, esconder_quantidade, ativo, ordem, dias_semana, tipos_pedido, sugestao_carrinho, produto_grupos(ordem, grupos_complemento(id, nome, qtd_min, qtd_max, tipo_selecao, modo_preco, tipos_pedido, ordem, ativo, complementos(id, nome, preco, qtd_max, imagem_url, ativo, ordem, sugestao_carrinho)))'
       )
       .eq('loja_id', loja.id)
       // Traz também os inativos: viram card "Esgotado" em vez de sumir, pra

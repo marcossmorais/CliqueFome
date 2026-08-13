@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { extraDaLinha, formatarTelefone, formatBRL, precoBase, subtotalLinha, type LinhaCarrinho, type ProdutoPublico } from '@/lib/cardapio/tipos';
+import { formatarTelefone, formatBRL, precoBase, subtotalLinha, type LinhaCarrinho, type ProdutoPublico } from '@/lib/cardapio/tipos';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import {
   formasPagamentoPara,
@@ -105,6 +105,7 @@ export function CheckoutModal({
   onFechar, onMudarQtd, onRemover,
   sugestoes, sugestoesComplementos, onAdicionarSugestao, onAdicionarComplemento,
   lojaAberta, retiradaAtiva, deliveryAtiva, lojaSlug, modalidade, versaoCarrinho,
+  lojaNome, lojaLogoUrl, pedidoMinimo, tempoPreparoMin, tempoPreparoMax, imagensPorProduto,
   onNome, onTelefone, onFormaPagamento, onModalidade, onFinalizar, onNovoPedido,
 }: {
   aberto: boolean; linhas: LinhaCarrinho[]; nome: string; telefone: string;
@@ -112,6 +113,12 @@ export function CheckoutModal({
   pedidoRegistrado: PedidoRegistrado | null;
   lojaAberta: boolean; retiradaAtiva: boolean; deliveryAtiva: boolean;
   lojaSlug: string; modalidade: ModalidadePedido; versaoCarrinho: number;
+  lojaNome: string; lojaLogoUrl: string | null; pedidoMinimo: number;
+  tempoPreparoMin: number | null; tempoPreparoMax: number | null;
+  /** A linha do carrinho guarda só o id do produto — a miniatura vem daqui.
+   *  Carrinho salvo antes desta tela existir continua funcionando: produto
+   *  sem entrada no mapa simplesmente não mostra imagem. */
+  imagensPorProduto: Record<string, string | null>;
   onFechar: () => void;
   sugestoes: { titulo: string; produtos: ProdutoPublico[] }[];
   sugestoesComplementos: SugestaoComplementoCarrinho[];
@@ -372,6 +379,20 @@ export function CheckoutModal({
       ? 'Seu carrinho'
       : 'Finalizar pedido';
 
+  // Os grupos de sugestão viram uma lista só: o desenho mostra uma faixa
+  // contínua de cartões, não uma seção por categoria.
+  const produtosSugeridos = sugestoes.flatMap((grupo) => grupo.produtos);
+
+  // "30–50 min" só quando a loja cadastrou os dois tempos; com um só, mostra
+  // o que existe. Sem nenhum, o chip inteiro some em vez de exibir vazio.
+  const tempoEstimado = tempoPreparoMin && tempoPreparoMax
+    ? `${tempoPreparoMin}–${tempoPreparoMax} min`
+    : tempoPreparoMin
+      ? `a partir de ${tempoPreparoMin} min`
+      : tempoPreparoMax
+        ? `até ${tempoPreparoMax} min`
+        : null;
+
   return (
     <div
       className={'checkout-modal' + (estado === 'aberto' ? ' aberto' : '') + (estado === 'saindo' ? ' saindo' : '')}
@@ -382,9 +403,37 @@ export function CheckoutModal({
       <button type="button" className="checkout-backdrop" aria-label="Fechar" onClick={enviando ? undefined : onFechar} />
       <section className="checkout-sheet" ref={sheetRef}>
         <header className="checkout-header">
-          <h2 id="checkout-titulo" ref={tituloRef} tabIndex={-1}>{titulo}</h2>
-          <button type="button" className="checkout-fechar" aria-label="Fechar" disabled={enviando} onClick={onFechar}>×</button>
+          <div className="checkout-loja">
+            {lojaLogoUrl
+              ? <Image className="checkout-loja-logo" src={lojaLogoUrl} alt="" width={34} height={34} />
+              : <span className="checkout-loja-logo checkout-loja-logo-vazio" aria-hidden="true" />}
+            {/* Nome em duas linhas: a primeira palavra em destaque e o resto
+                abaixo. Nome de uma palavra só ocupa uma linha e nada quebra. */}
+            <span className="checkout-loja-nome" title={lojaNome}>
+              <strong>{lojaNome.split(' ')[0]}</strong>
+              {lojaNome.split(' ').slice(1).join(' ') && (
+                <small>{lojaNome.split(' ').slice(1).join(' ')}</small>
+              )}
+            </span>
+          </div>
+
+          <div className="checkout-header-fim">
+            {tempoEstimado && (
+              <span className="checkout-modalidade-chip">
+                <span className="checkout-modalidade-icone" aria-hidden="true">
+                  {modalidade === 'delivery' ? '🛵' : '🛍'}
+                </span>
+                <span>
+                  <b>{modalidade === 'delivery' ? 'Entrega' : 'Retirada'}</b>
+                  <small>{tempoEstimado}</small>
+                </span>
+              </span>
+            )}
+            <button type="button" className="checkout-fechar" aria-label="Fechar" disabled={enviando} onClick={onFechar}>×</button>
+          </div>
         </header>
+
+        <h2 id="checkout-titulo" ref={tituloRef} tabIndex={-1} className="checkout-titulo">{titulo}</h2>
 
         {!pedidoRegistrado && (
           <div className="checkout-etapas" aria-label="Etapas do pedido">
@@ -419,68 +468,132 @@ export function CheckoutModal({
               <p className="checkout-carrinho-vazio">Seu carrinho está vazio.</p>
             ) : (
               <div className="checkout-itens">
-                {linhas.map((linha) => (
-                  <div key={linha.lineId} className="checkout-item">
-                    <div className="checkout-item-info">
-                      <strong>{linha.nome}</strong>
-                      {linha.complementos.length > 0 && (
-                        <small>{linha.complementos.map((c) => c.quantidade > 1 ? `${c.quantidade}x ${c.nome}` : c.nome).join(', ')}</small>
-                      )}
-                      {linha.observacao && <small>Obs: {linha.observacao}</small>}
-                      <span>{formatBRL(linha.precoUnit + extraDaLinha(linha))} un.</span>
+                {linhas.map((linha) => {
+                  const imagem = imagensPorProduto[linha.produtoId];
+                  return (
+                    <div key={linha.lineId} className="checkout-item">
+                      {imagem
+                        ? <Image className="checkout-item-foto" src={imagem} alt="" width={150} height={150} />
+                        : <span className="checkout-item-foto checkout-item-foto-vazia" aria-hidden="true" />}
+
+                      <div className="checkout-item-info">
+                        <strong>{linha.nome}</strong>
+                        {linha.complementos.length > 0 && (
+                          <small>{linha.complementos.map((c) => c.quantidade > 1 ? `${c.quantidade}x ${c.nome}` : c.nome).join(', ')}</small>
+                        )}
+                        {linha.observacao && <small>Obs: {linha.observacao}</small>}
+                        <span className="checkout-item-preco">{formatBRL(subtotalLinha(linha))}</span>
+                      </div>
+
+                      <div className="checkout-item-acoes">
+                        <div className="checkout-item-qtd">
+                          <button type="button" aria-label="Diminuir quantidade" onClick={() => onMudarQtd(linha.lineId, -1)}>−</button>
+                          <b>{linha.qty}</b>
+                          <button type="button" aria-label="Aumentar quantidade" onClick={() => onMudarQtd(linha.lineId, 1)}>+</button>
+                        </div>
+                        <button type="button" className="checkout-item-remover" aria-label={`Remover ${linha.nome}`} onClick={() => onRemover(linha.lineId)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                    <div className="checkout-item-qtd">
-                      <button type="button" aria-label="Diminuir quantidade" onClick={() => onMudarQtd(linha.lineId, -1)}>−</button>
-                      <b>{linha.qty}</b>
-                      <button type="button" aria-label="Aumentar quantidade" onClick={() => onMudarQtd(linha.lineId, 1)}>+</button>
-                    </div>
-                    <span className="checkout-item-subtotal">{formatBRL(subtotalLinha(linha))}</span>
-                    <button type="button" className="checkout-item-remover" aria-label={`Remover ${linha.nome}`} onClick={() => onRemover(linha.lineId)}>Remover</button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
-            {linhas.length > 0 && sugestoes.map((grupo) => grupo.produtos.length > 0 && (
-              <section key={grupo.titulo} aria-label={grupo.titulo} style={{ marginTop: 16 }}>
-                <h3 style={{ marginBottom: 8, fontSize: 15 }}>{grupo.titulo}</h3>
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                  {grupo.produtos.map((produto) => (
-                    <article key={produto.id} style={{ display: 'grid', gridTemplateColumns: '52px minmax(100px,1fr)', minWidth: 210, gap: 8, padding: 8, border: '1px solid #e2e8e4', borderRadius: 10, background: '#fff' }}>
-                      {produto.imagem_url ? <Image src={produto.imagem_url} alt="" width={52} height={52} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8 }} /> : <span aria-hidden="true" />}
-                      <div style={{ minWidth: 0 }}>
-                        <strong style={{ display: 'block', fontSize: 12 }}>{produto.nome}</strong>
-                        <span style={{ display: 'block', fontSize: 12 }}>{formatBRL(precoBase(produto))}</span>
-                        <button type="button" className="btn-continue" style={{ marginTop: 4, padding: '5px 9px', fontSize: 11 }} onClick={() => onAdicionarSugestao(produto)}>+ Adicionar</button>
+            {linhas.length > 0 && produtosSugeridos.length > 0 && (
+              <section className="checkout-sugestoes" aria-label="Sugestões">
+                <div className="checkout-sugestoes-topo">
+                  <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8L12 3z" />
+                    </svg>
+                    Sugestões para turbinar seu pedido
+                  </h3>
+                  {produtosSugeridos.length > 1 && (
+                    <button type="button" className="checkout-add-tudo" onClick={() => produtosSugeridos.forEach(onAdicionarSugestao)}>
+                      Adicionar tudo
+                    </button>
+                  )}
+                </div>
+                <div className="checkout-sugestoes-lista">
+                  {produtosSugeridos.map((produto) => (
+                    <article key={produto.id} className="checkout-sugestao">
+                      {produto.imagem_url
+                        ? <Image className="checkout-sugestao-foto" src={produto.imagem_url} alt="" width={200} height={200} />
+                        : <span className="checkout-sugestao-foto checkout-sugestao-foto-vazia" aria-hidden="true" />}
+                      <div className="checkout-sugestao-txt">
+                        <strong>{produto.nome}</strong>
+                        {produto.descricao && <small>{produto.descricao}</small>}
+                      </div>
+                      <div className="checkout-sugestao-fim">
+                        <span>{formatBRL(precoBase(produto))}</span>
+                        <button type="button" className="checkout-mais" aria-label={`Adicionar ${produto.nome}`} onClick={() => onAdicionarSugestao(produto)}>+</button>
                       </div>
                     </article>
                   ))}
                 </div>
               </section>
-            ))}
+            )}
 
             {linhas.length > 0 && sugestoesComplementos.length > 0 && (
-              <section aria-label="Complementos" style={{ marginTop: 16 }}>
-                <h3 style={{ marginBottom: 8, fontSize: 15 }}>Complementos</h3>
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+              <section className="checkout-sugestoes" aria-label="Complementos">
+                <div className="checkout-sugestoes-topo"><h3>Complementos para os seus itens</h3></div>
+                <div className="checkout-sugestoes-lista">
                   {sugestoesComplementos.map((sugestao) => (
-                    <article key={`${sugestao.lineId}-${sugestao.complementoId}`} style={{ minWidth: 190, padding: 9, border: '1px solid #e2e8e4', borderRadius: 10, background: '#fff' }}>
-                      <small style={{ display: 'block', opacity: .7 }}>{sugestao.produtoNome}</small>
-                      <strong style={{ display: 'block', fontSize: 12 }}>{sugestao.nome}</strong>
-                      <span style={{ display: 'block', fontSize: 12 }}>{formatBRL(sugestao.preco)}</span>
-                      <button type="button" className="btn-continue" style={{ marginTop: 4, padding: '5px 9px', fontSize: 11 }} onClick={() => onAdicionarComplemento(sugestao)}>+ Adicionar</button>
+                    <article key={`${sugestao.lineId}-${sugestao.complementoId}`} className="checkout-sugestao">
+                      <span className="checkout-sugestao-foto checkout-sugestao-foto-vazia" aria-hidden="true" />
+                      <div className="checkout-sugestao-txt">
+                        <strong>{sugestao.nome}</strong>
+                        <small>{sugestao.produtoNome}</small>
+                      </div>
+                      <div className="checkout-sugestao-fim">
+                        <span>{formatBRL(sugestao.preco)}</span>
+                        <button type="button" className="checkout-mais" aria-label={`Adicionar ${sugestao.nome}`} onClick={() => onAdicionarComplemento(sugestao)}>+</button>
+                      </div>
                     </article>
                   ))}
                 </div>
               </section>
             )}
 
-            <div className="checkout-resumo"><div className="checkout-total"><span>Subtotal</span><strong>{formatBRL(subtotal)}</strong></div></div>
             {!lojaAberta && <p className="checkout-erro" role="status">A loja está fechada. Seu carrinho fica salvo para depois.</p>}
             {lojaAberta && !retiradaAtiva && !deliveryAtiva && <p className="checkout-erro" role="status">Os pedidos estão pausados no momento.</p>}
-            <button type="button" className="btn-primary checkout-acao" disabled={linhas.length === 0 || !lojaAberta || (!retiradaAtiva && !deliveryAtiva)} onClick={() => setEtapa('dados')}>
-              Continuar pedido
-            </button>
+
+            <div className="checkout-rodape">
+              {/* Só no desktop: no celular ocupa metade da tela sem acrescentar
+                  decisão nenhuma que o cliente precise tomar agora. */}
+              <div className="checkout-rodape-info">
+                {pedidoMinimo > 0 && (
+                  <div><span>Pedido mínimo</span><b>{formatBRL(pedidoMinimo)}</b></div>
+                )}
+                <div><span>Entrega/Retirada</span><b>{modalidade === 'delivery' ? 'Entrega' : 'Retirada'}</b></div>
+                {tempoEstimado && <div><span>Tempo estimado</span><b>{tempoEstimado}</b></div>}
+              </div>
+
+              <div className="checkout-resumo">
+                <div><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>
+                <div className="checkout-total"><span>Total</span><strong>{formatBRL(subtotal)}</strong></div>
+              </div>
+
+              <div className="checkout-rodape-acao">
+                <button type="button" className="btn-primary checkout-acao" disabled={linhas.length === 0 || !lojaAberta || (!retiradaAtiva && !deliveryAtiva)} onClick={() => setEtapa('dados')}>
+                  Continuar pedido
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h13M13 6l6 6-6 6" />
+                  </svg>
+                </button>
+                <p className="checkout-seguro">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="5" y="11" width="14" height="9" rx="2" />
+                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                  Ambiente 100% seguro
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="checkout-conteudo">
