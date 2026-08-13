@@ -9,6 +9,7 @@ html[data-admin-theme='dark'] .onboarding{
   --texto:#f5f5f5;
   --texto-suave:#a8a8a8;
   --verde-tint:#3a2116;
+  --logo-flou:#f5f5f5;
   color-scheme:dark;
   background:var(--fundo);
   color:var(--texto);
@@ -16,21 +17,9 @@ html[data-admin-theme='dark'] .onboarding{
 html[data-admin-theme='dark'] #main{ background:var(--fundo); color:var(--texto); }
 html[data-admin-theme='dark'] #sidebar{ background:#171717; }
 html[data-admin-theme='dark'] #painelTopo{ background:#171717; border-bottom-color:var(--borda); }
-html[data-admin-theme='dark'] .painel-topo-marca .logo-floufood{
-  box-sizing:content-box;
-  padding:6px 10px;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:9px;
-  background:#fff;
-}
-html[data-admin-theme='dark'] #sidebar .brand-logo{
-  min-height:45px;
-  padding:7px 10px;
-  justify-content:center;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:9px;
-  background:#fff;
-}
+/* O logo era um PNG de tinta escura, então no escuro ele vinha dentro de um
+   retângulo branco pra continuar legível. Agora é SVG e o "Flou" segue
+   `--logo-flou`: a placa saiu, o logo pousa direto no fundo. */
 html[data-admin-theme='dark'] .loja-chip .loja-nome{ color:var(--texto); }
 html[data-admin-theme='dark'] .nav-grupo-titulo{ color:#989898; }
 html[data-admin-theme='dark'] .nav-item{ color:#dedede; }
@@ -133,11 +122,3 @@ html[data-admin-theme='dark'] .onboarding :is(input,textarea,select):focus{
    sobre o fundo escuro. */
 html[data-admin-theme='dark'] #appView button:disabled{ opacity:.65; }
 
-@media(max-width:860px){
-  html[data-admin-theme='dark'] #topoMarca .topo-marca-logo{
-    min-height:37px;
-    padding:5px 8px;
-    border-radius:8px;
-    background:#fff;
-  }
-}
