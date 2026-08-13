@@ -177,6 +177,42 @@ export function CardapioClient({
     );
   }, [produtosPorTipo, termoBusca, categoriaId]);
 
+  /**
+   * Em "todos" o cardápio vira uma seção por categoria, cada uma com o
+   * próprio título — antes era uma lista só, com sanduíche, bebida e
+   * sobremesa embaralhados por destaque, e o cliente não tinha como saber
+   * onde uma coisa terminava e outra começava.
+   *
+   * Dentro de cada seção a ordem cadastrada pelo dono é respeitada; o
+   * destaque deixa de reordenar porque aqui ele reordenaria dentro da
+   * categoria, o que não ajuda ninguém a encontrar nada.
+   *
+   * Busca, promoções e categoria específica continuam em lista única: ali o
+   * recorte já é o assunto, e um título por categoria só faria ruído.
+   */
+  const secoes = useMemo(() => {
+    const listaUnica = [{ id: 'unica', titulo: null as string | null, produtos: produtosExibidos }];
+    if (termoBusca || categoriaId !== 'todos') return listaUnica;
+
+    const porCategoria = categoriasVisiveis
+      .map((categoria) => ({
+        id: categoria.id,
+        titulo: categoria.nome,
+        produtos: produtosExibidos
+          .filter((p) => p.categoria_id === categoria.id)
+          .sort((a, b) => a.ordem - b.ordem),
+      }))
+      .filter((secao) => secao.produtos.length > 0);
+
+    // Produto sem categoria, ou de categoria que sumiu do cardápio, cairia
+    // fora de todas as seções e simplesmente não apareceria.
+    const idsAgrupados = new Set(porCategoria.flatMap((s) => s.produtos.map((p) => p.id)));
+    const soltos = produtosExibidos.filter((p) => !idsAgrupados.has(p.id));
+    if (soltos.length > 0) porCategoria.push({ id: 'outros', titulo: 'Outros', produtos: soltos });
+
+    return porCategoria.length > 0 ? porCategoria : listaUnica;
+  }, [produtosExibidos, categoriasVisiveis, termoBusca, categoriaId]);
+
   const tituloVitrine = termoBusca
     ? `Resultados para “${busca.trim()}”`
     : categoriaId === 'promocoes'
@@ -504,18 +540,25 @@ export function CardapioClient({
             <span>{produtosExibidos.length} {produtosExibidos.length === 1 ? 'item' : 'itens'}</span>
           </div>
 
-          <div className="menu-list" aria-live="polite">
+          <div aria-live="polite">
             {produtosExibidos.length === 0 ? (
               <p className="menu-status">Nenhum item encontrado.</p>
-            ) : produtosExibidos.map((p) => (
-              <CartaoProduto
-                key={p.id}
-                produto={p}
-                quantidade={quantidadeSimples(p.id)}
-                onAbrir={() => abrirProduto(p)}
-                onAdicionar={() => adicionarRapido(p)}
-                onDiminuir={() => diminuirProdutoSimples(p.id)}
-              />
+            ) : secoes.map((secao) => (
+              <section key={secao.id} className="menu-secao" aria-label={secao.titulo || undefined}>
+                {secao.titulo && <h3 className="menu-secao-titulo">{secao.titulo}</h3>}
+                <div className="menu-list">
+                  {secao.produtos.map((p) => (
+                    <CartaoProduto
+                      key={p.id}
+                      produto={p}
+                      quantidade={quantidadeSimples(p.id)}
+                      onAbrir={() => abrirProduto(p)}
+                      onAdicionar={() => adicionarRapido(p)}
+                      onDiminuir={() => diminuirProdutoSimples(p.id)}
+                    />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </div>

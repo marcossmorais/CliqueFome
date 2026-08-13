@@ -145,7 +145,10 @@ export function ModalProduto({
           ✕
         </button>
 
-        <div className="produto-modal-scroll">
+        {/* No celular o corpo inteiro rola junto, e a foto sai de cena com o
+            resto. A partir de 720px vira duas colunas: foto quadrada fixa à
+            esquerda, detalhes rolando à direita. */}
+        <div className="produto-modal-corpo">
           <div className="produto-modal-photo">
             {produto.imagem_url ? (
               // eslint-disable-next-line @next/next/no-img-element -- foto do catálogo da loja, vinda do Storage
@@ -160,6 +163,7 @@ export function ModalProduto({
             )}
           </div>
 
+          <div className="produto-modal-scroll">
           <div className="produto-modal-info">
             <h3 id="tituloProduto">{produto.nome}</h3>
             {produto.descricao && <p>{produto.descricao}</p>}
@@ -187,9 +191,11 @@ export function ModalProduto({
                       const teto = tetoDaOpcao(g, c);
                       return (
                         <div key={c.id} className="opcao-row">
-                          <span className="opcao-nome">{c.nome}</span>
-                          <span className="opcao-preco">
-                            {Number(c.preco) > 0 ? '+ ' + formatBRL(Number(c.preco)) : ''}
+                          <span className="opcao-txt">
+                            <span className="opcao-nome">{c.nome}</span>
+                            <span className="opcao-preco">
+                              {Number(c.preco) > 0 ? '+ ' + formatBRL(Number(c.preco)) : ''}
+                            </span>
                           </span>
                           <span className="opcao-stepper">
                             <button
@@ -219,7 +225,16 @@ export function ModalProduto({
                     const marcado = qtdEscolhida > 0;
                     const desabilitado = !marcado && noLimite;
                     return (
+                      // Nome e preço empilhados à esquerda, controle à direita:
+                      // o input vem depois no DOM para a ordem de leitura e a
+                      // navegação por teclado baterem com o que se vê.
                       <label key={c.id} className={'opcao-row' + (desabilitado ? ' disabled' : '')}>
+                        <span className="opcao-txt">
+                          <span className="opcao-nome">{c.nome}</span>
+                          <span className="opcao-preco">
+                            {Number(c.preco) > 0 ? '+ ' + formatBRL(Number(c.preco)) : ''}
+                          </span>
+                        </span>
                         <input
                           type={unica ? 'radio' : 'checkbox'}
                           name={unica ? `grupo-${g.id}` : undefined}
@@ -227,10 +242,6 @@ export function ModalProduto({
                           disabled={desabilitado}
                           onChange={() => alternar(g, c)}
                         />
-                        <span className="opcao-nome">{c.nome}</span>
-                        <span className="opcao-preco">
-                          {Number(c.preco) > 0 ? '+ ' + formatBRL(Number(c.preco)) : ''}
-                        </span>
                       </label>
                     );
                   })}
@@ -254,6 +265,7 @@ export function ModalProduto({
               />
             </div>
           )}
+          </div>
         </div>
 
         <div className="produto-modal-footer">
