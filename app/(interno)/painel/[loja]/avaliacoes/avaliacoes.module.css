@@ -15,12 +15,12 @@
   border-radius: 20px;
   color: #fff;
   background: linear-gradient(135deg, var(--verde-escuro), var(--verde));
-  box-shadow: 0 16px 38px rgba(15, 61, 46, .15);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .16);
 }
 
 .hero h2 {
   margin: 5px 0 8px;
-  font-family: var(--fonte-titulo), sans-serif;
+  font-family: var(--fonte-corpo), sans-serif;
   font-size: clamp(25px, 4vw, 35px);
 }
 
@@ -75,10 +75,10 @@
   border: 1px solid var(--borda);
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 5px 16px rgba(20, 37, 30, .04);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .05);
 }
 
-.bloqueada { background: #fafbfa; }
+.bloqueada { background: #fafafa; }
 .opcaoTexto { min-width: 0; }
 .tituloLinha { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
 .opcao h3 { margin: 0; color: var(--texto); font-size: 17px; }
@@ -96,7 +96,7 @@
 }
 
 .ativo { color: #11613d; background: #e5f5ec; }
-.inativo { color: #6b7170; background: #edf0ef; }
+.inativo { color: #707070; background: #f0f0f0; }
 
 .switch { position: relative; flex: 0 0 auto; cursor: pointer; }
 .switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
@@ -106,7 +106,7 @@
   width: 52px;
   height: 30px;
   border-radius: 999px;
-  background: #c8cfcc;
+  background: #cdcdcd;
   transition: background .18s;
 }
 .trilho::after {
@@ -123,7 +123,7 @@
 }
 .switch input:checked + .trilho { background: var(--verde); }
 .switch input:checked + .trilho::after { transform: translateX(22px); }
-.switch input:focus-visible + .trilho { outline: 3px solid rgba(23, 106, 69, .3); outline-offset: 3px; }
+.switch input:focus-visible + .trilho { outline: 3px solid rgba(255, 90, 0, .3); outline-offset: 3px; }
 .switch input:disabled + .trilho { cursor: not-allowed; opacity: .68; }
 
 .rodape {
@@ -153,10 +153,10 @@
   display: flex;
   gap: 14px;
   padding: 18px 20px;
-  border: 1px dashed #c8d2ce;
+  border: 1px dashed #d0d0d0;
   border-radius: 14px;
-  color: #43514c;
-  background: #f7f9f8;
+  color: #4d4d4d;
+  background: #f8f8f8;
 }
 .proximaEtapa > span { color: #b65e08; font-size: 25px; line-height: 1; }
 .proximaEtapa strong { display: block; margin-bottom: 4px; color: var(--texto); font-size: 13px; }

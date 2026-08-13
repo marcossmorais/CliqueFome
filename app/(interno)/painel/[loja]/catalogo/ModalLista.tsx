@@ -286,7 +286,7 @@ export function ModalLista({
 
         <div className="modal-corpo">
           {!lista && (
-            <div className="preset-box" style={{ marginBottom: 18, padding: 14, border: '1px solid #e2e8e4', borderRadius: 12, background: '#f7faf8' }}>
+            <div className="preset-box" style={{ marginBottom: 18, padding: 14, border: '1px solid #e3e3e3', borderRadius: 12, background: '#fafafa' }}>
               <label htmlFor="listaPreset">Usar um modelo pronto</label>
               <select id="listaPreset" defaultValue="" onChange={(e) => aplicarPreset(e.target.value)}>
                 <option value="">Selecione um conjunto de complementos</option>

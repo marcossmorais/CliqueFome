@@ -15,7 +15,14 @@ html[data-admin-theme='dark'] .onboarding{
 }
 html[data-admin-theme='dark'] #main{ background:var(--fundo); color:var(--texto); }
 html[data-admin-theme='dark'] #sidebar{ background:#171717; }
-html[data-admin-theme='dark'] #sidebar .brand-logo{ padding:6px 8px; border-radius:9px; background:#fff; }
+html[data-admin-theme='dark'] #sidebar .brand-logo{
+  min-height:45px;
+  padding:7px 10px;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:9px;
+  background:#fff;
+}
 html[data-admin-theme='dark'] .loja-chip .loja-nome{ color:var(--texto); }
 html[data-admin-theme='dark'] .nav-grupo-titulo,
 html[data-admin-theme='dark'] .menu-legenda{ color:#8f8f8f; }
@@ -43,7 +50,7 @@ html[data-admin-theme='dark'] .onboarding :is(input,textarea,select){
   color:var(--texto);
 }
 html[data-admin-theme='dark'] #appView :is(input,textarea)::placeholder,
-html[data-admin-theme='dark'] .onboarding :is(input,textarea)::placeholder{ color:#8b9a92; }
+html[data-admin-theme='dark'] .onboarding :is(input,textarea)::placeholder{ color:#999999; }
 html[data-admin-theme='dark'] .btn-ghost,
 html[data-admin-theme='dark'] .col-header .btn-icone{
   background:var(--superficie);
@@ -73,6 +80,22 @@ html[data-admin-theme='dark'] .pedido-manual-sugestao{ background:var(--superfic
 html[data-admin-theme='dark'] .pedido-card.selecionado,
 html[data-admin-theme='dark'] .cat-item.ativo,
 html[data-admin-theme='dark'] .btn-ghost.ativo{ background:var(--verde-tint); }
+html[data-admin-theme='dark'] .tag-ativo{
+  background:#193d2a;
+  border-color:#29523b;
+  color:#6fd19a;
+}
+html[data-admin-theme='dark'] .tag-inativo{
+  background:#3a2020;
+  border-color:#633c3c;
+  color:#efa0a0;
+}
+html[data-admin-theme='dark'] .tag-etiqueta{
+  background:#3a2b17;
+  border-color:#5a4527;
+  color:#efb45f;
+}
+html[data-admin-theme='dark'] .switch-track{ background:#3d3d3d; }
 html[data-admin-theme='dark'] .pedido-chip-status{
   background:color-mix(in srgb,var(--cor-status) 22%, var(--superficie));
 }
@@ -88,7 +111,7 @@ html[data-admin-theme='dark'] #navInferior{
   border-top-color:var(--borda);
   box-shadow:0 -2px 14px rgba(0,0,0,.45);
 }
-/* O anel de foco do claro é um brilho verde a 12%, que no fundo escuro
+/* O anel de foco do claro é um brilho laranja discreto que, no fundo escuro,
    praticamente não aparece — quem navega por teclado perdia a referência.
    Mesma cor, opacidade suficiente para o fundo escuro. */
 html[data-admin-theme='dark'] #appView :is(input,textarea,select):focus,
@@ -99,3 +122,12 @@ html[data-admin-theme='dark'] .onboarding :is(input,textarea,select):focus{
 /* Botão desabilitado: só a opacidade herdada deixava o rótulo ilegível
    sobre o fundo escuro. */
 html[data-admin-theme='dark'] #appView button:disabled{ opacity:.65; }
+
+@media(max-width:860px){
+  html[data-admin-theme='dark'] #topoMarca .topo-marca-logo{
+    min-height:37px;
+    padding:5px 8px;
+    border-radius:8px;
+    background:#fff;
+  }
+}

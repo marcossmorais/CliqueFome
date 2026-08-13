@@ -53,7 +53,7 @@
 .linhaToggle { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .toggle { position: relative; width: 48px; height: 27px; margin: 0; }
 .toggle input { position: absolute; opacity: 0; }
-.toggle span { display: block; width: 48px; height: 27px; border-radius: 99px; background: #abb8b0; cursor: pointer; }
+.toggle span { display: block; width: 48px; height: 27px; border-radius: 99px; background: #b3b3b3; cursor: pointer; }
 .toggle span::after { content: ''; display: block; width: 21px; height: 21px; margin: 3px; border-radius: 50%; background: #fff; transition: transform .18s; }
 .toggle input:checked + span { background: var(--verde); }
 .toggle input:checked + span::after { transform: translateX(21px); }
@@ -93,7 +93,7 @@
   color: var(--texto); background: var(--borda);
 }
 /* Trilho do toggle desligado: o cinza claro brigava com o fundo escuro. */
-:global(html[data-admin-theme='dark']) .toggle span { background: #3d4a43; }
+:global(html[data-admin-theme='dark']) .toggle span { background: #3d3d3d; }
 
 @media (max-width: 850px) { .colunasEntrega { grid-template-columns: 1fr; } }
 @media (max-width: 600px) {

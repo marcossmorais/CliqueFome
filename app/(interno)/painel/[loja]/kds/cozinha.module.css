@@ -183,7 +183,7 @@
   border: 1px solid var(--borda);
   border-radius: 15px;
   background: var(--superficie);
-  box-shadow: 0 2px 8px rgba(15, 61, 46, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .ticketTopo {
@@ -263,8 +263,8 @@
   padding: 3px 7px;
   border: 1px solid var(--borda);
   border-radius: 999px;
-  background: #f5f7f6;
-  color: #4f5956;
+  background: #f7f7f7;
+  color: #555;
   font-size: 10px;
   font-weight: 700;
 }

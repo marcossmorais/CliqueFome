@@ -93,8 +93,8 @@ function GraficoVendas({ resumo }: { resumo: ResumoDashboard }) {
       <svg viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Vendas dos últimos sete dias">
         <defs>
           <linearGradient id="dashboardArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#2fa968" stopOpacity=".28" />
-            <stop offset="1" stopColor="#2fa968" stopOpacity=".02" />
+            <stop offset="0" stopColor="#ff5a00" stopOpacity=".28" />
+            <stop offset="1" stopColor="#ff5a00" stopOpacity=".02" />
           </linearGradient>
         </defs>
         <line x1={margem} x2={largura - margem} y1={altura - margem} y2={altura - margem} className={styles.eixo} />
