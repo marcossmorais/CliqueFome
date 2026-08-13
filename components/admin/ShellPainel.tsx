@@ -105,7 +105,7 @@ export function ShellPainel({
               <span>Ajuda e suporte</span>
             </Link>
             <div className="sidebar-acoes">
-              <Link href={`${base}/config/perfil`} className="sidebar-acao" title="Meu perfil" aria-label="Meu perfil" onClick={() => setAberto(false)}>
+              <Link href={`${base}/config/perfil`} className="sidebar-acao" title="Meu perfil" aria-label="Conta do usuário" onClick={() => setAberto(false)}>
                 <Icone chave="empresa" />
               </Link>
               {souAdmin && (
