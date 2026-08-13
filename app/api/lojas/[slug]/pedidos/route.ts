@@ -306,6 +306,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const origem = request.nextUrl.origin;
   const trackingUrl = `${origem}/pedido/${resultado.token}`;
 
+  // Quem numera é o trigger cf_numerar_pedido, dentro da transação do insert.
+  // O `numero` que a função devolve é o que ela calculou antes disso — um
+  // palpite. O que vale é a linha gravada. Ver a migração
+  // 20260813150000_numeracao_operacional_por_dia.sql.
+  const { data: pedidoDb } = await sb
+    .from('pedidos')
+    .select('numero')
+    .eq('id', resultado.id)
+    .maybeSingle();
+  const numeroPedidoGravado = pedidoDb?.numero ?? resultado.numero;
+
   const { data: itensDb } = await sb
     .from('pedido_itens')
     .select('nome, quantidade, subtotal, observacao, pedido_item_opcoes(grupo_nome, nome, preco, quantidade)')
@@ -323,7 +334,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }));
 
   const mensagemBase = montarMensagemPedido({
-    numero: resultado.numero,
+    numero: numeroPedidoGravado,
     clienteNome: entrada.clienteNome,
     itens: itensMensagem,
     total: Number(resultado.total),
@@ -340,7 +351,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   return NextResponse.json(
     {
       pedido: {
-        numero: resultado.numero,
+        numero: numeroPedidoGravado,
         token: resultado.token,
         status: 'pendente',
         tipo: entrada.tipo,
