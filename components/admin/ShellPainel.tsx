@@ -53,10 +53,6 @@ export function ShellPainel({
   // Toda rota do painel é prefixada pela loja atual — a loja é segmento da
   // URL, não mais um cookie.
   const base = `/painel/${lojaSlug}`;
-  const perfilAtivo = [`${base}/config`, `${base}/links`, `${base}/avaliacoes`].some(
-    (rota) => pathname === rota || pathname.startsWith(`${rota}/`)
-  );
-
   async function sair() {
     const sb = criarClientNavegador();
     await sb.auth.signOut();
@@ -82,52 +78,47 @@ export function ShellPainel({
 
           <nav id="menu">
             {MENU.map((grupo) => (
-              <div key={grupo.grupo}>
+              <div key={grupo.grupo} className="nav-grupo">
                 <div className="nav-grupo-titulo">{grupo.grupo}</div>
                 {grupo.itens.map((item) => {
-                  const href = `${base}/${item.id}`;
+                  const href = `${base}/${item.rota ?? item.id}`;
                   return (
                     <Link
                       key={item.id}
                       href={href}
                       className={'nav-item' + (pathname === href || pathname.startsWith(`${href}/`) ? ' ativo' : '')}
-                      title={item.pronta ? undefined : 'Em breve'}
+                      title={item.pronta ? undefined : `${item.nome} — em breve`}
                       onClick={() => setAberto(false)}
                     >
                       <Icone chave={item.icone} />
                       <span className="rotulo">{item.nome}</span>
-                      {!item.pronta && <span className="marca-breve" />}
                     </Link>
                   );
                 })}
               </div>
             ))}
-            <div className="menu-legenda">
-              <span className="ponto" /> em breve
-            </div>
           </nav>
 
           <div className="sidebar-bottom">
-            <details className="perfil-menu" open={perfilAtivo || undefined}>
-              <summary className={'nav-item' + (perfilAtivo ? ' ativo' : '')}>
+            <Link href={`${base}/suporte`} className="sidebar-ajuda" onClick={() => setAberto(false)}>
+              <Icone chave="suporte" />
+              <span>Ajuda e suporte</span>
+            </Link>
+            <div className="sidebar-acoes">
+              <Link href={`${base}/config/perfil`} className="sidebar-acao" title="Meu perfil" aria-label="Meu perfil" onClick={() => setAberto(false)}>
                 <Icone chave="empresa" />
-                <span className="rotulo">Perfil</span>
-                <span className="perfil-seta" aria-hidden="true">⌃</span>
-              </summary>
-              <div className="perfil-opcoes">
-                <Link href={`${base}/config`} onClick={() => setAberto(false)}><Icone chave="config" /> Configurações</Link>
-                <Link href={`${base}/links`} onClick={() => setAberto(false)}><Icone chave="links" /> Links</Link>
-                <Link href={`${base}/avaliacoes`} onClick={() => setAberto(false)}><Icone chave="avaliacoes" /> Avaliações</Link>
-              </div>
-            </details>
-            {souAdmin && (
-              <Link href="/superadmin" className="btn-ghost btn-small" style={{ textAlign: 'center' }}>
-                Painel da plataforma
               </Link>
-            )}
-            <button type="button" className="btn-ghost btn-small" onClick={sair}>
-              Sair
-            </button>
+              {souAdmin && (
+                <Link href="/superadmin" className="sidebar-acao" title="Painel da plataforma" aria-label="Painel da plataforma">
+                  <Icone chave="config" />
+                </Link>
+              )}
+              <button type="button" className="sidebar-acao" title="Sair" aria-label="Sair" onClick={sair}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M10 17l5-5-5-5M15 12H3M15 3h5v18h-5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </aside>
 

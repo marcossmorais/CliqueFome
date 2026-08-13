@@ -24,11 +24,13 @@ html[data-admin-theme='dark'] #sidebar .brand-logo{
   background:#fff;
 }
 html[data-admin-theme='dark'] .loja-chip .loja-nome{ color:var(--texto); }
-html[data-admin-theme='dark'] .nav-grupo-titulo,
-html[data-admin-theme='dark'] .menu-legenda{ color:#8f8f8f; }
+html[data-admin-theme='dark'] .nav-grupo-titulo{ color:#989898; }
 html[data-admin-theme='dark'] .nav-item{ color:#dedede; }
-html[data-admin-theme='dark'] .nav-item.ativo{ background:#3a2116; color:#ff7a33; }
-html[data-admin-theme='dark'] .perfil-opcoes a{ color:#b7b7b7; }
+html[data-admin-theme='dark'] .nav-item.ativo{ background:#3a2116; color:#ff7a33; box-shadow:inset 2px 0 #ff5a00; }
+html[data-admin-theme='dark'] .sidebar-ajuda,
+html[data-admin-theme='dark'] .sidebar-acao{ border-color:var(--borda); background:#1d1d1d; color:#dedede; }
+html[data-admin-theme='dark'] .sidebar-ajuda:hover,
+html[data-admin-theme='dark'] .sidebar-acao:hover{ background:#262626; }
 html[data-admin-theme='dark'] .card,
 html[data-admin-theme='dark'] .modal-sheet,
 html[data-admin-theme='dark'] .painel-col,
