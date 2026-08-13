@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MENU, ICONES } from '@/lib/menu';
-import { LogoCliqueFome } from '@/components/LogoCliqueFome';
+import { LogoFlouFood } from '@/components/LogoFlouFood';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { StatusOperacional } from '@/components/admin/StatusOperacional';
 import { TemaAdmin } from '@/components/admin/TemaAdmin';
@@ -71,7 +71,7 @@ export function ShellPainel({
       <div id="appView" className="ativo">
         <aside id="sidebar" className={aberto ? 'aberto' : ''}>
           <div className="brand-logo">
-            <LogoCliqueFome />
+            <LogoFlouFood />
           </div>
 
           <div className="loja-chip">
@@ -136,7 +136,7 @@ export function ShellPainel({
               vivem no topo da sidebar, sempre visíveis. */}
           <div id="topoMarca">
             <div className="topo-marca-logo">
-              <LogoCliqueFome />
+              <LogoFlouFood />
             </div>
             <button
               type="button"

@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { LogoCliqueFome } from '@/components/LogoCliqueFome';
+import { LogoFlouFood } from '@/components/LogoFlouFood';
 import { avaliarDadosLegais, exibirOuPendente, obterDadosLegais } from '@/lib/legal/config';
 import styles from './termos.module.css';
 
 export function generateMetadata(): Metadata {
   const estado = avaliarDadosLegais(obterDadosLegais());
   return {
-    title: 'Termos de Uso e Privacidade — CliqueFome',
-    description: 'Termos de Uso e Aviso de Privacidade da plataforma CliqueFome.',
+    title: 'Termos de Uso e Privacidade — FlouFood',
+    description: 'Termos de Uso e Aviso de Privacidade da plataforma FlouFood.',
     robots: estado.publicavel ? { index: true, follow: true } : { index: false, follow: false },
   };
 }
@@ -33,8 +33,8 @@ export default function TermosPage() {
       <a className={styles.pular} href="#conteudo-legal">Pular para o conteúdo</a>
 
       <header className={styles.cabecalho}>
-        <Link href="/" className={styles.logo} aria-label="CliqueFome — página inicial">
-          <LogoCliqueFome />
+        <Link href="/" className={styles.logo} aria-label="FlouFood — página inicial">
+          <LogoFlouFood />
         </Link>
         <nav aria-label="Navegação dos documentos">
           <a href="#termos">Termos de Uso</a>
@@ -48,7 +48,7 @@ export default function TermosPage() {
           <span className={styles.rotulo}>Documentos legais</span>
           <h1>Termos de Uso e Aviso de Privacidade</h1>
           <p>
-            Estes documentos explicam as regras de uso do CliqueFome e como os dados pessoais são tratados
+            Estes documentos explicam as regras de uso da FlouFood e como os dados pessoais são tratados
             na relação entre a plataforma, os estabelecimentos e seus clientes.
           </p>
           <div className={styles.meta}>
@@ -91,9 +91,9 @@ export default function TermosPage() {
               <span className={styles.numeroSecao}>Documento 01</span>
               <h2>Termos de Uso</h2>
               <p>
-                Estes Termos regulam o acesso à plataforma CliqueFome, oferecida por <strong>{empresa}</strong>,
+                Estes Termos regulam o acesso à plataforma FlouFood, oferecida por <strong>{empresa}</strong>,
                 inscrita no CNPJ sob nº <strong>{cnpj}</strong>, com endereço em <strong>{endereco}</strong>,
-                doravante denominada “CliqueFome”.
+                doravante denominada “FlouFood”.
               </p>
             </section>
 
@@ -105,7 +105,7 @@ export default function TermosPage() {
                 poderes para representar o estabelecimento.
               </p>
               <p>
-                O CliqueFome fornece ferramentas para criação de cardápio digital, organização de catálogo,
+                A FlouFood fornece ferramentas para criação de cardápio digital, organização de catálogo,
                 recebimento ou registro de pedidos e gestão operacional. Funcionalidades podem variar conforme o
                 plano contratado, a fase do produto e as integrações habilitadas.
               </p>
@@ -117,7 +117,7 @@ export default function TermosPage() {
                 <li>As informações de cadastro devem ser verdadeiras, completas e mantidas atualizadas.</li>
                 <li>Credenciais são pessoais e não devem ser compartilhadas. O estabelecimento responde pelos acessos que autorizar.</li>
                 <li>Suspeitas de uso indevido devem ser comunicadas pelo canal oficial assim que ele estiver disponível.</li>
-                <li>O CliqueFome pode solicitar confirmação de identidade ou representação para proteger a conta e cumprir obrigações legais.</li>
+                <li>A FlouFood pode solicitar confirmação de identidade ou representação para proteger a conta e cumprir obrigações legais.</li>
               </ul>
             </section>
 
@@ -157,7 +157,7 @@ export default function TermosPage() {
             <section>
               <h3>6. Disponibilidade, mudanças e integrações</h3>
               <p>
-                A plataforma pode passar por manutenção, atualização e indisponibilidade. O CliqueFome buscará
+                A plataforma pode passar por manutenção, atualização e indisponibilidade. A FlouFood buscará
                 comunicar alterações relevantes com antecedência razoável quando possível. Integrações de terceiros,
                 como serviços de hospedagem, autenticação, armazenamento e WhatsApp, também estão sujeitas às regras
                 e à disponibilidade dos respectivos fornecedores.
@@ -167,7 +167,7 @@ export default function TermosPage() {
             <section>
               <h3>7. Propriedade intelectual</h3>
               <p>
-                O software, a marca, a identidade visual e os materiais próprios do CliqueFome são protegidos pela
+                O software, a marca, a identidade visual e os materiais próprios da FlouFood são protegidos pela
                 legislação aplicável. O estabelecimento mantém os direitos sobre seu nome, marca, imagens e conteúdo,
                 e concede a licença limitada necessária para exibi-los e processá-los durante a prestação do serviço.
               </p>
@@ -186,7 +186,7 @@ export default function TermosPage() {
             <section>
               <h3>9. Responsabilidade e garantias legais</h3>
               <p>
-                Cada parte responde pelos danos que causar nos limites da lei. O CliqueFome não assume a execução do
+                Cada parte responde pelos danos que causar nos limites da lei. A FlouFood não assume a execução do
                 preparo, pagamento, entrega, qualidade ou relação de consumo do estabelecimento. Nenhuma cláusula
                 exclui responsabilidade que não possa ser afastada, direitos do consumidor ou deveres obrigatórios
                 previstos na legislação brasileira.
@@ -216,13 +216,13 @@ export default function TermosPage() {
             <section id="papeis">
               <h3>1. Quem trata os dados e quais são os papéis</h3>
               <p>
-                <strong>O CliqueFome como controlador:</strong> decide sobre o tratamento necessário para administrar
+                <strong>A FlouFood como controladora:</strong> decide sobre o tratamento necessário para administrar
                 contas, contratos, segurança, suporte, prevenção a fraude e cumprimento de obrigações próprias.
               </p>
               <p>
                 <strong>O estabelecimento como controlador:</strong> em regra, decide por que e como usa dados dos seus
                 clientes para receber, preparar, entregar e manter o histórico dos pedidos. Nesses tratamentos, o
-                CliqueFome pode atuar como operador, conforme as instruções do estabelecimento e o contrato.
+                a FlouFood pode atuar como operadora, conforme as instruções do estabelecimento e o contrato.
               </p>
               <p>
                 Alguns contextos podem exigir qualificação diferente. Os contratos, fluxos reais e responsabilidades
@@ -279,7 +279,7 @@ export default function TermosPage() {
             <section>
               <h3>4. Cookies, sessão e armazenamento local</h3>
               <p>
-                O CliqueFome usa mecanismos essenciais para autenticação, seleção da loja, segurança e continuidade
+                A FlouFood usa mecanismos essenciais para autenticação, seleção da loja, segurança e continuidade
                 das funções. O cardápio pode guardar o carrinho no armazenamento local do navegador para que a seleção
                 não seja perdida ao recarregar a página. Esses recursos não devem ser usados para publicidade
                 comportamental sem aviso e mecanismo apropriados.
@@ -339,7 +339,7 @@ export default function TermosPage() {
               </ul>
               <p>
                 A identidade poderá ser confirmada para evitar fraude. Quando o pedido disser respeito ao tratamento
-                feito pelo estabelecimento, o CliqueFome poderá orientar o titular ou apoiar o estabelecimento na resposta.
+                feito pelo estabelecimento, a FlouFood poderá orientar o titular ou apoiar o estabelecimento na resposta.
               </p>
             </section>
 
@@ -348,7 +348,7 @@ export default function TermosPage() {
               <p>
                 Contas administrativas não são destinadas a crianças. Caso o estabelecimento trate dados de crianças
                 ou adolescentes em pedidos, deverá observar o melhor interesse, aplicar a base legal adequada e fornecer
-                as informações exigidas. O CliqueFome não deve incentivar coleta desnecessária desses dados.
+                as informações exigidas. A FlouFood não deve incentivar coleta desnecessária desses dados.
               </p>
             </section>
 
@@ -390,7 +390,7 @@ export default function TermosPage() {
 
       <footer className={styles.rodape}>
         <div>
-          <LogoCliqueFome />
+          <LogoFlouFood />
           <p>Termos e privacidade com linguagem clara.</p>
         </div>
         <div>

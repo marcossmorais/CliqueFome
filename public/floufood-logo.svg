@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 170" fill="none" role="img" aria-labelledby="titulo descricao">
+  <title id="titulo">FlouFood</title>
+  <desc id="descricao">Três traços laranja seguidos pelo nome FlouFood em preto e laranja, com os dois o formando um infinito.</desc>
+  <g fill="#FF5A00">
+    <rect x="42" y="48" width="56" height="12" rx="6"/>
+    <rect x="0" y="76" width="98" height="12" rx="6"/>
+    <rect x="34" y="104" width="64" height="12" rx="6"/>
+  </g>
+  <text x="126" y="139" fill="#1B1A1F" font-family="Poppins, Arial, sans-serif" font-size="145" font-weight="500" letter-spacing="-6">Flou</text>
+  <text x="484" y="139" fill="#FF5A00" font-family="Poppins, Arial, sans-serif" font-size="145" font-weight="500">F</text>
+  <path d="M576 100C599 58 637 58 671 100C705 142 743 142 766 100C743 58 705 58 671 100C637 142 599 142 576 100Z" stroke="#FF5A00" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="786" y="139" fill="#FF5A00" font-family="Poppins, Arial, sans-serif" font-size="145" font-weight="500">d</text>
+</svg>

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import './landing.css';
-import { LogoCliqueFome } from '@/components/LogoCliqueFome';
+import { LogoFlouFood } from '@/components/LogoFlouFood';
 import { PlanosSecao } from './PlanosSecao';
 
 /**
@@ -72,7 +72,7 @@ export default function Home() {
     <div className="wrap">
       <nav>
         <Link href="/" className="brand-logo">
-          <LogoCliqueFome />
+          <LogoFlouFood />
         </Link>
         <div className="nav-links">
           <a href="#funcionalidades">Funcionalidades</a>
@@ -169,9 +169,9 @@ export default function Home() {
       <footer>
         <div className="foot-row">
           <Link href="/" className="brand-logo">
-            <LogoCliqueFome />
+            <LogoFlouFood />
           </Link>
-          <p>© 2026 CliqueFome. Todos os direitos reservados.</p>
+          <p>© 2026 FlouFood. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

@@ -25,11 +25,8 @@
   margin: 0 auto;
   padding: 22px 28px;
 }
-.logo { color: var(--legal-verde-escuro); text-decoration: none; }
-.logo :global(svg) { width: 31px; height: 31px; }
-.logo :global(.brand-logo) { display: flex; align-items: center; gap: 9px; }
-.logo :global(.wordmark) { font-family: var(--fonte-titulo), sans-serif; font-size: 17px; font-weight: 800; }
-.logo :global(.fome) { color: var(--legal-laranja); }
+.logo { color: #1b1a1f; text-decoration: none; }
+.logo :global(svg) { width: 158px; height: 31px; }
 .cabecalho nav { display: flex; gap: 24px; }
 .cabecalho nav a { color: #4d5c56; font-size: 13px; font-weight: 600; text-decoration: none; }
 .cabecalho nav a:hover { color: var(--legal-verde); }
@@ -93,10 +90,7 @@
 .notaJuridica p { margin: 0; color: #71542e; font-size: 12.5px; }
 
 .rodape { display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: 34px max(28px, calc((100vw - 1124px) / 2)); color: rgba(255,255,255,.72); background: var(--legal-verde-escuro); }
-.rodape :global(.brand-logo) { display: flex; align-items: center; gap: 8px; color: #fff; }
-.rodape :global(svg) { width: 27px; height: 27px; }
-.rodape :global(.wordmark) { font-family: var(--fonte-titulo), sans-serif; font-weight: 800; }
-.rodape :global(.fome) { color: #f6a552; }
+.rodape :global(.logo-floufood) { display: block; width: 142px; height: 27px; color: #fff; }
 .rodape p { margin: 7px 0 0; font-size: 11px; }
 .rodape > div:last-child { display: flex; gap: 20px; flex-wrap: wrap; }
 .rodape a { color: #fff; font-size: 12px; text-decoration: none; }

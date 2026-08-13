@@ -45,7 +45,7 @@ export default async function PagamentosPage({
         <span>Plataforma</span>
         <h2>Pagamentos</h2>
         <p>
-          Mensalidades que os restaurantes pagam ao CliqueFome. Não tem nada a ver com os pagamentos
+          Mensalidades que os restaurantes pagam à FlouFood. Não tem nada a ver com os pagamentos
           dos pedidos, que vão do cliente final pro restaurante.
         </p>
       </header>

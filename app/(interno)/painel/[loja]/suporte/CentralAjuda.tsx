@@ -73,7 +73,7 @@ export function CentralAjuda({
         <div>
           <span className={styles.sobretitulo}>Central de Ajuda</span>
           <h2 id="ajuda-titulo">Como podemos ajudar?</h2>
-          <p>Pesquise uma dúvida ou siga um tutorial passo a passo para operar o CliqueFome.</p>
+          <p>Pesquise uma dúvida ou siga um tutorial passo a passo para operar a FlouFood.</p>
         </div>
 
         <div className={styles.buscaWrap}>
@@ -238,7 +238,7 @@ export function CentralAjuda({
               <span className={styles.breve}>Em breve</span>
             </div>
             <h3 id="humano-titulo">Atendimento humano</h3>
-            <p>Canal para dúvidas de conta e questões que precisam da análise da equipe CliqueFome.</p>
+            <p>Canal para dúvidas de conta e questões que precisam da análise da equipe FlouFood.</p>
             <span className={styles.indisponivel}>Ainda não disponível</span>
           </article>
 
