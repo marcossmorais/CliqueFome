@@ -105,6 +105,14 @@ export function CardapioClient({
     [produtos, tipoPedido]
   );
 
+  // O carrinho guarda só o id do produto (a linha é persistida em
+  // localStorage, e engordá-la quebraria carrinho salvo antes disso). A
+  // miniatura de cada item sai deste mapa, montado do catálogo já carregado.
+  const imagensPorProduto = useMemo(
+    () => Object.fromEntries(produtos.map((p) => [p.id, p.imagem_url])),
+    [produtos]
+  );
+
   const sugestoesCarrinho = useMemo(() => {
     if (linhas.length === 0) return [];
     const categoriasPorId = new Map(categorias.map((categoria) => [categoria.id, categoria.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()]));
@@ -557,6 +565,12 @@ export function CardapioClient({
         lojaSlug={loja.slug}
         modalidade={modalidade}
         versaoCarrinho={versaoCarrinho}
+        lojaNome={loja.nome}
+        lojaLogoUrl={loja.logo_url}
+        pedidoMinimo={loja.pedido_minimo}
+        tempoPreparoMin={loja.tempo_preparo_min}
+        tempoPreparoMax={loja.tempo_preparo_max}
+        imagensPorProduto={imagensPorProduto}
         sugestoes={sugestoesCarrinho}
         sugestoesComplementos={sugestoesComplementos}
         onAdicionarSugestao={adicionarSugestao}
