@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { ShellPainel } from '@/components/admin/ShellPainel';
-import { StatusOperacional } from '@/components/admin/StatusOperacional';
 import { obterLojaPorSlug, obterUsuario } from '@/lib/loja';
 import { criarClientServidor } from '@/lib/supabase/server';
 import {
@@ -172,8 +171,6 @@ export default async function InicioPage({
           </div>
           <Link href={`/${loja.slug}`} target="_blank" className={styles.verCardapio}>Ver cardápio ↗</Link>
         </section>
-
-        <StatusOperacional variante="painel" />
 
         {falhou || !resumo ? (
           <section className={styles.erroCarga} role="alert">
