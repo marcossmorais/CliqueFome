@@ -1118,3 +1118,17 @@
   .produto-modal-info{ padding-top: 22px; }
   .produto-modal-info h3{ font-size: 21px; }
 }
+
+/* ---------------------------------------------------------------------------
+   CARDAPIO — secoes por categoria
+   Em "todos" cada categoria vira uma secao com titulo proprio. O titulo usa
+   um peso menor que o <h2> da vitrine para nao competir com ele.
+--------------------------------------------------------------------------- */
+.menu-secao + .menu-secao{ margin-top: 26px; }
+.menu-secao-titulo{
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--preto);
+}

@@ -53,7 +53,12 @@ export function CartaoProduto({
           {produto.etiqueta && ETIQUETAS[produto.etiqueta] && (
             <span className="menu-etiqueta">{ETIQUETAS[produto.etiqueta]}</span>
           )}
-          {esgotado && <span className="menu-esgotado">Esgotado</span>}
+          {/* A fita diagonal já existia no CSS e nunca chegou a ser usada: o
+              card renderizava um <span> sem estilo nenhum, então "Esgotado"
+              aparecia como texto solto sobre a foto. */}
+          {esgotado && (
+            <span className="fita-esgotado" aria-hidden="true"><span>Esgotado</span></span>
+          )}
         </span>
 
         <span className="menu-card-body">
