@@ -24,6 +24,7 @@ import {
 import { formaPagamentoPermitida, type FormaPagamentoOffline } from '@/lib/pedidos/pagamento';
 import { IconeCategoria } from '@/components/cardapio/IconeCategoria';
 import type { CotacaoDeliveryPublica, ModalidadePedido } from '@/lib/delivery/tipos';
+import { numeroPedido } from '@/lib/pedidos/numero';
 
 const TEXTO_AVISO: Record<string, string> = {
   removido: 'saiu do cardápio',
@@ -470,7 +471,7 @@ export function CardapioClient({
           href={`/pedido/${pedidoAcompanhado.token}`}
           style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}
         >
-          <span>Acompanhando o pedido #{pedidoAcompanhado.numero}</span>
+          <span>Acompanhando o pedido {numeroPedido(pedidoAcompanhado.numero)}</span>
           <span className="acompanhar-barra-cta">Ver andamento →</span>
         </a>
       )}

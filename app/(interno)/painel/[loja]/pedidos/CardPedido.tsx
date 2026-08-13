@@ -1,4 +1,5 @@
 import { nivelUrgencia, textoTempo } from '@/lib/pedidos/prioridade';
+import { numeroPedido } from '@/lib/pedidos/numero';
 import {
   COR_STATUS,
   formatBRL,
@@ -53,7 +54,7 @@ export function CardPedido({
     >
       <div className="pedido-card-linha1">
         <span className={'pedido-dot pedido-dot-' + nivel} title="Urgência" />
-        <span className="pedido-numero">#{pedido.numero}</span>
+        <span className="pedido-numero">{numeroPedido(pedido.numero)}</span>
         <span className="pedido-cliente">{pedido.cliente_nome}</span>
         <span className="pedido-total">{formatBRL(pedido.total)}</span>
       </div>

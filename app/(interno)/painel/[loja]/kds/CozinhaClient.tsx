@@ -20,6 +20,7 @@ import {
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { CardPedidoCozinha } from './CardPedidoCozinha';
 import styles from './cozinha.module.css';
+import { numeroPedido } from '@/lib/pedidos/numero';
 
 const INTERVALO_ATUALIZACAO_MS = 15_000;
 
@@ -152,8 +153,8 @@ export function CozinhaClient({
       setMensagem({
         tipo: 'ok',
         texto:
-          'Pedido #' +
-          pedido.numero +
+          'Pedido ' +
+          numeroPedido(pedido.numero) +
           ' atualizado.' +
           complemento +
           (atualizou ? '' : ' Atualize a fila para confirmar a posição.'),
@@ -167,8 +168,8 @@ export function CozinhaClient({
       setMensagem({
         tipo: 'erro',
         texto:
-          'Não foi possível atualizar o pedido #' +
-          pedido.numero +
+          'Não foi possível atualizar o pedido ' +
+          numeroPedido(pedido.numero) +
           '. Ele pode ter sido alterado em outro dispositivo. Atualize a fila e tente novamente.',
       });
     } finally {

@@ -12,6 +12,7 @@ import { CardPedido } from './CardPedido';
 import { PainelDetalhePedido } from './PainelDetalhePedido';
 import { NovoPedidoPainel } from './NovoPedidoPainel';
 import type { CategoriaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
+import { numeroPedido } from '@/lib/pedidos/numero';
 
 /**
  * Colunas fixas por status, como na referência — e não Kanban de arrastar:
@@ -167,7 +168,10 @@ export function PedidosClient({
         : pedidos.filter(
             (p) =>
               p.cliente_nome.toLowerCase().includes(termo) ||
-              String(p.numero).includes(termo)
+              // Casa tanto "42" quanto "042": o número aparece preenchido com
+              // zeros na tela, e é assim que a pessoa vai digitar.
+              String(p.numero).includes(termo.replace(/^#?0*/, '')) ||
+              numeroPedido(p.numero).includes(termo)
           ),
     [pedidos, termo]
   );

@@ -11,6 +11,7 @@ import {
   type FormaPagamentoOffline,
 } from '@/lib/pedidos/pagamento';
 import { aplicarRespostaViaCep, formatarCep, validarEnderecoDelivery } from '@/lib/delivery/endereco';
+import { numeroPedido } from '@/lib/pedidos/numero';
 import type {
   CotacaoDeliveryPublica,
   EnderecoDelivery,
@@ -464,7 +465,7 @@ export function CheckoutModal({
         {pedidoRegistrado ? (
           <div className="checkout-sucesso">
             <div className="checkout-sucesso-icone">✓</div>
-            <h3>Pedido #{pedidoRegistrado.pedido.numero} registrado</h3>
+            <h3>Pedido {numeroPedido(pedidoRegistrado.pedido.numero)} registrado</h3>
             <p>Ele já entrou como pendente na gestão da loja.</p>
             <div className="checkout-pendente">
               <strong>Pagamento a receber · {nomeFormaPagamento(pedidoRegistrado.pedido.forma_pagamento)}</strong>

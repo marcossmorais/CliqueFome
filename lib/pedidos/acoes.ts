@@ -161,5 +161,16 @@ export async function criarPedidoManual(
     p_status_inicial: params.statusInicial,
   });
   if (error) throw error;
-  return data as { numero: number; token: string; total: number };
+  const criado = data as { id: string; numero: number; token: string; total: number };
+
+  // O número definitivo é o que o trigger gravou; o que criar_pedido devolve
+  // é o palpite dela, calculado antes de o trigger rodar. Ver
+  // supabase/migrations/20260813150000_numeracao_operacional_por_dia.sql.
+  const { data: gravado } = await sb
+    .from('pedidos')
+    .select('numero')
+    .eq('id', criado.id)
+    .maybeSingle();
+
+  return { ...criado, numero: gravado?.numero ?? criado.numero };
 }

@@ -6,6 +6,7 @@ import { COR_STATUS, formatBRL, ICONE_STATUS, type StatusPedido } from '@/lib/pe
 import { usePedidoAcompanhado } from '@/hooks/usePedidoAcompanhado';
 import { NOMES_PAGAMENTO, NOMES_STATUS, type PedidoTracking } from './tipos';
 import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
+import { numeroPedido } from '@/lib/pedidos/numero';
 
 const INTERVALO_MS = 15_000;
 
@@ -62,7 +63,7 @@ export function TrackingClient({ token, inicial }: { token: string; inicial: Ped
 
   const numeroWhats = (pedido.loja_whatsapp || '').replace(/\D/g, '');
   const linkWhatsapp = numeroWhats
-    ? `https://wa.me/${numeroWhats}?text=${encodeURIComponent(`Olá! Sobre o meu pedido #${pedido.numero}...`)}`
+    ? `https://wa.me/${numeroWhats}?text=${encodeURIComponent(`Olá! Sobre o meu pedido ${numeroPedido(pedido.numero)}...`)}`
     : null;
 
   const indiceAtual = ETAPAS.indexOf(pedido.status as StatusPedido);
@@ -71,7 +72,7 @@ export function TrackingClient({ token, inicial }: { token: string; inicial: Ped
     <main className="tracking-pagina" style={{ ['--marca' as string]: pedido.loja_cor || '#1E7A4E' }}>
       <header className="tracking-topo">
         <span className="tracking-loja">{pedido.loja_nome}</span>
-        <h1>Pedido #{pedido.numero}</h1>
+        <h1>Pedido {numeroPedido(pedido.numero)}</h1>
 
         {pedido.status === 'cancelado' ? (
           <div className="tracking-cancelado" style={{ ['--cor-status' as string]: COR_STATUS.cancelado }}>

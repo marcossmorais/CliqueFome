@@ -9,6 +9,7 @@ import {
   type PedidoCozinha,
 } from '@/lib/cozinha/tipos';
 import styles from './cozinha.module.css';
+import { numeroPedido } from '@/lib/pedidos/numero';
 
 export function CardPedidoCozinha({
   pedido,
@@ -32,7 +33,7 @@ export function CardPedidoCozinha({
       <div className={styles.ticketTopo}>
         <div>
           <span className={styles.numero} id={tituloId}>
-            Pedido #{pedido.numero}
+            Pedido {numeroPedido(pedido.numero)}
           </span>
           <span className={styles.tempo}>
             {textoTempo(pedido.criado_em, agora)}
