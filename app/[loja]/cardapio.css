@@ -663,12 +663,15 @@
     position: absolute;
     top: 14px;
     right: 14px;
-    z-index: 2;
+    /* Acima da faixa opaca da coluna que rola (z-index 2), que vem depois
+       dele no DOM e o cobriria com z-index igual. */
+    z-index: 3;
     width: 36px;
     height: 36px;
     border-radius: 50%;
     border: none;
-    background: rgba(255,255,255,0.9);
+    /* Opaco: em rgba(...,0.9) o texto da opção aparecia through o botão. */
+    background: #fff;
     color: var(--preto);
     font-size: 16px;
     cursor: pointer;
@@ -848,11 +851,37 @@
   .checkout-fechar{ width:34px; height:34px; flex:0 0 34px; border:0; border-radius:50%; color:#fff; background:rgba(255,255,255,.14); font-size:21px; line-height:1; cursor:pointer; }
   .checkout-fechar:hover{ background:rgba(255,255,255,.24); }
   .checkout-titulo{ margin:0; padding:18px 22px 0; outline:0; color:#173a2b; font-size:22px; }
-  .checkout-etapas{ display: flex; align-items: center; padding: 13px 22px 16px; color: #8a9690; font-size: 11px; font-weight: 700; }
-  .checkout-etapas span{ display: flex; align-items: center; gap: 7px; }
-  .checkout-etapas b{ display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: #e7ece9; }
-  .checkout-etapas .ativa{ color: var(--marca); }.checkout-etapas .ativa b{ color: #fff; background: var(--marca); }
-  .checkout-etapas i{ height: 2px; flex: 1; margin: 0 12px; background: #e1e7e3; }
+  /* Trilha de três marcos. O <li> do meio e o do fim carregam o traço que
+     liga ao anterior, então o traço herda o estado do marco que ele alcança —
+     preenchido quando aquele ponto já foi atingido. */
+  .checkout-etapas{
+    display: flex; align-items: center; margin: 0; padding: 13px 22px 16px;
+    list-style: none; color: #8a9690; font-size: 11px; font-weight: 700;
+  }
+  .checkout-etapas li{ display: flex; align-items: center; min-width: 0; }
+  .checkout-etapas li:not(:first-child){ flex: 1; }
+  .checkout-etapas li>span{ display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+  .checkout-etapas b{
+    display: grid; width: 22px; height: 22px; flex: 0 0 22px; place-items: center;
+    border-radius: 50%; background: #e7ece9; font-size: 11px;
+    transition: background .18s ease, color .18s ease;
+  }
+  .checkout-etapas i{
+    height: 2px; flex: 1; min-width: 14px; margin: 0 10px; background: #e1e7e3;
+    transition: background .22s ease;
+  }
+  .checkout-etapas i.preenchido{ background: var(--marca); }
+  .checkout-etapas .ativa{ color: var(--marca); }
+  .checkout-etapas .ativa b{ color: #fff; background: var(--marca); }
+  .checkout-etapas .concluida{ color: var(--marca); }
+  .checkout-etapas .concluida b{ color: #fff; background: var(--marca); }
+  @media (max-width: 420px){
+    .checkout-etapas{ font-size: 10px; padding-inline: 17px; }
+    .checkout-etapas i{ margin: 0 6px; min-width: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .checkout-etapas b, .checkout-etapas i{ transition: none; }
+  }
   .checkout-conteudo,.checkout-sucesso{ overflow-y: auto; padding: 20px 24px 26px; }
   .checkout-voltar{ margin-bottom: 14px; border: 0; background: transparent; color: var(--marca); font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 0; }
   .checkout-bloco{ margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid #e8ecea; }
@@ -1108,22 +1137,47 @@
 --------------------------------------------------------------------------- */
 @media (min-width: 720px){
   .produto-modal-sheet{ max-width: 900px; }
+  /* Altura fixa: era `max-height` na coluna da direita, então cada produto
+     abria um modal de um tamanho — um com duas opções ficava baixinho, um com
+     quinze ficava enorme. Agora todos abrem igual e só o conteúdo rola. */
   .produto-modal-corpo{
     display: grid;
-    grid-template-columns: minmax(0,380px) minmax(0,1fr);
-    align-items: start;
+    grid-template-columns: 360px minmax(0,1fr);
+    align-items: stretch;
+    height: min(70vh, 560px);
     overflow: hidden;
     min-height: 0;
   }
-  /* A foto perde o max-width e o centramento do mobile: aqui ela preenche a
-     propria coluna, e o quadrado vem do aspect-ratio que ja existe. */
-  .produto-modal-photo{ max-width: none; margin: 0; border-radius: 0; }
+  /* Quadrado centrado na coluna, não esticado nela: uma foto de 300px no meio
+     de uma coluna de 360 fica igual em qualquer produto. */
+  .produto-modal-photo{
+    align-self: center;
+    justify-self: center;
+    width: 300px;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 14px;
+  }
   .produto-modal-scroll{
+    height: 100%;
     overflow-y: auto;
-    max-height: min(70vh, 620px);
     padding-bottom: 8px;
   }
-  .produto-modal-info{ padding-top: 22px; }
+  /* Faixa opaca grudada no topo da coluna que rola. Sem ela o conteúdo
+     passava POR BAIXO do botão de fechar — o × cobria nome e preço da opção
+     que estivesse ali, e o seletor dela ficava inalcançável. */
+  .produto-modal-scroll::before{
+    content: '';
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: block;
+    height: 56px;
+    margin-bottom: -56px;
+    background: linear-gradient(var(--branco-gelo) 66%, rgba(245,245,245,0));
+    pointer-events: none;
+  }
+  .produto-modal-info{ padding-top: 60px; }
   .produto-modal-info h3{ font-size: 21px; }
 }
 

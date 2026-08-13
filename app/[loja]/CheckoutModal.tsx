@@ -436,10 +436,29 @@ export function CheckoutModal({
         <h2 id="checkout-titulo" ref={tituloRef} tabIndex={-1} className="checkout-titulo">{titulo}</h2>
 
         {!pedidoRegistrado && (
-          <div className="checkout-etapas" aria-label="Etapas do pedido">
-            <span className={etapa === 'carrinho' ? 'ativa' : ''}><b>1</b> Carrinho</span><i />
-            <span className={etapa === 'dados' ? 'ativa' : ''}><b>2</b> {modalidade === 'delivery' ? 'Entrega' : 'Retirada'}</span>
-          </div>
+          // Três marcos com progressão: o que já passou fica com ✓ e o traço
+          // até ele preenchido. Pagamento não é uma tela separada — é a última
+          // coisa que a pessoa escolhe antes de confirmar, então acende quando
+          // ela escolhe a forma. Nenhum marco acende antes da hora.
+          <ol className="checkout-etapas" aria-label="Etapas do pedido">
+            {[
+              { id: 'carrinho', rotulo: 'Carrinho' },
+              { id: 'entrega', rotulo: modalidade === 'delivery' ? 'Entrega' : 'Retirada' },
+              { id: 'pagamento', rotulo: 'Pagamento' },
+            ].map((marco, i) => {
+              const atual = etapa === 'carrinho' ? 0 : formaPagamento ? 2 : 1;
+              const estado = i < atual ? 'concluida' : i === atual ? 'ativa' : '';
+              return (
+                <li key={marco.id} className={estado} aria-current={i === atual ? 'step' : undefined}>
+                  {i > 0 && <i className={i <= atual ? 'preenchido' : ''} />}
+                  <span>
+                    <b>{i < atual ? '✓' : i + 1}</b>
+                    {marco.rotulo}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
         )}
 
         {pedidoRegistrado ? (

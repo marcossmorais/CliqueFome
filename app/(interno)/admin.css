@@ -813,6 +813,7 @@
   .pedido-detalhe-bloco:first-child{ padding-top:0; }
   .pedido-detalhe-bloco:last-child{ border-bottom:none; padding-bottom:0; }
   .pedido-detalhe-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .pedido-detalhe-aviso{ margin-top:8px; color:var(--erro); font-size:12px; line-height:1.4; }
   .pedido-item-linha{ margin-bottom:10px; }
   .pedido-item-linha:last-child{ margin-bottom:0; }
   .pedido-item-topo{ display:flex; justify-content:space-between; font-size:13.5px; font-weight:600; }
