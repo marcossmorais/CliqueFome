@@ -5,28 +5,26 @@ import Link from 'next/link';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { ConflitoDePedido, avancarStatus, buscarPedidos } from '@/lib/pedidos/acoes';
 import { minutosAteOPrazo, ordenarPorUrgencia } from '@/lib/pedidos/prioridade';
-import { proximoStatus, type PedidoResumo, type StatusPedido } from '@/lib/pedidos/tipos';
+import { NOMES_ORIGEM, NOMES_TIPO, proximoStatus, type OrigemPedido, type PedidoResumo, type StatusPedido, type TipoPedido } from '@/lib/pedidos/tipos';
 import { useAgora } from '@/hooks/useAgora';
 import { IconeBusca } from '@/components/admin/IconesCatalogo';
 import { CardPedido } from './CardPedido';
+import { LinhaPedido } from './LinhaPedido';
 import { PainelDetalhePedido } from './PainelDetalhePedido';
 import { NovoPedidoPainel } from './NovoPedidoPainel';
 import type { CategoriaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
 import { numeroPedido } from '@/lib/pedidos/numero';
 
-/**
- * Colunas fixas por status, como na referência — e não Kanban de arrastar:
- * numa cozinha corrida, arrastar é lento e erra fácil. O pedido anda pelo
- * botão do card ou do painel de detalhe.
- */
-const COLUNAS: { id: string; titulo: string; statuses: StatusPedido[] }[] = [
+/** No mobile, os cards operacionais continuam separados por etapa. No
+ * desktop a mesma fila vira tabela, mantendo a seleção e o avanço no painel
+ * lateral — sem arrastar pedidos, que é lento e propenso a erro na cozinha. */
+const COLUNAS_MOBILE: { id: string; titulo: string; statuses: StatusPedido[] }[] = [
   { id: 'andamento', titulo: 'Em andamento', statuses: ['pendente', 'confirmado', 'em_preparo'] },
   { id: 'prontos', titulo: 'Prontos', statuses: ['pronto'] },
 ];
 
-// Aba separada pro histórico: concluído e cancelado não disputam espaço com
-// a operação do momento, mas continuam acessíveis.
-const HISTORICO: StatusPedido[] = ['concluido', 'cancelado'];
+const STATUS_ATIVOS: StatusPedido[] = ['pendente', 'confirmado', 'em_preparo', 'pronto'];
+type AbaPedidos = 'todos' | 'preparo' | 'prontos' | 'entrega' | 'atrasados';
 
 const INTERVALO_ATUALIZACAO_MS = 20_000;
 
@@ -45,7 +43,10 @@ export function PedidosClient({
 }) {
   const [pedidos, setPedidos] = useState(pedidosIniciais);
   const [busca, setBusca] = useState('');
-  const [verHistorico, setVerHistorico] = useState(false);
+  const [aba, setAba] = useState<AbaPedidos>('todos');
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | 'todos'>('todos');
+  const [origemFiltro, setOrigemFiltro] = useState<OrigemPedido | 'todas'>('todas');
   const [pedidoAbertoId, setPedidoAbertoId] = useState<string | null>(null);
   const [modalManualAberto, setModalManualAberto] = useState(false);
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
@@ -160,38 +161,55 @@ export function PedidosClient({
     };
   }, [lojaId, recarregar]);
 
-  const termo = busca.trim().toLowerCase();
-  const filtrados = useMemo(
-    () =>
-      !termo
-        ? pedidos
-        : pedidos.filter(
-            (p) =>
-              p.cliente_nome.toLowerCase().includes(termo) ||
-              // Casa tanto "42" quanto "042": o número aparece preenchido com
-              // zeros na tela, e é assim que a pessoa vai digitar.
-              String(p.numero).includes(termo.replace(/^#?0*/, '')) ||
-              numeroPedido(p.numero).includes(termo)
-          ),
-    [pedidos, termo]
+  const imagensPorProduto = useMemo(
+    () => new Map(produtos.map((produto) => [produto.id, produto.imagem_url])),
+    [produtos]
   );
+  const pedidosParaExibir = useMemo(
+    () => pedidos.map((pedido) => ({
+      ...pedido,
+      pedido_itens: pedido.pedido_itens.map((item) => ({
+        ...item,
+        produto: { imagem_url: item.produto_id ? imagensPorProduto.get(item.produto_id) || null : null },
+      })),
+    })),
+    [imagensPorProduto, pedidos]
+  );
+  const termo = busca.trim().toLowerCase();
+  const termoNumerico = termo.replace(/\D/g, '');
+  const ativos = pedidosParaExibir.filter((pedido) => STATUS_ATIVOS.includes(pedido.status));
+  const emPreparo = ativos.filter((pedido) => ['pendente', 'confirmado', 'em_preparo'].includes(pedido.status));
+  const prontos = ativos.filter((pedido) => pedido.status === 'pronto' && pedido.tipo !== 'delivery');
+  const emEntrega = ativos.filter((pedido) => pedido.status === 'pronto' && pedido.tipo === 'delivery');
+  const atrasados = agora ? emPreparo.filter((pedido) => minutosAteOPrazo(pedido, agora) < 0) : [];
 
-  // Métricas da faixa superior: espera média de quem ainda está na fila.
-  const emAndamento = pedidos.filter((p) => COLUNAS[0].statuses.includes(p.status));
-  const prontos = pedidos.filter((p) => COLUNAS[1].statuses.includes(p.status));
-  const esperaMedia = (lista: PedidoResumo[]) => {
-    if (!agora || lista.length === 0) return 0;
-    const soma = lista.reduce(
-      (s, p) => s + Math.max(0, (agora.getTime() - new Date(p.criado_em).getTime()) / 60_000),
-      0
+  const listaFiltrada = useMemo(() => {
+    const daAba = ativos.filter((pedido) => {
+      if (aba === 'preparo') return ['pendente', 'confirmado', 'em_preparo'].includes(pedido.status);
+      if (aba === 'prontos') return pedido.status === 'pronto' && pedido.tipo !== 'delivery';
+      if (aba === 'entrega') return pedido.status === 'pronto' && pedido.tipo === 'delivery';
+      if (aba === 'atrasados') {
+        return ['pendente', 'confirmado', 'em_preparo'].includes(pedido.status)
+          && Boolean(agora && minutosAteOPrazo(pedido, agora) < 0);
+      }
+      return true;
+    });
+
+    return ordenarPorUrgencia(
+      daAba.filter((pedido) => {
+        const correspondeBusca = !termo
+          || pedido.cliente_nome.toLowerCase().includes(termo)
+          || (termoNumerico.length > 0 && pedido.cliente_telefone.replace(/\D/g, '').includes(termoNumerico))
+          || String(pedido.numero).includes(termo.replace(/^#?0*/, ''))
+          || numeroPedido(pedido.numero).includes(termo);
+        const correspondeTipo = tipoFiltro === 'todos' || pedido.tipo === tipoFiltro;
+        const correspondeOrigem = origemFiltro === 'todas' || pedido.origem === origemFiltro;
+        return correspondeBusca && correspondeTipo && correspondeOrigem;
+      })
     );
-    return Math.round(soma / lista.length);
-  };
-  // Quantos já estouraram o prazo — é o número que decide se a cozinha está
-  // no vermelho, mais útil que o total bruto.
-  const atrasados = agora ? emAndamento.filter((p) => minutosAteOPrazo(p, agora) < 0).length : 0;
+  }, [aba, agora, ativos, origemFiltro, termo, termoNumerico, tipoFiltro]);
 
-  const pedidoAberto = pedidos.find((p) => p.id === pedidoAbertoId) || null;
+  const pedidoAberto = pedidosParaExibir.find((p) => p.id === pedidoAbertoId) || null;
 
   // Sincronização manual: rede oscilando, Realtime caído ou simplesmente a
   // vontade de conferir. Busca só a lista de pedidos — nada de recarregar a
@@ -224,127 +242,153 @@ export function PedidosClient({
     }
   }
 
-  const historico = filtrados
-    .filter((p) => HISTORICO.includes(p.status))
-    .sort((a, b) => new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime());
-
-
   return (
-    <div className="area ativo">
+    <div className="area ativo pedidos-area">
       {msg && <div className={'msg msg-' + msg.tipo}>{msg.texto}</div>}
+
+      <div className="pedidos-metricas">
+        <article className="pedidos-metrica-card">
+          <strong>{ativos.length}</strong><span>Total de pedidos</span><small>Na operação</small>
+        </article>
+        <article className="pedidos-metrica-card preparo">
+          <strong>{emPreparo.length}</strong><span>Em preparo</span><small>Agora</small>
+        </article>
+        <article className="pedidos-metrica-card prontos">
+          <strong>{prontos.length}</strong><span>Prontos</span><small>Agora</small>
+        </article>
+        <article className="pedidos-metrica-card entrega">
+          <strong>{emEntrega.length}</strong><span>Entrega</span><small>Aguardando saída</small>
+        </article>
+        <article className={'pedidos-metrica-card atrasados' + (atrasados.length ? ' tem-alerta' : '')}>
+          <strong>{atrasados.length}</strong><span>Atrasados</span><small>{atrasados.length ? 'Atenção' : 'Tudo em dia'}</small>
+        </article>
+      </div>
 
       <div className="pedidos-topo">
         <div className="cat-busca pedidos-busca">
           <IconeBusca />
           <input
             type="text"
-            placeholder="Pesquise por cliente ou número do pedido"
+            placeholder="Buscar por cliente, telefone ou nº do pedido..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
-        <button type="button" className="btn-primary btn-small" onClick={() => setModalManualAberto(true)}>
-          + Novo pedido
+        <button
+          type="button"
+          className={'btn-ghost btn-small pedidos-botao-filtro' + (filtrosAbertos ? ' ativo' : '')}
+          onClick={() => setFiltrosAbertos((valor) => !valor)}
+          aria-expanded={filtrosAbertos}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 6h16M7 12h10M10 18h4" />
+          </svg>
+          Filtros
         </button>
         <button
           type="button"
-          className="btn-ghost btn-small"
+          className="btn-ghost btn-small pedidos-atualizar"
           onClick={atualizarAgora}
           disabled={atualizando}
           title="Buscar os pedidos novamente"
+          aria-label={atualizando ? 'Atualizando pedidos' : 'Atualizar pedidos'}
         >
-          {atualizando ? 'Atualizando…' : 'Atualizar'}
+          <span aria-hidden="true">↻</span>
         </button>
-        <button
-          type="button"
-          className={'btn-ghost btn-small' + (verHistorico ? ' ativo' : '')}
-          onClick={() => setVerHistorico((v) => !v)}
-        >
-          {verHistorico ? 'Voltar à operação' : 'Histórico'}
+        <button type="button" className="btn-primary btn-small pedidos-novo" onClick={() => setModalManualAberto(true)}>
+          <span aria-hidden="true">＋</span> Novo pedido
         </button>
-        {verHistorico && (
-          <Link href={`/painel/${lojaSlug}/pedidos/historico`} className="btn-ghost btn-small">
-            Filtros avançados
-          </Link>
-        )}
       </div>
 
-      <div className="pedidos-metricas">
-        <span className="metrica">
-          <b>{esperaMedia(emAndamento)} min</b> espera média
-        </span>
-        <span className="metrica">
-          <b>{prontos.length}</b> aguardando saída
-        </span>
-        {atrasados > 0 && (
-          <span className="metrica metrica-alerta">
-            <b>{atrasados}</b> fora do prazo
-          </span>
-        )}
-      </div>
+      {filtrosAbertos && (
+        <div className="pedidos-filtros">
+          <label>
+            Tipo do pedido
+            <select value={tipoFiltro} onChange={(evento) => setTipoFiltro(evento.target.value as TipoPedido | 'todos')}>
+              <option value="todos">Todos</option>
+              {Object.entries(NOMES_TIPO).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
+            </select>
+          </label>
+          <label>
+            Origem
+            <select value={origemFiltro} onChange={(evento) => setOrigemFiltro(evento.target.value as OrigemPedido | 'todas')}>
+              <option value="todas">Todas</option>
+              {Object.entries(NOMES_ORIGEM).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
+            </select>
+          </label>
+          <button type="button" className="btn-ghost btn-small" onClick={() => { setTipoFiltro('todos'); setOrigemFiltro('todas'); }}>
+            Limpar filtros
+          </button>
+        </div>
+      )}
 
       <div className={'pedidos-split' + (pedidoAberto ? ' com-painel' : '')}>
-        <div className="pedidos-colunas">
-          {verHistorico ? (
-            <div className="pedidos-coluna">
-              <div className="pedidos-coluna-topo">
-                <span>Histórico</span>
-                <span className="pedidos-coluna-contagem">{historico.length}</span>
-              </div>
-              {historico.length === 0 ? (
-                <p className="pedidos-vazio">Nenhum pedido no histórico.</p>
-              ) : (
-                <div className="pedidos-lista">
-                  {historico.map((p) => (
-                    <CardPedido
-                      key={p.id}
-                      pedido={p}
-                      selecionado={p.id === pedidoAbertoId}
-                      agora={agora}
-                      onAbrir={() => setPedidoAbertoId(p.id)}
-                      onAvancarRapido={() => avancarRapido(p)}
-                    />
-                  ))}
-                </div>
-              )}
+        <section className="pedidos-listagem">
+          <nav className="pedidos-abas" aria-label="Filtrar pedidos por situação">
+            {([
+              ['todos', 'Todos', ativos.length],
+              ['preparo', 'Em preparo', emPreparo.length],
+              ['prontos', 'Prontos', prontos.length],
+              ['entrega', 'Entrega', emEntrega.length],
+              ['atrasados', 'Atrasados', atrasados.length],
+            ] as const).map(([id, nome, quantidade]) => (
+              <button type="button" key={id} className={aba === id ? 'ativo' : ''} onClick={() => setAba(id)}>
+                {nome} <span>{quantidade}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="pedidos-tabela" role="table" aria-label="Pedidos da operação">
+            <div className="pedido-tabela-cabecalho" role="row">
+              <span>Pedido</span><span>Cliente</span><span>Tipo</span><span>Status</span><span>Tempo</span><span>Total</span><span />
             </div>
-          ) : (
-            COLUNAS.map((coluna) => {
-              const lista = ordenarPorUrgencia(
-                filtrados.filter((p) => coluna.statuses.includes(p.status))
-              );
+            <div className="pedido-tabela-corpo">
+              {listaFiltrada.length ? listaFiltrada.map((pedido) => (
+                <LinhaPedido
+                  key={pedido.id}
+                  pedido={pedido}
+                  selecionado={pedido.id === pedidoAbertoId}
+                  novo={novosIds.has(pedido.id)}
+                  agora={agora}
+                  onAbrir={() => setPedidoAbertoId(pedido.id)}
+                />
+              )) : <p className="pedidos-vazio">Nenhum pedido encontrado neste filtro.</p>}
+            </div>
+          </div>
+
+          <div className="pedidos-mobile-colunas">
+            {COLUNAS_MOBILE.map((coluna) => {
+              const lista = listaFiltrada.filter((pedido) => coluna.statuses.includes(pedido.status));
               return (
                 <div key={coluna.id} className="pedidos-coluna">
                   <div className="pedidos-coluna-topo">
                     <span>{coluna.titulo}</span>
                     <span className="pedidos-coluna-contagem">{lista.length}</span>
                   </div>
-                  {lista.length === 0 ? (
-                    <p className="pedidos-vazio">
-                      {coluna.id === 'andamento'
-                        ? 'Seus pedidos aparecerão aqui.'
-                        : 'Nada pronto no momento.'}
-                    </p>
-                  ) : (
+                  {lista.length ? (
                     <div className="pedidos-lista">
-                      {lista.map((p) => (
+                      {lista.map((pedido) => (
                         <CardPedido
-                          key={p.id}
-                          pedido={p}
-                          selecionado={p.id === pedidoAbertoId}
-                          novo={novosIds.has(p.id)}
+                          key={pedido.id}
+                          pedido={pedido}
+                          selecionado={pedido.id === pedidoAbertoId}
+                          novo={novosIds.has(pedido.id)}
                           agora={agora}
-                          onAbrir={() => setPedidoAbertoId(p.id)}
-                          onAvancarRapido={() => avancarRapido(p)}
+                          onAbrir={() => setPedidoAbertoId(pedido.id)}
+                          onAvancarRapido={() => avancarRapido(pedido)}
                         />
                       ))}
                     </div>
-                  )}
+                  ) : <p className="pedidos-vazio">Nenhum pedido nesta etapa.</p>}
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+
+          <Link href={`/painel/${lojaSlug}/pedidos/historico`} className="pedidos-ver-todos">
+            Ver todos os pedidos <span aria-hidden="true">⌄</span>
+          </Link>
+        </section>
 
         {pedidoAberto ? (
           <PainelDetalhePedido
@@ -356,7 +400,7 @@ export function PedidosClient({
           />
         ) : (
           <aside className="pedido-painel pedido-painel-vazio">
-            <p>Selecione um pedido pra ver os detalhes.</p>
+            <p>Selecione um pedido para ver os detalhes.</p>
           </aside>
         )}
       </div>

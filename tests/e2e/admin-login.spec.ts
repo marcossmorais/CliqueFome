@@ -28,6 +28,9 @@ test('login abre pedidos, dashboard, configurações e financeiro sem depender d
   await test.step('Gestão de pedidos continua acessível', async () => {
     await page.goto(`/painel/${slug}/pedidos`, { waitUntil: 'networkidle' });
     await expect(page.locator('.pedidos-topo')).toBeVisible();
+    await expect(page.locator('.pedidos-metrica-card')).toHaveCount(5);
+    await expect(page.locator('.pedidos-listagem')).toBeVisible();
+    await expect(page.locator('.pedidos-tabela')).toBeVisible();
   });
 
   await test.step('dashboard da loja continua acessível', async () => {
@@ -91,5 +94,13 @@ test('login abre pedidos, dashboard, configurações e financeiro sem depender d
     await page.goto(`/painel/${slug}/financeiro`, { waitUntil: 'networkidle' });
     await expect(page.locator('#mainTop h1')).toHaveText('Financeiro');
     await expect(page.locator('.card.em-breve')).toContainText('Em breve');
+  });
+
+  await test.step('pedidos mantém cards e navegação inferior no mobile', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/painel/${slug}/pedidos`, { waitUntil: 'networkidle' });
+    await expect(page.locator('#navInferior')).toBeVisible();
+    await expect(page.locator('.pedidos-mobile-colunas')).toBeVisible();
+    await expect(page.locator('.pedidos-tabela')).toBeHidden();
   });
 });
