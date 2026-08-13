@@ -245,10 +245,26 @@ export function PainelDetalhePedido({
             <span className="usos-titulo">Pagamento</span>
             <div className="pedido-detalhe-linha">
               <span>{nomeFormaPagamento(pedido.forma_pagamento)}</span>
-              <button type="button" className="btn-ghost btn-small" onClick={alternarPagamento}>
+              {/* Pedido cancelado não recebe confirmação de pagamento — mas se
+                  já estava pago quando foi cancelado, desmarcar continua
+                  liberado, que é como a loja registra a devolução. */}
+              <button
+                type="button"
+                className="btn-ghost btn-small"
+                disabled={pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado'}
+                title={
+                  pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado'
+                    ? 'Pedido cancelado não pode ser marcado como pago.'
+                    : undefined
+                }
+                onClick={alternarPagamento}
+              >
                 {pedido.pagamento_status === 'confirmado' ? '✓ Pago manualmente — desmarcar' : 'Confirmar pagamento recebido'}
               </button>
             </div>
+            {pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado' && (
+              <p className="pedido-detalhe-aviso">Este pedido foi cancelado — não dá pra registrar pagamento.</p>
+            )}
           </div>
         </div>
 
