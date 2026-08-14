@@ -1,6 +1,8 @@
 import Image from 'next/image';
 import { textoTempo } from '@/lib/pedidos/prioridade';
 import { numeroPedido } from '@/lib/pedidos/numero';
+import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
+import { IconeFormaPagamento } from '@/components/pedidos/IconeFormaPagamento';
 import {
   COR_STATUS,
   formatBRL,
@@ -80,6 +82,17 @@ export function LinhaPedido({
       <span className="pedido-tabela-tipo">
         <span><Icone tipo="tipo" />{NOMES_TIPO[pedido.tipo]}</span>
         <small>{NOMES_ORIGEM[pedido.origem]}</small>
+      </span>
+      <span className="pedido-tabela-pagamento">
+        <span>
+          {pedido.forma_pagamento && <IconeFormaPagamento forma={pedido.forma_pagamento} />}
+          {nomeFormaPagamento(pedido.forma_pagamento)}
+        </span>
+        {/* Só o que muda a conduta de quem opera: pago já era, pendente é
+            dinheiro a receber na entrega/retirada. */}
+        <small className={pedido.pagamento_status === 'confirmado' ? 'pago' : 'a-receber'}>
+          {pedido.pagamento_status === 'confirmado' ? 'Pago' : 'A receber'}
+        </small>
       </span>
       <span>
         <span className="pedido-chip-status" style={{ ['--cor-status' as string]: COR_STATUS[pedido.status] }}>

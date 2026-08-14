@@ -340,7 +340,7 @@ export function PedidosClient({
 
           <div className="pedidos-tabela" role="table" aria-label="Pedidos da operação">
             <div className="pedido-tabela-cabecalho" role="row">
-              <span>Pedido</span><span>Cliente</span><span>Tipo</span><span>Status</span><span>Tempo</span><span>Total</span><span />
+              <span>Pedido</span><span>Cliente</span><span>Tipo</span><span>Pagamento</span><span>Status</span><span>Tempo</span><span>Total</span><span />
             </div>
             <div className="pedido-tabela-corpo">
               {listaFiltrada.length ? listaFiltrada.map((pedido) => (

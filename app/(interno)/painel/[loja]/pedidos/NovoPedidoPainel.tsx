@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import { criarClientNavegador } from '@/lib/supabase/client';
 import { criarPedidoManual, type ItemPedidoManual } from '@/lib/pedidos/acoes';
@@ -25,6 +25,7 @@ import {
   type FormaPagamentoOffline,
 } from '@/lib/pedidos/pagamento';
 import { IconeBusca } from '@/components/admin/IconesCatalogo';
+import { IconeFormaPagamento } from '@/components/pedidos/IconeFormaPagamento';
 import { ModalDetalhesProdutoPedido } from './ModalDetalhesProdutoPedido';
 import styles from './novoPedido.module.css';
 
@@ -50,29 +51,82 @@ const ROTULOS_FORMA_PAGAMENTO: Record<FormaPagamentoOffline, string> = {
   pagamento_retirada: 'Pagar no estabelecimento',
 };
 
-function IconeFormaPagamento({ forma }: { forma: FormaPagamentoOffline }) {
-  if (forma === 'dinheiro') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="2.5" y="5" width="19" height="14" rx="2" />
-        <circle cx="12" cy="12" r="3" />
-        <path d="M6 8.5h.01M18 15.5h.01" />
-      </svg>
-    );
-  }
-  if (forma === 'pix_manual') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="m8.2 5.2 2.1-2.1a2.4 2.4 0 0 1 3.4 0l2.1 2.1M18.8 8.2l2.1 2.1a2.4 2.4 0 0 1 0 3.4l-2.1 2.1M15.8 18.8l-2.1 2.1a2.4 2.4 0 0 1-3.4 0l-2.1-2.1M5.2 15.8l-2.1-2.1a2.4 2.4 0 0 1 0-3.4l2.1-2.1" />
-        <path d="m7.5 12 2.7 2.7a2.6 2.6 0 0 0 3.6 0l2.7-2.7-2.7-2.7a2.6 2.6 0 0 0-3.6 0L7.5 12Z" />
-      </svg>
-    );
-  }
+/**
+ * Caixinha de forma de pagamento — mesma silhueta do `<select>` de tipo do
+ * pedido, mas aberta por conta própria: `<option>` nativo não desenha ícone,
+ * e o operador reconhece a forma pelo desenho antes de ler o texto.
+ */
+function SeletorFormaPagamento({
+  formas,
+  valor,
+  onEscolher,
+}: {
+  formas: FormaPagamentoOffline[];
+  valor: FormaPagamentoOffline | '';
+  onEscolher: (forma: FormaPagamentoOffline) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const caixa = useRef<HTMLDivElement>(null);
+
+  // Fecha ao clicar fora ou apertar Escape — sem isso a lista ficava aberta
+  // por cima do carrinho enquanto o operador mexia em outro campo.
+  useEffect(() => {
+    if (!aberto) return;
+    function aoApontar(evento: PointerEvent) {
+      if (!caixa.current?.contains(evento.target as Node)) setAberto(false);
+    }
+    function aoTeclar(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') setAberto(false);
+    }
+    document.addEventListener('pointerdown', aoApontar);
+    document.addEventListener('keydown', aoTeclar);
+    return () => {
+      document.removeEventListener('pointerdown', aoApontar);
+      document.removeEventListener('keydown', aoTeclar);
+    };
+  }, [aberto]);
+
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="2.5" y="4.5" width="19" height="15" rx="2" />
-      <path d="M3 9h18M6 15h5" />
-    </svg>
+    <div className={styles.seletorPagamento} ref={caixa}>
+      <button
+        type="button"
+        className={styles.seletorGatilho}
+        aria-haspopup="listbox"
+        aria-expanded={aberto}
+        onClick={() => setAberto((v) => !v)}
+      >
+        {valor ? (
+          <>
+            <span className={styles.formaIcone}><IconeFormaPagamento forma={valor} /></span>
+            <strong>{ROTULOS_FORMA_PAGAMENTO[valor]}</strong>
+          </>
+        ) : (
+          <strong className={styles.seletorVazio}>Escolha a forma de pagamento</strong>
+        )}
+        <span className={styles.seletorSeta} aria-hidden="true">⌄</span>
+      </button>
+
+      {aberto && (
+        <div className={styles.seletorLista} role="listbox" aria-label="Forma de pagamento">
+          {formas.map((forma) => (
+            <button
+              key={forma}
+              type="button"
+              role="option"
+              aria-selected={valor === forma}
+              className={valor === forma ? styles.seletorOpcaoAtiva : styles.seletorOpcao}
+              onClick={() => {
+                onEscolher(forma);
+                setAberto(false);
+              }}
+            >
+              <span className={styles.formaIcone}><IconeFormaPagamento forma={forma} /></span>
+              <strong>{ROTULOS_FORMA_PAGAMENTO[forma]}</strong>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -315,6 +369,10 @@ export function NovoPedidoPainel({
                           {formatBRL(minimo > base ? minimo : base)}
                         </span>
                       </span>
+                      {/* Marcador de "adicionar". Não é <button>: o card
+                          inteiro já é o botão, e botão dentro de botão é HTML
+                          inválido — o + existe pra deixar a ação óbvia. */}
+                      {p.ativo && <span className={styles.cardAdicionar} aria-hidden="true">+</span>}
                     </button>
                   );
                 })}
@@ -377,25 +435,11 @@ export function NovoPedidoPainel({
 
             <div className={styles.clienteCampo}>
               <label>Forma de pagamento</label>
-              <div className={styles.formasPagamento} role="radiogroup" aria-label="Forma de pagamento">
-                {formasPagamentoPara('retirada').map((forma) => {
-                  const selecionada = formaPagamento === forma;
-                  return (
-                    <button
-                      key={forma}
-                      type="button"
-                      role="radio"
-                      aria-checked={selecionada}
-                      className={selecionada ? styles.formaSelecionada : undefined}
-                      onClick={() => setFormaPagamento(forma)}
-                    >
-                      <span className={styles.formaIcone}><IconeFormaPagamento forma={forma} /></span>
-                      <strong>{ROTULOS_FORMA_PAGAMENTO[forma]}</strong>
-                      <span className={styles.formaMarcador} aria-hidden="true" />
-                    </button>
-                  );
-                })}
-              </div>
+              <SeletorFormaPagamento
+                formas={formasPagamentoPara('retirada')}
+                valor={formaPagamento}
+                onEscolher={setFormaPagamento}
+              />
               {formaPagamento && <p className={styles.formaInstrucao}>{instrucaoPagamento(formaPagamento)}</p>}
             </div>
 
