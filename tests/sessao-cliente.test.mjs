@@ -39,6 +39,17 @@ test('sessão guarda somente hash e o cookie tem proteções do navegador', asyn
   assert.match(migracao, /revoke all on table public\.sessoes_clientes from public, anon, authenticated/i);
 });
 
+test('constraint da sessão aceita telefone E.164 brasileiro', async () => {
+  const migracao = await readFile(
+    new URL('../supabase/migrations/20260814120000_corrige_check_telefone_sessoes.sql', import.meta.url),
+    'utf8'
+  );
+
+  assert.match(migracao, /drop constraint if exists sessoes_clientes_telefone_normalizado_check/);
+  assert.match(migracao, /\^\[\+\]55\[0-9\]\{10,11\}\$/);
+  assert.doesNotMatch(migracao, /\^\\\\\+55/);
+});
+
 test('pedido confirmado prepara sessão sem alterar o contrato do carrinho', async () => {
   const fonte = await readFile(new URL('../app/api/lojas/[slug]/pedidos/route.ts', import.meta.url), 'utf8');
   const rpc = fonte.indexOf("sb.rpc('criar_pedido_publico_");
