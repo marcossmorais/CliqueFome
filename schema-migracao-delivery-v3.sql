@@ -166,7 +166,7 @@ for each row execute function public.cf_tocar_updated_at();
 -- ---------------------------------------------------------------------------
 -- O dono LÊ a própria configuração pelo painel. A ESCRITA não tem policy:
 -- passa inteira pela API administrativa com client privilegiado, que valida
--- os limites antes de gravar (mesma convenção de configuracoes_avaliacoes).
+-- os limites antes de gravar, sem liberar escrita direta na tabela.
 --
 -- `anon` não recebe nada: o cardápio público nunca lê estas tabelas direto.
 -- Quem cota é a rota server-side, com service_role.

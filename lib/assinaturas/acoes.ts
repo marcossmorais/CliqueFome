@@ -1,8 +1,7 @@
 'use client';
 
 import { criarClientNavegador } from '@/lib/supabase/client';
-import type { CicloCobranca } from './tipos';
-import type { PlanoLoja } from '@/lib/avaliacoes/tipos';
+import type { CicloCobranca, PlanoLoja } from './tipos';
 
 /**
  * As três ações administrativas passam por RPC `security definer` que

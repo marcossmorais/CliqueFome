@@ -1,6 +1,6 @@
 import { obterLojaPorSlug } from '@/lib/loja';
 import { criarClientServidor } from '@/lib/supabase/server';
-import { normalizarPlano, NOMES_PLANOS } from '@/lib/avaliacoes/tipos';
+import { normalizarPlano, NOMES_PLANOS } from '@/lib/assinaturas/tipos';
 import { VoltarConfig } from '../VoltarConfig';
 
 export default async function AssinaturaPage({
@@ -13,7 +13,7 @@ export default async function AssinaturaPage({
   if (!loja) return null;
 
   const sb = await criarClientServidor();
-  const { data } = await sb.from('loja_planos').select('plano').eq('loja_id', loja.id).maybeSingle();
+  const { data } = await sb.from('assinaturas').select('plano').eq('loja_id', loja.id).maybeSingle();
   const plano = normalizarPlano(data?.plano);
 
   return (

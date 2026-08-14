@@ -40,7 +40,7 @@ const GRUPOS: { titulo: string; funcs: Func[] }[] = [
     funcs: [
       { titulo: 'Desempenho e relatórios', texto: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.', icone: svg(<><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></>) },
       { titulo: 'Histórico de pedidos', texto: 'Todos os pedidos já feitos, com busca por cliente ou número e filtros avançados.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></>) },
-      { titulo: 'Financeiro', texto: 'Contas a pagar e a receber, fluxo de caixa e categorias financeiras.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M15 9.5c-.6-1-1.7-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 2 3 2 3 .9 3 2-1.3 2-3 2c-1.3 0-2.4-.5-3-1.5M12 6v12" /></>) },
+      { titulo: 'Financeiro', texto: 'Recebimentos, conciliação e Integração de Pagamentos em um só lugar.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M15 9.5c-.6-1-1.7-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 2 3 2 3 .9 3 2-1.3 2-3 2c-1.3 0-2.4-.5-3-1.5M12 6v12" /></>) },
       { titulo: 'Fiscal', texto: 'Emissão de notas dos pedidos direto pelo sistema.', icone: svg(<><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></>) },
     ],
   },
@@ -48,8 +48,7 @@ const GRUPOS: { titulo: string; funcs: Func[] }[] = [
     titulo: 'Configuração e suporte',
     funcs: [
       { titulo: 'Minha empresa', texto: 'Logo, endereço, horários de funcionamento e as formas de pagamento que você aceita.', icone: svg(<><path d="M3 21V9l9-6 9 6v12z" /><path d="M9 21v-7h6v7" /></>) },
-      { titulo: 'Configurações', texto: 'Impressão, agendamentos e integrações do sistema.', icone: svg(<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 007 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 15H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 7l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 0010 3V3a2 2 0 114 0v.1A1.6 1.6 0 0017 4.6l.1-.1a2 2 0 112.8 2.8l-.1.1A1.6 1.6 0 0021 10h0a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z" /></>) },
-      { titulo: 'Avaliações', texto: 'Veja o que os clientes acharam dos pedidos.', icone: svg(<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6.1-5.3-3-5.3 3 1.1-6.1L3.4 9.4l6-.8z" />) },
+      { titulo: 'Configurações', texto: 'Ajustes de impressão, agendamentos e operação do sistema.', icone: svg(<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 007 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 15H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 7l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 0010 3V3a2 2 0 114 0v.1A1.6 1.6 0 0017 4.6l.1-.1a2 2 0 112.8 2.8l-.1.1A1.6 1.6 0 0021 10h0a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z" /></>) },
       { titulo: 'Dúvidas e suporte', texto: 'Central de ajuda e canal de suporte direto no painel.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 113.2 2.4c-.5.2-.7.6-.7 1.1v.5" /><path d="M12 17h.01" /></>) },
     ],
   },

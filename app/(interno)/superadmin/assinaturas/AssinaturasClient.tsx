@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { NOMES_PLANOS, type PlanoLoja } from '@/lib/avaliacoes/tipos';
+import { NOMES_PLANOS, type PlanoLoja } from '@/lib/assinaturas/tipos';
 import {
   NOMES_CICLO,
   NOMES_STATUS_ASSINATURA,

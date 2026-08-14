@@ -21,9 +21,9 @@ begin;
 -- ---------------------------------------------------------------
 -- 1. Assinatura da loja
 -- ---------------------------------------------------------------
--- Mesma razão de `loja_planos` viver fora de `lojas`: a leitura de `lojas`
--- é pública e o dono pode atualizá-la. Se o plano/status morasse lá, o
--- navegador do lojista conseguiria se promover.
+-- A assinatura vive fora de `lojas`: a leitura de `lojas` é pública e o dono
+-- pode atualizá-la. Se plano/status morassem lá, o navegador do lojista
+-- conseguiria se promover.
 create table if not exists public.assinaturas (
   id uuid primary key default gen_random_uuid(),
   loja_id uuid not null unique references public.lojas(id) on delete cascade,
@@ -237,13 +237,6 @@ begin
   set plano = p_plano, ciclo = p_ciclo, valor = p_valor, atualizado_em = now()
   where loja_id = p_loja_id;
 
-  -- loja_planos continua sendo a fonte do feature-gating (avaliações já
-  -- dependem dela). Manter as duas em sincronia na MESMA transação evita
-  -- criar duas verdades sobre qual é o plano da loja.
-  insert into public.loja_planos (loja_id, plano, atualizado_em)
-  values (p_loja_id, p_plano, now())
-  on conflict (loja_id) do update set plano = excluded.plano, atualizado_em = now();
-
   perform public.registrar_evento_assinatura(
     p_loja_id, 'plano_alterado', p_motivo,
     jsonb_build_object(
@@ -381,14 +374,13 @@ for each row execute function public.inicializar_assinatura();
 -- ---------------------------------------------------------------
 -- 8. Backfill conservador
 -- ---------------------------------------------------------------
--- Toda loja existente ganha uma assinatura com o plano que já está em
--- loja_planos e status 'pendente' — não 'ativa'. Ninguém pagou nada
--- ainda, e marcar como ativa aqui seria exatamente o tipo de número
--- inventado que este arquivo evita. Valor fica 0 até um admin definir.
+-- Toda loja existente ganha uma assinatura Básica com status 'pendente' —
+-- não 'ativa'. Ninguém pagou nada ainda, e marcar como ativa aqui seria
+-- exatamente o tipo de número inventado que este arquivo evita. Valor fica 0
+-- até um admin definir.
 insert into public.assinaturas (loja_id, plano, status)
-select l.id, coalesce(lp.plano, 'basico'), 'pendente'
+select l.id, 'basico', 'pendente'
 from public.lojas l
-left join public.loja_planos lp on lp.loja_id = l.id
 on conflict (loja_id) do nothing;
 
 commit;

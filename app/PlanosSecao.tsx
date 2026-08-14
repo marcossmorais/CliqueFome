@@ -23,7 +23,6 @@ const PLANOS = [
       'Links do cardápio e do balcão',
       'Minha empresa: horários e formas de pagamento',
       'Histórico de pedidos com filtros',
-      'Avaliações dos clientes',
       'Dúvidas e suporte',
     ],
   },
@@ -40,8 +39,8 @@ const PLANOS = [
       'Caixa com sangria, suprimento e conferência',
       'Pedidos agendados e encomendas',
       'Desempenho e relatórios',
-      'Financeiro e emissão de notas (fiscal)',
-      'Configurações: impressão, agendamentos e integrações',
+      'Financeiro com Integração de Pagamentos',
+      'Configurações de impressão e agendamentos',
     ],
   },
 ];

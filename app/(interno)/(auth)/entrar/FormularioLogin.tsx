@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { criarClientNavegador } from '@/lib/supabase/client';
+import { destinoAposLogin } from '@/lib/auth/destino';
 import { LogoFlouFood } from '@/components/LogoFlouFood';
 
 export function FormularioLogin() {
@@ -29,22 +30,11 @@ export function FormularioLogin() {
       return;
     }
 
-    // O destino veio do proxy quando ele barrou a rota; sem ele, vai pro
-    // /painel, que descobre a loja. Só aceita rota da área interna: aceitar
-    // qualquer caminho que comece com "/" permitiria montar
-    // /entrar?proximo=https://site-falso (com "//") e usar o login de
-    // trampolim, e também mandar alguém direto pro painel de outra loja.
-    // Quem barra a segunda parte de verdade é o layout de /painel/[loja],
-    // mas não custa não emitir o redirecionamento.
-    const proximo = params.get('proximo');
-    const interno =
-      !!proximo &&
-      !proximo.startsWith('//') &&
-      (proximo === '/painel' ||
-        proximo.startsWith('/painel/') ||
-        proximo === '/superadmin' ||
-        proximo.startsWith('/superadmin/'));
-    const destino = interno ? proximo : '/painel';
+    // O destino veio do proxy quando ele barrou a rota. A função separa os
+    // papéis antes de navegar: superadmin sempre começa na plataforma e o
+    // lojista só pode voltar a uma rota /painel, ainda revalidada no servidor.
+    const { data: ehAdmin } = await sb.rpc('is_admin');
+    const destino = destinoAposLogin(ehAdmin === true, params.get('proximo'));
 
     router.replace(destino);
     // Força o servidor a reler a sessão do cookie antes de renderizar.
@@ -60,7 +50,7 @@ export function FormularioLogin() {
 
         <div id="loginCard" className="card">
           <h2 style={{ marginBottom: 4 }}>Entrar</h2>
-          <p className="sub">Acesse o painel da sua loja.</p>
+          <p className="sub">Acesse seu painel.</p>
 
           {erro && <div className="msg msg-erro">{erro}</div>}
 

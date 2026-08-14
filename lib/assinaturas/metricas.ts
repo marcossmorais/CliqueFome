@@ -1,5 +1,4 @@
-import type { PlanoLoja } from '@/lib/avaliacoes/tipos';
-import { calcularMrr, type Assinatura, type PagamentoAssinatura } from './tipos';
+import { calcularMrr, type Assinatura, type PagamentoAssinatura, type PlanoLoja } from './tipos';
 
 export type ResumoPlataforma = {
   receitaMes: number;
