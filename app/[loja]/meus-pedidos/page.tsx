@@ -6,7 +6,9 @@ import '../vitrine.css';
 import '../cliente.css';
 import { MeusPedidosClient } from './MeusPedidosClient';
 
-export const dynamic = 'force-dynamic';
+// Esta página é apenas a casca pública da loja. Os pedidos continuam vindo
+// da API privada `no-store`, autorizada pelo cookie do próprio navegador.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Meus pedidos',
@@ -26,7 +28,7 @@ export default async function MeusPedidosPage({ params }: { params: Promise<{ lo
   const { loja: slug } = await params;
   const { data: loja } = await clientePublico()
     .from('lojas')
-    .select('slug, nome, logo_url, cor_marca')
+    .select('slug, nome, logo_url, cor_marca, whatsapp_numero')
     .eq('slug', slug)
     .maybeSingle();
 

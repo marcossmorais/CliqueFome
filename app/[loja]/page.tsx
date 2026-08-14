@@ -7,6 +7,11 @@ import './cliente.css';
 import { CardapioClient } from './CardapioClient';
 import type { CategoriaPublica, GrupoPublico, LojaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
 
+// O catálogo é público e igual para todos os visitantes. Um cache curto faz
+// o prefetch da navegação cliente reaproveitar a página inteira, sem deixar
+// alterações do lojista antigas por mais de alguns segundos.
+export const revalidate = 30;
+
 /**
  * Cardápio público de uma loja: /oh-taal
  *
