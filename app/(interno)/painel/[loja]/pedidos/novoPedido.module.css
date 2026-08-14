@@ -262,6 +262,42 @@
 .seletorOpcaoAtiva strong { flex: 1; font-size: 13px; font-weight: 600; }
 .seletorOpcaoAtiva strong { color: var(--verde-escuro); }
 
+/* ---------- Endereço de entrega (só no tipo Delivery) ---------- */
+.blocoEntrega {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding: 13px;
+  border: 1px solid var(--borda);
+  border-radius: 11px;
+  background: var(--superficie);
+}
+.blocoEntrega > label {
+  color: var(--texto-suave);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.linhaEndereco { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.calcularTaxa {
+  width: 100%;
+  margin-top: 3px;
+  padding: 10px 14px;
+  border: 1px solid var(--verde);
+  border-radius: 10px;
+  background: var(--verde-tint);
+  color: var(--verde-escuro);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+.calcularTaxa:hover { background: var(--verde); color: #fff; }
+.calcularTaxa:disabled { cursor: not-allowed; opacity: .55; }
+.dicaEntrega { margin: 0; color: var(--texto-suave); font-size: 11.5px; line-height: 1.45; }
+.taxaOk { margin: 0; color: var(--texto); font-size: 12.5px; }
+.taxaOk strong { color: var(--verde-escuro); }
+
 .formaIcone { display: grid; width: 21px; height: 21px; flex: 0 0 21px; color: var(--verde-escuro); place-items: center; }
 .formaIcone svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .formaInstrucao { margin: 6px 0 0; color: var(--texto-suave); font-size: 11.5px; line-height: 1.5; }

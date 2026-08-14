@@ -24,18 +24,25 @@ import {
   instrucaoPagamento,
   type FormaPagamentoOffline,
 } from '@/lib/pedidos/pagamento';
+import { aplicarRespostaViaCep, formatarCep, validarEnderecoDelivery } from '@/lib/delivery/endereco';
+import type { CotacaoDeliveryPublica, EnderecoDelivery } from '@/lib/delivery/tipos';
 import { IconeBusca } from '@/components/admin/IconesCatalogo';
 import { IconeFormaPagamento } from '@/components/pedidos/IconeFormaPagamento';
 import { ModalDetalhesProdutoPedido } from './ModalDetalhesProdutoPedido';
 import styles from './novoPedido.module.css';
 
-type TipoManual = 'retirada' | 'balcao' | 'mesa' | 'encomenda';
+type TipoManual = 'retirada' | 'balcao' | 'mesa' | 'encomenda' | 'delivery';
 
 const NOMES_TIPO: Record<TipoManual, string> = {
   retirada: 'Retirada',
   balcao: 'Balcão',
   mesa: 'Mesa',
   encomenda: 'Encomenda',
+  delivery: 'Delivery',
+};
+
+const ENDERECO_VAZIO: EnderecoDelivery = {
+  cep: '', rua: '', numero: '', bairro: '', cidade: '', uf: '', complemento: null,
 };
 
 // Presencial (balcão/mesa) não exige telefone — cliente está ali na frente.
@@ -172,6 +179,15 @@ export function NovoPedidoPainel({
   const [erroLocal, setErroLocal] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
+  // Delivery: mesma mecânica do checkout público — o endereço vira uma
+  // cotação no banco, e é ela que carrega a taxa. O formulário nunca decide
+  // preço de entrega.
+  const [endereco, setEndereco] = useState<EnderecoDelivery>(ENDERECO_VAZIO);
+  const [cotacao, setCotacao] = useState<(CotacaoDeliveryPublica & { carrinho: string }) | null>(null);
+  const [calculandoTaxa, setCalculandoTaxa] = useState(false);
+  const [erroTaxa, setErroTaxa] = useState<string | null>(null);
+  const [buscandoCep, setBuscandoCep] = useState(false);
+
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return produtos.filter((p) => {
@@ -221,6 +237,72 @@ export function NovoPedidoPainel({
     adicionarLinha(p, [], '', 1);
   }
 
+  async function buscarCep(valor: string) {
+    const digitos = valor.replace(/\D/g, '');
+    setEndereco((atual) => ({ ...atual, cep: valor }));
+    if (digitos.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const resposta = await fetch(`https://viacep.com.br/ws/${digitos}/json/`);
+      const dados = await resposta.json();
+      if (!dados?.erro || dados.erro === 'false') {
+        setEndereco((atual) => aplicarRespostaViaCep({ ...atual, cep: valor }, dados));
+      }
+    } catch {
+      // CEP é conveniência: sem ele o atendente digita o endereço na mão.
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
+
+  /** Mesma rota que o cardápio público usa (`/api/delivery/quote`): quem
+   * calcula distância e taxa é o servidor, a partir do CEP. */
+  async function calcularTaxa() {
+    if (calculandoTaxa) return;
+    let validado: EnderecoDelivery;
+    try {
+      validado = validarEnderecoDelivery(endereco);
+    } catch {
+      setErroTaxa('Preencha CEP, rua, número, bairro, cidade e UF.');
+      return;
+    }
+    if (linhas.length === 0) {
+      setErroTaxa('Adicione os itens antes de calcular a entrega — a taxa depende do pedido.');
+      return;
+    }
+
+    const carrinhoPedido = assinaturaCarrinho;
+    setCalculandoTaxa(true);
+    setErroTaxa(null);
+    try {
+      const resposta = await fetch('/api/delivery/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lojaSlug,
+          endereco: validado,
+          itens: linhas.map((l) => ({
+            produtoId: l.produtoId,
+            quantidade: l.qty,
+            observacao: l.observacao || undefined,
+            complementos: l.complementos.map((c) => ({ complementoId: c.complementoId, quantidade: c.quantidade })),
+          })),
+        }),
+      });
+      const dados = await resposta.json().catch(() => null) as (CotacaoDeliveryPublica & { erro?: string }) | null;
+      if (!resposta.ok || !dados?.quoteId || !Number.isInteger(dados.deliveryFeeCents)) {
+        setErroTaxa(dados?.erro || 'Não foi possível calcular a taxa de entrega.');
+        return;
+      }
+      setEndereco(dados.address);
+      setCotacao({ ...dados, carrinho: carrinhoPedido });
+    } catch {
+      setErroTaxa('Não foi possível calcular a taxa de entrega.');
+    } finally {
+      setCalculandoTaxa(false);
+    }
+  }
+
   function mudarQtd(lineId: string, delta: number) {
     setLinhas((atual) =>
       atual.map((l) => (l.lineId === lineId ? { ...l, qty: l.qty + delta } : l)).filter((l) => l.qty > 0)
@@ -233,6 +315,15 @@ export function NovoPedidoPainel({
 
   const subtotal = linhas.reduce((s, l) => s + subtotalLinha(l), 0);
   const totalItens = linhas.reduce((s, l) => s + l.qty, 0);
+
+  // A cotação vale pro carrinho que a gerou: a RPC recusa se o subtotal mudou.
+  // Derivar do carrinho (em vez de um contador incrementado à mão) garante que
+  // nenhuma alteração passe batida.
+  const assinaturaCarrinho = linhas.map((l) => `${l.lineId}x${l.qty}`).join('|');
+  const cotacaoValida = cotacao?.carrinho === assinaturaCarrinho ? cotacao : null;
+  const taxaEntrega = tipo === 'delivery' && cotacaoValida ? cotacaoValida.deliveryFeeCents / 100 : 0;
+  const totalComTaxa = subtotal + taxaEntrega;
+  const entregaPronta = tipo !== 'delivery' || !!cotacaoValida;
 
   async function salvar() {
     setErroLocal(null);
@@ -254,6 +345,10 @@ export function NovoPedidoPainel({
     }
     if (tipo === 'encomenda' && !dataHora) {
       setErroLocal('Informe a data e hora combinada da encomenda.');
+      return;
+    }
+    if (tipo === 'delivery' && !cotacaoValida) {
+      setErroLocal('Calcule a taxa de entrega antes de criar o pedido.');
       return;
     }
 
@@ -278,6 +373,8 @@ export function NovoPedidoPainel({
         dataHoraAgendada: tipo === 'encomenda' && dataHora ? new Date(dataHora).toISOString() : undefined,
         origem: 'telefone',
         statusInicial: 'confirmado',
+        // A taxa e o endereço vêm da cotação no banco; daqui vai só o id.
+        quoteId: tipo === 'delivery' ? cotacaoValida?.quoteId : undefined,
       });
       await onCriado(resultado.numero);
       onFechar();
@@ -416,12 +513,18 @@ export function NovoPedidoPainel({
                     );
                     return atuais.filter((linha) => permitidos.has(linha.produtoId));
                   });
-                  setFormaPagamento((atual) => formaPagamentoPermitida('retirada', atual) ? atual : '');
+                  // Delivery não aceita "pagar na retirada", e o resto do
+                  // formulário muda de forma: zera a cotação junto.
+                  const canal = novoTipo === 'delivery' ? 'delivery' : 'retirada';
+                  setFormaPagamento((atual) => formaPagamentoPermitida(canal, atual) ? atual : '');
+                  setCotacao(null);
+                  setErroTaxa(null);
                 }}
               >
                 <option value="balcao">Balcão</option>
                 <option value="mesa">Mesa</option>
                 <option value="retirada">Retirada</option>
+                <option value="delivery">Delivery</option>
                 <option value="encomenda">Encomenda</option>
               </select>
             </div>
@@ -433,10 +536,74 @@ export function NovoPedidoPainel({
               </div>
             )}
 
+            {tipo === 'delivery' && (
+              <div className={styles.blocoEntrega}>
+                <label htmlFor="npCep">Endereço de entrega</label>
+                <div className={styles.linhaEndereco}>
+                  <input
+                    id="npCep"
+                    inputMode="numeric"
+                    maxLength={9}
+                    placeholder="CEP"
+                    value={formatarCep(endereco.cep)}
+                    onChange={(e) => buscarCep(e.target.value)}
+                  />
+                  <input
+                    placeholder="Número"
+                    value={endereco.numero}
+                    onChange={(e) => setEndereco((a) => ({ ...a, numero: e.target.value }))}
+                  />
+                </div>
+                {buscandoCep && <p className={styles.dicaEntrega}>Buscando o CEP…</p>}
+                <input
+                  placeholder="Rua"
+                  value={endereco.rua}
+                  onChange={(e) => setEndereco((a) => ({ ...a, rua: e.target.value }))}
+                />
+                <input
+                  placeholder="Bairro"
+                  value={endereco.bairro}
+                  onChange={(e) => setEndereco((a) => ({ ...a, bairro: e.target.value }))}
+                />
+                <div className={styles.linhaEndereco}>
+                  <input
+                    placeholder="Cidade"
+                    value={endereco.cidade}
+                    onChange={(e) => setEndereco((a) => ({ ...a, cidade: e.target.value }))}
+                  />
+                  <input
+                    placeholder="UF"
+                    maxLength={2}
+                    value={endereco.uf}
+                    onChange={(e) => setEndereco((a) => ({ ...a, uf: e.target.value.toUpperCase() }))}
+                  />
+                </div>
+                <input
+                  placeholder="Complemento (opcional)"
+                  value={endereco.complemento || ''}
+                  onChange={(e) => setEndereco((a) => ({ ...a, complemento: e.target.value || null }))}
+                />
+
+                <button type="button" className={styles.calcularTaxa} disabled={calculandoTaxa} onClick={calcularTaxa}>
+                  {calculandoTaxa ? 'Calculando…' : cotacaoValida ? 'Recalcular taxa' : 'Calcular taxa de entrega'}
+                </button>
+                {erroTaxa && <p className={styles.erro}>{erroTaxa}</p>}
+                {cotacaoValida ? (
+                  <p className={styles.taxaOk}>
+                    Taxa de entrega: <strong>{formatBRL(cotacaoValida.deliveryFeeCents / 100)}</strong>
+                  </p>
+                ) : (
+                  <p className={styles.dicaEntrega}>
+                    A taxa depende do endereço e dos itens. Mudou o carrinho, recalcule.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className={styles.clienteCampo}>
               <label>Forma de pagamento</label>
               <SeletorFormaPagamento
-                formas={formasPagamentoPara('retirada')}
+                formas={formasPagamentoPara(tipo === 'delivery' ? 'delivery' : 'retirada')}
                 valor={formaPagamento}
                 onEscolher={setFormaPagamento}
               />
@@ -502,9 +669,20 @@ export function NovoPedidoPainel({
                 <span>{totalItens} {totalItens === 1 ? 'item' : 'itens'}</span>
                 <strong>{formatBRL(subtotal)}</strong>
               </div>
-              <button type="button" className={styles.criarPedido} disabled={salvando || linhas.length === 0 || !formaPagamento} onClick={salvar}>
+              {tipo === 'delivery' && (
+                <div className={styles.rodapeTotalLinha}>
+                  <span>Taxa de entrega</span>
+                  <strong>{cotacaoValida ? formatBRL(taxaEntrega) : '—'}</strong>
+                </div>
+              )}
+              <button
+                type="button"
+                className={styles.criarPedido}
+                disabled={salvando || linhas.length === 0 || !formaPagamento || !entregaPronta}
+                onClick={salvar}
+              >
                 {salvando && <span className="btn-spinner" aria-hidden="true" />}
-                {salvando ? 'Criando pedido…' : `Criar pedido · ${formatBRL(subtotal)}`}
+                {salvando ? 'Criando pedido…' : `Criar pedido · ${formatBRL(totalComTaxa)}`}
               </button>
             </div>
           </aside>
