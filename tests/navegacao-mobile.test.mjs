@@ -63,3 +63,18 @@ test('checkout nao abre aba externa e oferece WhatsApp em Meus pedidos', async (
   assert.match(pedidos, /IconeWhatsapp \/> WhatsApp/);
   assert.match(pagina, /cor_marca, whatsapp_numero/);
 });
+
+test('rotas publicas podem ser prefetchadas sem armazenar pedidos privados', async () => {
+  const [inicio, pedidos, navegacao, apiPedidos] = await Promise.all([
+    readFile(new URL('../app/[loja]/page.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../app/[loja]/meus-pedidos/page.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../app/[loja]/NavegacaoCliente.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../app/api/lojas/[slug]/meus-pedidos/route.ts', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(inicio, /export const revalidate = 30/);
+  assert.match(pedidos, /export const revalidate = 300/);
+  assert.doesNotMatch(pedidos, /force-dynamic/);
+  assert.equal((navegacao.match(/<Link[^>]+prefetch/g) ?? []).length, 2);
+  assert.match(apiPedidos, /'Cache-Control': 'private, no-store'/);
+});

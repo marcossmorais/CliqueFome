@@ -37,11 +37,11 @@ export function NavegacaoCliente({
       aria-label="Navegação do cardápio"
       style={{ ['--marca' as string]: corMarca || '#1E7A4E' }}
     >
-      <Link href={inicio} className={!emPedidos ? 'ativo' : ''} aria-current={!emPedidos ? 'page' : undefined}>
+      <Link href={inicio} prefetch className={!emPedidos ? 'ativo' : ''} aria-current={!emPedidos ? 'page' : undefined}>
         <IconeInicio />
         <span>Início</span>
       </Link>
-      <Link href={pedidos} className={emPedidos ? 'ativo' : ''} aria-current={emPedidos ? 'page' : undefined}>
+      <Link href={pedidos} prefetch className={emPedidos ? 'ativo' : ''} aria-current={emPedidos ? 'page' : undefined}>
         <IconePedidos />
         <span>Meus pedidos</span>
       </Link>
