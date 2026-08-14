@@ -87,6 +87,7 @@ export function PainelDetalhePedido({
   const proximo = proximoStatus(pedido);
   const rotulo = rotuloAvancar(pedido);
   const ativo = pedido.status !== 'concluido' && pedido.status !== 'cancelado';
+  const pago = pedido.pagamento_status === 'confirmado';
 
   /** Em conflito o estado da tela está velho: recarrega e fecha, em vez de
    * insistir numa transição que partia de um status que não existe mais. */
@@ -286,19 +287,31 @@ export function PainelDetalhePedido({
               {avancando ? 'Salvando...' : rotulo}
             </button>
           )}
+          {/* Pago e a receber precisam se distinguir de relance: antes os dois
+              eram o mesmo botão contornado e a única diferença era um "✓" no
+              fim do texto, fácil de não ver no meio do serviço. */}
           <button
             type="button"
-            className="btn-ghost btn-small pedido-pagamento-acao"
-            disabled={pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado'}
+            className={'btn-ghost btn-small pedido-pagamento-acao' + (pago ? ' pago' : '')}
+            disabled={pedido.status === 'cancelado' && !pago}
             title={
-              pedido.status === 'cancelado' && pedido.pagamento_status !== 'confirmado'
+              pedido.status === 'cancelado' && !pago
                 ? 'Pedido cancelado não pode ser marcado como pago.'
+                : pago
+                ? 'Clique para desfazer a confirmação do pagamento.'
                 : undefined
             }
+            aria-pressed={pago}
             onClick={alternarPagamento}
           >
-            <span aria-hidden="true">$</span>
-            {pedido.pagamento_status === 'confirmado' ? 'Pagamento recebido ✓' : 'Pagamento recebido'}
+            <span className="pedido-pagamento-marca" aria-hidden="true">
+              {pago ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              ) : 'R$'}
+            </span>
+            {pago ? 'Pagamento confirmado' : 'Marcar pagamento recebido'}
           </button>
           {ativo && (
             <button type="button" className="btn-ghost btn-small pedido-cancelar" onClick={cancelar}>

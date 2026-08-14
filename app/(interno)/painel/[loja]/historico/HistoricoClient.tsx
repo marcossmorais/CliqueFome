@@ -179,6 +179,12 @@ export function HistoricoClient({
 
   return (
     <div className={`area ativo ${styles.historico}`}>
+      {/* O histórico é um desvio da tela de operação, não um destino: sem uma
+          volta explícita, quem entra aqui só sai pelo menu lateral. */}
+      <Link href={`/painel/${lojaSlug}/pedidos`} className={styles.voltar}>
+        <span aria-hidden="true">←</span> Voltar para a gestão de pedidos
+      </Link>
+
       {erro && <div className="msg msg-erro" role="alert">{erro}</div>}
 
       <form className={styles.filtros} method="get" action={rotaHistorico}>

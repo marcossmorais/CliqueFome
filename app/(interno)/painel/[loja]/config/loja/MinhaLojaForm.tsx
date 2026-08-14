@@ -26,7 +26,6 @@ export function MinhaLojaForm({ loja }: { loja: Loja }) {
   const [cor, setCor] = useState(loja.cor_marca || '#1E7A4E');
   const [cidade, setCidade] = useState(loja.cidade || '');
   const [sobre, setSobre] = useState(loja.sobre || '');
-  const [aberta, setAberta] = useState(loja.recebendo_encomendas);
 
   const [logoPreview, setLogoPreview] = useState<string | null>(loja.logo_url);
   const [capaPreview, setCapaPreview] = useState<string | null>(loja.banner_url);
@@ -86,7 +85,11 @@ export function MinhaLojaForm({ loja }: { loja: Loja }) {
         cor_marca: hex,
         cidade: cidade.trim() || null,
         sobre: sobre.trim() || null,
-        recebendo_encomendas: aberta,
+        // `recebendo_encomendas` NÃO entra aqui de propósito: quem manda
+        // nesse campo é o controle do topo do painel. Se este formulário
+        // continuasse gravando, salvar os dados da loja regravaria o valor
+        // carregado na abertura da página e desfaria, sem avisar, um
+        // "fechar loja" feito no topo minutos antes.
       };
       const { error } = await sb.from('lojas').update(dados).eq('id', loja.id);
       if (error) throw error;
@@ -216,18 +219,10 @@ export function MinhaLojaForm({ loja }: { loja: Loja }) {
         </p>
         <textarea id="lojaSobre" value={sobre} onChange={(e) => setSobre(e.target.value)} />
 
-        <div className="switch-row" style={{ marginTop: 8 }}>
-          <label className="switch">
-            <input type="checkbox" checked={aberta} onChange={(e) => setAberta(e.target.checked)} />
-            <span className="switch-track"></span>
-          </label>
-          <div>
-            <strong>Loja aberta</strong>
-            <p className="dica" style={{ margin: 0 }}>
-              Desligue pra pausar o recebimento de pedidos sem precisar mexer no cardápio.
-            </p>
-          </div>
-        </div>
+        {/* Abrir e fechar a loja mora só no topo do painel. Tinha os dois
+            lugares, e este aqui só valia depois de "Salvar dados da loja" —
+            dava pra virar a chave, sair sem salvar e achar que a loja tinha
+            fechado. O do topo grava na hora. */}
 
         <button type="submit" className="btn-primary btn-small" disabled={salvando}>
           {salvando && <span className="btn-spinner" aria-hidden="true" />}

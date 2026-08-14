@@ -295,6 +295,15 @@ export function PedidosClient({
         >
           <span aria-hidden="true">↻</span>
         </button>
+        {/* Histórico fica aqui em cima, junto das outras ações da tela. Antes
+            era um link no pé da lista: quem tem muitos pedidos precisava
+            rolar a fila inteira pra achar. */}
+        <Link href={`/painel/${lojaSlug}/pedidos/historico`} className="btn-ghost btn-small pedidos-historico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 21a9 9 0 110-18 9 9 0 010 18zM12 7v5l3 3" />
+          </svg>
+          Histórico
+        </Link>
         <button type="button" className="btn-primary btn-small pedidos-novo" onClick={() => setModalManualAberto(true)}>
           <span aria-hidden="true">＋</span> Novo pedido
         </button>
@@ -385,9 +394,6 @@ export function PedidosClient({
             })}
           </div>
 
-          <Link href={`/painel/${lojaSlug}/pedidos/historico`} className="pedidos-ver-todos">
-            Ver todos os pedidos <span aria-hidden="true">⌄</span>
-          </Link>
         </section>
 
         {pedidoAberto ? (

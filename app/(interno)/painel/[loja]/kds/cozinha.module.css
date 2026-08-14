@@ -100,9 +100,13 @@
   line-height: 1.45;
 }
 
+/* Verde de "deu certo", não a cor da marca. Cuidado com o nome: as
+   variáveis `--verde-*` viraram o LARANJA da FlouFood na migração de
+   identidade, então `var(--verde-tint)` aqui pintava fundo laranja com
+   texto e borda verdes. */
 .mensagemOk {
   border-color: #bce3cc;
-  background: var(--verde-tint);
+  background: #f1faf3;
   color: #145f38;
 }
 
@@ -236,9 +240,12 @@
   color: #155487;
 }
 
+/* Os três estados são semânticos (âmbar, azul, verde) e não seguem a cor
+   da marca — "pronto" é verde no app inteiro, igual ao COR_STATUS.pronto
+   de lib/pedidos/tipos.ts. */
 .estado_pronto {
   border-color: #bce3cc;
-  background: var(--verde-tint);
+  background: #f1faf3;
   color: #145f38;
 }
 
@@ -416,7 +423,7 @@
   padding: 11px 12px;
   border: 1px solid #bce3cc;
   border-radius: 10px;
-  background: var(--verde-tint);
+  background: #f1faf3;
   color: #145f38;
 }
 
