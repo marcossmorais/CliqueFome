@@ -9,6 +9,8 @@ import {
 import { montarMensagemPedido } from '@/lib/pedidos/mensagemWhatsapp';
 import { criarClientPrivilegiado, hashLimite, hashPayload } from '@/lib/pedidos/servidor';
 import { logger } from '@/lib/observabilidade/logger';
+import { normalizarTelefoneBrasil } from '@/lib/clientes/telefone';
+import { aplicarCookieSessaoCliente, prepararSessaoCliente } from '@/lib/clientes/sessao-servidor';
 
 export const runtime = 'nodejs';
 
@@ -181,7 +183,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   // estado operacional de novo para impedir POST manual em loja fechada.
   const { data: lojaOperacao, error: erroLojaOperacao } = await sb
     .from('lojas')
-    .select('whatsapp_numero, recebendo_encomendas, retirada_ativa')
+    .select('id, whatsapp_numero, recebendo_encomendas, retirada_ativa')
     .eq('slug', slug)
     .maybeSingle();
   if (erroLojaOperacao) {
@@ -348,7 +350,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const numeroWhats = (lojaOperacao.whatsapp_numero || '').replace(/\D/g, '');
   const urlWhatsapp = numeroWhats ? `https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}` : null;
 
-  return NextResponse.json(
+  const resposta = NextResponse.json(
     {
       pedido: {
         numero: numeroPedidoGravado,
@@ -365,4 +367,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     },
     { status: resultado.replay ? 200 : 201, headers: { 'Cache-Control': 'no-store' } }
   );
+
+  // A sessão nasce somente depois que o pedido existe. Falhar ao criar o
+  // cookie não desfaz uma compra já confirmada; o cliente ainda conserva o
+  // link individual de acompanhamento devolvido acima.
+  const telefoneNormalizado = normalizarTelefoneBrasil(entrada.clienteTelefone);
+  if (telefoneNormalizado) {
+    try {
+      const cookieSessao = await prepararSessaoCliente(sb, request, {
+        lojaId: lojaOperacao.id,
+        lojaSlug: slug,
+        telefoneNormalizado,
+      });
+      aplicarCookieSessaoCliente(resposta, cookieSessao);
+    } catch (erroSessao) {
+      logger.error(
+        { rota: ROTA, lojaSlug: slug, tipoErro: erroSessao instanceof Error ? erroSessao.name : 'desconhecido' },
+        'Pedido criado, mas não foi possível preparar a sessão do cliente'
+      );
+    }
+  }
+
+  return resposta;
 }

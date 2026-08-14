@@ -25,6 +25,8 @@ import { formaPagamentoPermitida, type FormaPagamentoOffline } from '@/lib/pedid
 import { IconeCategoria } from '@/components/cardapio/IconeCategoria';
 import type { CotacaoDeliveryPublica, ModalidadePedido } from '@/lib/delivery/tipos';
 import { numeroPedido } from '@/lib/pedidos/numero';
+import { NavegacaoCliente } from './NavegacaoCliente';
+import { CarrinhoLateral } from './CarrinhoLateral';
 
 const TEXTO_AVISO: Record<string, string> = {
   removido: 'saiu do cardápio',
@@ -530,31 +532,44 @@ export function CardapioClient({
             ))}
           </nav>
 
-          <div className="menu-vitrine-topo">
-            <h2>{tituloVitrine}</h2>
-            <span>{produtosExibidos.length} {produtosExibidos.length === 1 ? 'item' : 'itens'}</span>
-          </div>
+          <div className="cardapio-layout">
+            <div className="cardapio-produtos">
+              <div className="menu-vitrine-topo">
+                <h2>{tituloVitrine}</h2>
+                <span>{produtosExibidos.length} {produtosExibidos.length === 1 ? 'item' : 'itens'}</span>
+              </div>
 
-          <div aria-live="polite">
-            {produtosExibidos.length === 0 ? (
-              <p className="menu-status">Nenhum item encontrado.</p>
-            ) : secoes.map((secao) => (
-              <section key={secao.id} className="menu-secao" aria-label={secao.titulo || undefined}>
-                {secao.titulo && <h3 className="menu-secao-titulo">{secao.titulo}</h3>}
-                <div className="menu-list">
-                  {secao.produtos.map((p) => (
-                    <CartaoProduto
-                      key={p.id}
-                      produto={p}
-                      quantidade={quantidadeSimples(p.id)}
-                      onAbrir={() => abrirProduto(p)}
-                      onAdicionar={() => adicionarRapido(p)}
-                      onDiminuir={() => diminuirProdutoSimples(p.id)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
+              <div aria-live="polite">
+                {produtosExibidos.length === 0 ? (
+                  <p className="menu-status">Nenhum item encontrado.</p>
+                ) : secoes.map((secao) => (
+                  <section key={secao.id} className="menu-secao" aria-label={secao.titulo || undefined}>
+                    {secao.titulo && <h3 className="menu-secao-titulo">{secao.titulo}</h3>}
+                    <div className="menu-list">
+                      {secao.produtos.map((p) => (
+                        <CartaoProduto
+                          key={p.id}
+                          produto={p}
+                          quantidade={quantidadeSimples(p.id)}
+                          onAbrir={() => abrirProduto(p)}
+                          onAdicionar={() => adicionarRapido(p)}
+                          onDiminuir={() => diminuirProdutoSimples(p.id)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </div>
+
+            <CarrinhoLateral
+              linhas={linhas}
+              imagensPorProduto={imagensPorProduto}
+              subtotal={subtotal}
+              onMudarQtd={mudarQtd}
+              onRemover={(lineId) => atualizar((atuais) => atuais.filter((linha) => linha.lineId !== lineId))}
+              onContinuar={() => setModalAberto(true)}
+            />
           </div>
         </div>
       </section>
@@ -626,6 +641,7 @@ export function CardapioClient({
           setModalAberto(false);
         }}
       />
+      <NavegacaoCliente lojaSlug={loja.slug} />
       </div>
     </>
   );

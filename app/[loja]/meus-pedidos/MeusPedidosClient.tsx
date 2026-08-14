@@ -1,0 +1,270 @@
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { formatBRL } from '@/lib/pedidos/tipos';
+import {
+  ROTULOS_STATUS_CLIENTE,
+  type PedidoClienteDetalhe,
+  type PedidoClienteResumo,
+} from '@/lib/clientes/pedidos-publicos';
+import { numeroPedido } from '@/lib/pedidos/numero';
+import { useEscFechar } from '@/hooks/useEscFechar';
+import { NavegacaoCliente } from '../NavegacaoCliente';
+
+type Aba = 'andamento' | 'historico';
+type LojaPedidos = { slug: string; nome: string; logo_url: string | null; cor_marca: string | null };
+
+function formatarData(valor: string) {
+  const data = new Date(valor);
+  const hoje = new Date();
+  const dataLocal = data.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const hojeLocal = hoje.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const hora = data.toLocaleTimeString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return dataLocal === hojeLocal ? `Hoje · ${hora}` : `${dataLocal} · ${hora}`;
+}
+
+function rotuloEntrega(tipo: string) {
+  return tipo === 'delivery' ? 'Entrega' : tipo === 'retirada' ? 'Retirada' : 'Atendimento na loja';
+}
+
+function DetalhePedido({
+  pedido,
+  carregando,
+  erro,
+  onFechar,
+}: {
+  pedido: PedidoClienteDetalhe | null;
+  carregando: boolean;
+  erro: string | null;
+  onFechar: () => void;
+}) {
+  useEscFechar(onFechar);
+
+  return (
+    <div className="pedido-cliente-fundo" role="presentation" onMouseDown={(evento) => evento.target === evento.currentTarget && onFechar()}>
+      <section className="pedido-cliente-detalhe" role="dialog" aria-modal="true" aria-labelledby="pedido-cliente-detalhe-titulo">
+        <button type="button" className="pedido-cliente-fechar" onClick={onFechar} aria-label="Fechar detalhes">×</button>
+        {carregando ? (
+          <p className="pedidos-cliente-carregando">Carregando pedido…</p>
+        ) : erro ? (
+          <div className="pedidos-cliente-erro" role="alert">{erro}</div>
+        ) : pedido && (
+          <>
+            <header>
+              <span>{formatarData(pedido.createdAt)}</span>
+              <h2 id="pedido-cliente-detalhe-titulo">Pedido {numeroPedido(pedido.orderNumber)}</h2>
+              <strong className={`pedido-cliente-status status-${pedido.status}`}>
+                {ROTULOS_STATUS_CLIENTE[pedido.status]}
+              </strong>
+            </header>
+
+            <div className="pedido-cliente-itens">
+              <h3>Itens</h3>
+              {pedido.items.map((item, indice) => (
+                <div className="pedido-cliente-item" key={`${item.name}-${indice}`}>
+                  <div><strong>{item.quantity}× {item.name}</strong><span>{formatBRL(item.subtotal)}</span></div>
+                  {item.options.map((opcao, opcaoIndice) => (
+                    <small key={`${opcao.name}-${opcaoIndice}`}>{opcao.quantity}× {opcao.name}</small>
+                  ))}
+                  {item.note && <small>Observação: {item.note}</small>}
+                </div>
+              ))}
+            </div>
+
+            <dl className="pedido-cliente-totais">
+              <div><dt>Subtotal</dt><dd>{formatBRL(pedido.subtotal)}</dd></div>
+              {pedido.deliveryFee > 0 && <div><dt>Taxa de entrega</dt><dd>{formatBRL(pedido.deliveryFee)}</dd></div>}
+              {pedido.discount > 0 && <div><dt>Desconto</dt><dd>− {formatBRL(pedido.discount)}</dd></div>}
+              <div className="total"><dt>Total</dt><dd>{formatBRL(pedido.total)}</dd></div>
+            </dl>
+
+            <div className="pedido-cliente-entrega">
+              <strong>{rotuloEntrega(pedido.fulfillmentType)}</strong>
+              {pedido.address && <p>{pedido.address}</p>}
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export function MeusPedidosClient({ loja }: { loja: LojaPedidos }) {
+  const [aba, setAba] = useState<Aba>('andamento');
+  const [pedidos, setPedidos] = useState<PedidoClienteResumo[]>([]);
+  const [paginaHistorico, setPaginaHistorico] = useState(1);
+  const [temMais, setTemMais] = useState(false);
+  const [temSessao, setTemSessao] = useState<boolean | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [tokenAberto, setTokenAberto] = useState<string | null>(null);
+  const [detalhe, setDetalhe] = useState<PedidoClienteDetalhe | null>(null);
+  const [erroDetalhe, setErroDetalhe] = useState<string | null>(null);
+  const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
+  const requisicaoRef = useRef<AbortController | null>(null);
+
+  const buscarPedidos = useCallback(async (abaSolicitada: Aba, pagina: number, acumular = false) => {
+    requisicaoRef.current?.abort();
+    const controlador = new AbortController();
+    requisicaoRef.current = controlador;
+    if (!acumular) setCarregando(true);
+    setErro(null);
+    try {
+      const resposta = await fetch(
+        `/api/lojas/${loja.slug}/meus-pedidos?aba=${abaSolicitada}&pagina=${pagina}`,
+        { cache: 'no-store', signal: controlador.signal }
+      );
+      const corpo = await resposta.json();
+      if (!resposta.ok) throw new Error(corpo.erro || 'Não foi possível carregar seus pedidos.');
+      setTemSessao(corpo.sessao === true);
+      const recebidos = (corpo.pedidos || []) as PedidoClienteResumo[];
+      setPedidos((atuais) => acumular ? [...atuais, ...recebidos] : recebidos);
+      setTemMais(corpo.temMais === true);
+    } catch (falha) {
+      if (controlador.signal.aborted) return;
+      setErro(falha instanceof Error ? falha.message : 'Não foi possível carregar seus pedidos.');
+    } finally {
+      if (requisicaoRef.current === controlador) {
+        requisicaoRef.current = null;
+        setCarregando(false);
+      }
+    }
+  }, [loja.slug]);
+
+  useEffect(() => {
+    const cargaInicial = window.setTimeout(() => void buscarPedidos(aba, 1), 0);
+    const intervalo = aba === 'andamento'
+      ? window.setInterval(() => {
+          if (document.visibilityState === 'visible') void buscarPedidos('andamento', 1);
+        }, 10_000)
+      : null;
+    return () => {
+      window.clearTimeout(cargaInicial);
+      if (intervalo) window.clearInterval(intervalo);
+      requisicaoRef.current?.abort();
+    };
+  }, [aba, buscarPedidos]);
+
+  function mudarAba(novaAba: Aba) {
+    if (novaAba === aba) return;
+    setPedidos([]);
+    setPaginaHistorico(1);
+    setTemMais(false);
+    setCarregando(true);
+    setAba(novaAba);
+  }
+
+  async function abrirDetalhe(token: string) {
+    setTokenAberto(token);
+    setDetalhe(null);
+    setErroDetalhe(null);
+    setCarregandoDetalhe(true);
+    try {
+      const resposta = await fetch(`/api/lojas/${loja.slug}/meus-pedidos/${token}`, { cache: 'no-store' });
+      const corpo = await resposta.json();
+      if (!resposta.ok) throw new Error(corpo.erro || 'Não foi possível abrir o pedido.');
+      setDetalhe(corpo.pedido as PedidoClienteDetalhe);
+    } catch (falha) {
+      setErroDetalhe(falha instanceof Error ? falha.message : 'Não foi possível abrir o pedido.');
+    } finally {
+      setCarregandoDetalhe(false);
+    }
+  }
+
+  function carregarMais() {
+    const proxima = paginaHistorico + 1;
+    setPaginaHistorico(proxima);
+    void buscarPedidos('historico', proxima, true);
+  }
+
+  return (
+    <div className="pedidos-cliente-pagina" style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
+      <header className="pedidos-cliente-topo">
+        <Link href={`/${loja.slug}`} aria-label={`Voltar ao cardápio de ${loja.nome}`}>
+          <span className="pedidos-cliente-logo">
+            {loja.logo_url && <Image src={loja.logo_url} alt="" width={46} height={46} />}
+          </span>
+          <span><small>Cardápio de</small><strong>{loja.nome}</strong></span>
+        </Link>
+      </header>
+
+      <main className="pedidos-cliente-conteudo">
+        <div className="pedidos-cliente-titulo">
+          <span className="pedidos-cliente-titulo-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4" /></svg>
+          </span>
+          <div><h1>Meus pedidos</h1><p>Acompanhe o preparo e consulte compras anteriores.</p></div>
+        </div>
+
+        <div className="pedidos-cliente-abas" role="tablist" aria-label="Tipos de pedido">
+          <button type="button" role="tab" aria-selected={aba === 'andamento'} className={aba === 'andamento' ? 'ativo' : ''} onClick={() => mudarAba('andamento')}>Em andamento</button>
+          <button type="button" role="tab" aria-selected={aba === 'historico'} className={aba === 'historico' ? 'ativo' : ''} onClick={() => mudarAba('historico')}>Histórico</button>
+        </div>
+
+        {carregando ? (
+          <p className="pedidos-cliente-carregando" role="status">Carregando seus pedidos…</p>
+        ) : erro ? (
+          <div className="pedidos-cliente-erro" role="alert">
+            <strong>Não foi possível atualizar agora.</strong><p>{erro}</p>
+            <button type="button" onClick={() => void buscarPedidos(aba, 1)}>Tentar novamente</button>
+          </div>
+        ) : temSessao === false ? (
+          <div className="pedidos-cliente-vazio">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4" /></svg>
+            </span>
+            <h2>Seus pedidos aparecerão aqui</h2>
+            <p>Depois que você fizer o primeiro pedido neste navegador, poderá acompanhar tudo por aqui.</p>
+            <Link href={`/${loja.slug}`}>Voltar ao cardápio</Link>
+          </div>
+        ) : pedidos.length === 0 ? (
+          <div className="pedidos-cliente-vazio compacto">
+            <h2>{aba === 'andamento' ? 'Nenhum pedido em andamento' : 'Seu histórico está vazio'}</h2>
+            <p>{aba === 'andamento' ? 'Quando fizer um novo pedido, o andamento aparecerá aqui.' : 'Pedidos entregues ou cancelados aparecerão nesta aba.'}</p>
+            {aba === 'andamento' && <Link href={`/${loja.slug}`}>Escolher algo no cardápio</Link>}
+          </div>
+        ) : (
+          <section className="pedidos-cliente-lista" aria-live="polite">
+            {pedidos.map((pedido) => (
+              <article className="pedido-cliente-card" key={pedido.trackingToken}>
+                <div className="pedido-cliente-card-topo">
+                  <div><strong>Pedido {numeroPedido(pedido.orderNumber)}</strong><span>{formatarData(pedido.createdAt)}</span></div>
+                  <span className={`pedido-cliente-status status-${pedido.status}`}>{ROTULOS_STATUS_CLIENTE[pedido.status]}</span>
+                </div>
+                <p className="pedido-cliente-resumo">
+                  {pedido.items.slice(0, 2).map((item) => `${item.quantity}× ${item.name}`).join(' · ')}
+                  {pedido.items.length > 2 && ` · +${pedido.items.length - 2}`}
+                </p>
+                <div className="pedido-cliente-card-rodape">
+                  <div><small>{rotuloEntrega(pedido.fulfillmentType)}</small><strong>{formatBRL(pedido.total)}</strong></div>
+                  <button type="button" onClick={() => void abrirDetalhe(pedido.trackingToken)}>
+                    {aba === 'andamento' ? 'Acompanhar' : 'Ver detalhes'} <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </article>
+            ))}
+            {aba === 'historico' && temMais && (
+              <button type="button" className="pedidos-cliente-carregar" onClick={carregarMais}>Carregar mais</button>
+            )}
+          </section>
+        )}
+      </main>
+
+      <NavegacaoCliente lojaSlug={loja.slug} />
+      {tokenAberto && (
+        <DetalhePedido
+          pedido={detalhe}
+          carregando={carregandoDetalhe}
+          erro={erroDetalhe}
+          onFechar={() => setTokenAberto(null)}
+        />
+      )}
+    </div>
+  );
+}

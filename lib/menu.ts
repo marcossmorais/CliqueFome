@@ -57,7 +57,7 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
     itens: [
       { id: 'financeiro', nome: 'Financeiro', icone: 'financeiro', pronta: true, desc: 'Recebimentos e integração de pagamentos da loja.' },
       { id: 'desempenho', nome: 'Desempenho', icone: 'desempenho', desc: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.' },
-      { id: 'clientes', nome: 'Clientes', icone: 'clientes', desc: 'Base de clientes e recorrência de pedidos.' },
+      { id: 'clientes', nome: 'Clientes', icone: 'clientes', pronta: true, desc: 'Base de clientes e recorrência de pedidos.' },
     ],
   },
   {

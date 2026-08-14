@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import './cardapio.css';
 import './vitrine.css';
+import './cliente.css';
 import { CardapioClient } from './CardapioClient';
 import type { CategoriaPublica, GrupoPublico, LojaPublica, ProdutoPublico } from '@/lib/cardapio/tipos';
 
@@ -32,6 +33,22 @@ type RowProdutoGrupo = {
 };
 
 const DIAS: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/** O catálogo de demonstração foi criado quando o projeto ainda usava o
+ * domínio cliquefome.vercel.app. Os mesmos arquivos vivem em /public; usar o
+ * caminho relativo evita uma ida a um domínio legado que hoje responde 404. */
+function urlImagemPublica(url: string | null) {
+  if (!url) return null;
+  try {
+    const analisada = new URL(url);
+    if (analisada.hostname === 'cliquefome.vercel.app' && analisada.pathname.startsWith('/demo/')) {
+      return analisada.pathname;
+    }
+  } catch {
+    // Caminhos relativos e URLs de storage válidas continuam como vieram.
+  }
+  return url;
+}
 
 /**
  * Dia da semana no fuso da loja, não no do servidor. Na Vercel o servidor
@@ -121,13 +138,17 @@ async function carregar(slug: string) {
     .filter((p) => !p.dias_semana?.length || p.dias_semana.includes(hoje))
     .map((p) => ({
       ...p,
+      imagem_url: urlImagemPublica(p.imagem_url),
       grupos: (p.produto_grupos || [])
         .map((pg) => ({ pg, g: pg.grupos_complemento }))
         .filter((x): x is { pg: RowProdutoGrupo; g: GrupoBruto } => !!x.g && x.g.ativo)
         .sort((a, b) => a.pg.ordem - b.pg.ordem)
         .map(({ g }) => ({
           ...g,
-          complementos: (g.complementos || []).filter((c) => c.ativo).sort((a, b) => a.ordem - b.ordem),
+          complementos: (g.complementos || [])
+            .filter((c) => c.ativo)
+            .sort((a, b) => a.ordem - b.ordem)
+            .map((c) => ({ ...c, imagem_url: urlImagemPublica(c.imagem_url) })),
         })),
     }))
     // Destaque sobe pro topo — é o que o painel promete ao marcar a opção.
@@ -135,7 +156,11 @@ async function carregar(slug: string) {
     .sort((a, b) => Number(b.destaque) - Number(a.destaque) || a.ordem - b.ordem);
 
   return {
-    loja: loja as LojaPublica,
+    loja: {
+      ...loja,
+      logo_url: urlImagemPublica(loja.logo_url),
+      banner_url: urlImagemPublica(loja.banner_url),
+    } as LojaPublica,
     categorias: listaCategorias,
     produtos: produtosTratados,
     deliveryAtiva: !erroDelivery && deliveryAtiva === true,
