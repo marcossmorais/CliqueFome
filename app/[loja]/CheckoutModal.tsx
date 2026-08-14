@@ -7,25 +7,15 @@ import { useEscFechar } from '@/hooks/useEscFechar';
 import {
   formasPagamentoPara,
   instrucaoPagamento,
-  nomeFormaPagamento,
   type FormaPagamentoOffline,
 } from '@/lib/pedidos/pagamento';
 import { IconeFormaPagamento } from '@/components/pedidos/IconeFormaPagamento';
 import { aplicarRespostaViaCep, formatarCep, validarEnderecoDelivery } from '@/lib/delivery/endereco';
-import { numeroPedido } from '@/lib/pedidos/numero';
 import type {
   CotacaoDeliveryPublica,
   EnderecoDelivery,
   ModalidadePedido,
 } from '@/lib/delivery/tipos';
-
-export type PedidoRegistrado = {
-  pedido: {
-    numero: number; token: string; status: string; pagamento_status: string; forma_pagamento: string;
-    subtotal: number; total: number; tracking_url: string; tipo: ModalidadePedido;
-  };
-  proximaAcao: { tipo: string; url: string } | null;
-};
 
 export type SugestaoComplementoCarrinho = {
   lineId: string;
@@ -77,16 +67,15 @@ type EstadoModal = 'fechado' | 'entrando' | 'aberto' | 'saindo';
  * dois problemas de uma vez.
  */
 export function CheckoutModal({
-  aberto, linhas, nome, telefone, formaPagamento, erro, enviando, pedidoRegistrado,
+  aberto, linhas, nome, telefone, formaPagamento, erro, enviando,
   onFechar, onMudarQtd, onRemover,
   sugestoes, sugestoesComplementos, onAdicionarSugestao, onAdicionarComplemento,
   lojaAberta, retiradaAtiva, deliveryAtiva, lojaSlug, modalidade, versaoCarrinho,
   lojaNome, lojaLogoUrl, pedidoMinimo, tempoPreparoMin, tempoPreparoMax, imagensPorProduto,
-  onNome, onTelefone, onFormaPagamento, onModalidade, onFinalizar, onNovoPedido,
+  onNome, onTelefone, onFormaPagamento, onModalidade, onFinalizar,
 }: {
   aberto: boolean; linhas: LinhaCarrinho[]; nome: string; telefone: string;
   formaPagamento: FormaPagamentoOffline | ''; erro: string | null; enviando: boolean;
-  pedidoRegistrado: PedidoRegistrado | null;
   lojaAberta: boolean; retiradaAtiva: boolean; deliveryAtiva: boolean;
   lojaSlug: string; modalidade: ModalidadePedido; versaoCarrinho: number;
   lojaNome: string; lojaLogoUrl: string | null; pedidoMinimo: number;
@@ -104,7 +93,7 @@ export function CheckoutModal({
   onNome: (v: string) => void; onTelefone: (v: string) => void;
   onFormaPagamento: (forma: FormaPagamentoOffline | '') => void;
   onModalidade: (modalidade: ModalidadePedido) => void;
-  onFinalizar: (cotacao: CotacaoDeliveryPublica | null) => void; onNovoPedido: () => void;
+  onFinalizar: (cotacao: CotacaoDeliveryPublica | null) => void;
 }) {
   const [etapa, setEtapa] = useState<Etapa>('carrinho');
   const [endereco, setEndereco] = useState<EnderecoDelivery>(ENDERECO_VAZIO);
@@ -320,11 +309,30 @@ export function CheckoutModal({
   // <h2>, fechando o teclado do celular no meio da digitação.
   useEffect(() => {
     if (estado === 'fechado') return;
-    const overflow = document.body.style.overflow;
+    const corpo = document.body;
+    const raiz = document.documentElement;
+    const rolagem = window.scrollY;
+    const estilosAnteriores = {
+      overflowCorpo: corpo.style.overflow,
+      posicaoCorpo: corpo.style.position,
+      topoCorpo: corpo.style.top,
+      larguraCorpo: corpo.style.width,
+      overflowRaiz: raiz.style.overflow,
+    };
+
+    raiz.style.overflow = 'hidden';
+    corpo.style.position = 'fixed';
+    corpo.style.top = `-${rolagem}px`;
+    corpo.style.width = '100%';
     document.body.style.overflow = 'hidden';
     tituloRef.current?.focus();
     return () => {
-      document.body.style.overflow = overflow;
+      corpo.style.overflow = estilosAnteriores.overflowCorpo;
+      corpo.style.position = estilosAnteriores.posicaoCorpo;
+      corpo.style.top = estilosAnteriores.topoCorpo;
+      corpo.style.width = estilosAnteriores.larguraCorpo;
+      raiz.style.overflow = estilosAnteriores.overflowRaiz;
+      window.scrollTo(0, rolagem);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao abrir/fechar, não a cada troca 'entrando'->'aberto'
   }, [estado === 'fechado']);
@@ -349,11 +357,7 @@ export function CheckoutModal({
 
   if (estado === 'fechado') return null;
 
-  const titulo = pedidoRegistrado
-    ? 'Pedido recebido'
-    : etapa === 'carrinho'
-      ? 'Seu carrinho'
-      : 'Finalizar pedido';
+  const titulo = etapa === 'carrinho' ? 'Seu carrinho' : 'Finalizar pedido';
 
   // Os grupos de sugestão viram uma lista só: o desenho mostra uma faixa
   // contínua de cartões, não uma seção por categoria.
@@ -411,12 +415,11 @@ export function CheckoutModal({
 
         <h2 id="checkout-titulo" ref={tituloRef} tabIndex={-1} className="checkout-titulo">{titulo}</h2>
 
-        {!pedidoRegistrado && (
-          // Três marcos com progressão: o que já passou fica com ✓ e o traço
-          // até ele preenchido. Pagamento não é uma tela separada — é a última
-          // coisa que a pessoa escolhe antes de confirmar, então acende quando
-          // ela escolhe a forma. Nenhum marco acende antes da hora.
-          <ol className="checkout-etapas" aria-label="Etapas do pedido">
+        {/* Três marcos com progressão: o que já passou fica com ✓ e o traço
+            até ele preenchido. Pagamento não é uma tela separada — é a última
+            coisa que a pessoa escolhe antes de confirmar, então acende quando
+            ela escolhe a forma. Nenhum marco acende antes da hora. */}
+        <ol className="checkout-etapas" aria-label="Etapas do pedido">
             {[
               { id: 'carrinho', rotulo: 'Carrinho' },
               { id: 'entrega', rotulo: modalidade === 'delivery' ? 'Entrega' : 'Retirada' },
@@ -434,30 +437,9 @@ export function CheckoutModal({
                 </li>
               );
             })}
-          </ol>
-        )}
+        </ol>
 
-        {pedidoRegistrado ? (
-          <div className="checkout-sucesso">
-            <div className="checkout-sucesso-icone">✓</div>
-            <h3>Pedido {numeroPedido(pedidoRegistrado.pedido.numero)} registrado</h3>
-            <p>Ele já entrou como pendente na gestão da loja.</p>
-            <div className="checkout-pendente">
-              <strong>Pagamento a receber · {nomeFormaPagamento(pedidoRegistrado.pedido.forma_pagamento)}</strong>
-              <span>{instrucaoPagamentoCheckout(pedidoRegistrado.pedido.forma_pagamento, pedidoRegistrado.pedido.tipo)}</span>
-            </div>
-            <div className="checkout-total"><span>Total</span><strong>{formatBRL(pedidoRegistrado.pedido.total)}</strong></div>
-            {pedidoRegistrado.proximaAcao?.tipo === 'whatsapp' && (
-              pedidoRegistrado.pedido.forma_pagamento === 'pix_manual' ? (
-                <a className="btn-primary checkout-acao" href={pedidoRegistrado.proximaAcao.url} target="_blank" rel="noopener noreferrer">Continuar no WhatsApp pra fazer o Pix</a>
-              ) : (
-                <a className="btn-continue" href={pedidoRegistrado.proximaAcao.url} target="_blank" rel="noopener noreferrer">Abrir WhatsApp (opcional)</a>
-              )
-            )}
-            <a className="btn-continue" href={pedidoRegistrado.pedido.tracking_url}>Acompanhar meu pedido</a>
-            <button type="button" className="btn-continue" onClick={onNovoPedido}>Fechar e fazer novo pedido</button>
-          </div>
-        ) : etapa === 'carrinho' ? (
+        {etapa === 'carrinho' ? (
           <div className="checkout-conteudo">
             {linhas.length === 0 ? (
               <p className="checkout-carrinho-vazio">Seu carrinho está vazio.</p>

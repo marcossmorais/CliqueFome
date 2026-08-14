@@ -8,6 +8,7 @@ import {
   ROTULOS_STATUS_CLIENTE,
   type PedidoClienteDetalhe,
   type PedidoClienteResumo,
+  type StatusPedidoCliente,
 } from '@/lib/clientes/pedidos-publicos';
 import { numeroPedido } from '@/lib/pedidos/numero';
 import { useEscFechar } from '@/hooks/useEscFechar';
@@ -31,6 +32,64 @@ function formatarData(valor: string) {
 
 function rotuloEntrega(tipo: string) {
   return tipo === 'delivery' ? 'Entrega' : tipo === 'retirada' ? 'Retirada' : 'Atendimento na loja';
+}
+
+const ORDEM_STATUS: Record<Exclude<StatusPedidoCliente, 'cancelado'>, number> = {
+  pendente: 0,
+  confirmado: 1,
+  em_preparo: 2,
+  pronto: 3,
+  saiu_entrega: 4,
+  concluido: 5,
+};
+
+function AcompanhamentoPedido({
+  status,
+  tipo,
+}: {
+  status: StatusPedidoCliente;
+  tipo: string;
+}) {
+  if (status === 'cancelado') {
+    return <p className="pedido-cliente-cancelado">Este pedido foi cancelado.</p>;
+  }
+
+  const delivery = tipo === 'delivery';
+  const etapas = delivery
+    ? [
+        { rotulo: 'Recebido', limite: 0 },
+        { rotulo: 'Em preparo', limite: 2 },
+        { rotulo: 'Saiu para entrega', limite: 4 },
+        { rotulo: 'Entregue', limite: 5 },
+      ]
+    : [
+        { rotulo: 'Recebido', limite: 0 },
+        { rotulo: 'Em preparo', limite: 2 },
+        { rotulo: 'Pronto', limite: 3 },
+        { rotulo: 'Retirado', limite: 5 },
+      ];
+  const ordemAtual = ORDEM_STATUS[status];
+  const indiceAtual = etapas.reduce(
+    (indice, etapa, atual) => ordemAtual >= etapa.limite ? atual : indice,
+    0
+  );
+
+  return (
+    <ol className="pedido-cliente-etapas" aria-label={`Andamento: ${ROTULOS_STATUS_CLIENTE[status]}`}>
+      {etapas.map((etapa, indice) => (
+        <li
+          key={etapa.rotulo}
+          className={(indice <= indiceAtual ? 'alcancada' : '') + (indice === indiceAtual ? ' atual' : '')}
+          aria-current={indice === indiceAtual ? 'step' : undefined}
+        >
+          <span className="pedido-cliente-etapa-icone" aria-hidden="true">
+            {indice < indiceAtual ? '✓' : indice + 1}
+          </span>
+          <span>{etapa.rotulo}</span>
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 function DetalhePedido({
@@ -237,6 +296,9 @@ export function MeusPedidosClient({ loja }: { loja: LojaPedidos }) {
                   <div><strong>Pedido {numeroPedido(pedido.orderNumber)}</strong><span>{formatarData(pedido.createdAt)}</span></div>
                   <span className={`pedido-cliente-status status-${pedido.status}`}>{ROTULOS_STATUS_CLIENTE[pedido.status]}</span>
                 </div>
+                {aba === 'andamento' && (
+                  <AcompanhamentoPedido status={pedido.status} tipo={pedido.fulfillmentType} />
+                )}
                 <p className="pedido-cliente-resumo">
                   {pedido.items.slice(0, 2).map((item) => `${item.quantity}× ${item.name}`).join(' · ')}
                   {pedido.items.length > 2 && ` · +${pedido.items.length - 2}`}

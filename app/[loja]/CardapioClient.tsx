@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { usePedidoAcompanhado } from '@/hooks/usePedidoAcompanhado';
 import { HeroLoja } from './HeroLoja';
 import { ModalProduto } from './ModalProduto';
 import { CartaoProduto } from './CartaoProduto';
-import { CheckoutModal, type PedidoRegistrado, type SugestaoComplementoCarrinho } from './CheckoutModal';
+import { CheckoutModal, type SugestaoComplementoCarrinho } from './CheckoutModal';
 import {
   apareceNoTipo,
   produtoApareceNoTipo,
@@ -24,7 +24,6 @@ import {
 import { formaPagamentoPermitida, type FormaPagamentoOffline } from '@/lib/pedidos/pagamento';
 import { IconeCategoria } from '@/components/cardapio/IconeCategoria';
 import type { CotacaoDeliveryPublica, ModalidadePedido } from '@/lib/delivery/tipos';
-import { numeroPedido } from '@/lib/pedidos/numero';
 import { NavegacaoCliente } from './NavegacaoCliente';
 import { CarrinhoLateral } from './CarrinhoLateral';
 
@@ -56,6 +55,7 @@ export function CardapioClient({
   produtos: ProdutoPublico[];
   deliveryAtiva: boolean;
 }) {
+  const router = useRouter();
   const [linhasSalvas, setLinhas] = useLocalStorage<LinhaCarrinho[]>(
     chaveCarrinho(loja.slug),
     VAZIO,
@@ -71,7 +71,6 @@ export function CardapioClient({
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoOffline | ''>('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [pedidoRegistrado, setPedidoRegistrado] = useState<PedidoRegistrado | null>(null);
   const [modalidade, setModalidade] = useState<ModalidadePedido>(() =>
     loja.retirada_ativa ? 'retirada' : 'delivery'
   );
@@ -82,7 +81,6 @@ export function CardapioClient({
   // viram dois pedidos (a garantia real é o índice único no banco; isto
   // aqui só evita gerar chave nova a cada tentativa da mesma compra).
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
-  const { ativo: pedidoAcompanhado, registrar: registrarAcompanhamento } = usePedidoAcompanhado(loja.slug);
 
   // O carrinho exibido é sempre o conferido contra o catálogo que acabou de
   // chegar do servidor — nunca o retrato salvo no navegador.
@@ -400,6 +398,13 @@ export function CardapioClient({
       return;
     }
 
+    // Precisa nascer ainda dentro do clique: Safari e Chrome mobile bloqueiam
+    // window.open depois do await do fetch. Ela só é usada no Pix e é fechada
+    // de novo se o pedido falhar ou não devolver uma ação de WhatsApp.
+    const abaPagamento = formaPagamento === 'pix_manual'
+      ? window.open('', '_blank')
+      : null;
+    if (abaPagamento) abaPagamento.opener = null;
     const controlador = new AbortController();
     const temporizador = setTimeout(() => controlador.abort(), 20_000);
     setEnviando(true);
@@ -431,6 +436,7 @@ export function CardapioClient({
       const corpo = await resposta.json();
 
       if (!resposta.ok) {
+        abaPagamento?.close();
         if (corpo.codigo === 'DELIVERY_QUOTE_STALE') {
           setVersaoCarrinho((atual) => atual + 1);
         }
@@ -442,17 +448,23 @@ export function CardapioClient({
       // idempotência pra próxima compra ser uma tentativa nova.
       atualizar(() => []);
       setIdempotencyKey(crypto.randomUUID());
-      setPedidoRegistrado({ pedido: corpo.pedido, proximaAcao: corpo.proxima_acao });
-      registrarAcompanhamento({ token: corpo.pedido.token, numero: corpo.pedido.numero });
-      // Pix no WhatsApp é o único caminho pra fechar o pagamento — tenta
-      // abrir sozinho. Pode ser bloqueado como popup (Safari/Chrome mobile
-      // bloqueiam window.open fora de um clique síncrono, e este roda
-      // depois do fetch), por isso o botão continua visível na tela de
-      // sucesso como caminho manual de volta.
+      // Pix continua levando ao WhatsApp para concluir o pagamento. O
+      // acompanhamento do pedido, por outro lado, fica exclusivamente em
+      // "Meus pedidos", para onde a aba principal segue logo depois.
       if (corpo.pedido.forma_pagamento === 'pix_manual' && corpo.proxima_acao?.tipo === 'whatsapp') {
-        window.open(corpo.proxima_acao.url, '_blank', 'noopener,noreferrer');
+        if (abaPagamento && !abaPagamento.closed) {
+          abaPagamento.location.replace(corpo.proxima_acao.url);
+        } else {
+          window.location.assign(corpo.proxima_acao.url);
+          return;
+        }
+      } else {
+        abaPagamento?.close();
       }
+      setModalAberto(false);
+      router.replace(`/${loja.slug}/meus-pedidos`);
     } catch {
+      abaPagamento?.close();
       setErro('Falha de conexão ao enviar seu pedido. Seu carrinho continua salvo — tente de novo.');
     } finally {
       clearTimeout(temporizador);
@@ -467,16 +479,6 @@ export function CardapioClient({
 
   return (
     <>
-      {pedidoAcompanhado && !modalAberto && (
-        <a
-          className="acompanhar-barra"
-          href={`/pedido/${pedidoAcompanhado.token}`}
-          style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}
-        >
-          <span>Acompanhando o pedido {numeroPedido(pedidoAcompanhado.numero)}</span>
-          <span className="acompanhar-barra-cta">Ver andamento →</span>
-        </a>
-      )}
       <div className="cardapio-app" style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
       {/* A barra lateral do desktop saiu: ela empurrava a capa pra 3/4 da
           largura e repetia o que o cabeçalho já diz (logo, nome, status,
@@ -611,7 +613,6 @@ export function CardapioClient({
         formaPagamento={formaPagamento}
         erro={erro}
         enviando={enviando}
-        pedidoRegistrado={pedidoRegistrado}
         lojaAberta={loja.recebendo_encomendas}
         retiradaAtiva={loja.retirada_ativa}
         deliveryAtiva={deliveryAtiva}
@@ -636,10 +637,6 @@ export function CardapioClient({
         onFormaPagamento={(forma) => { setFormaPagamento(forma); setErro(null); }}
         onModalidade={(novaModalidade) => { setModalidade(novaModalidade); setErro(null); }}
         onFinalizar={finalizar}
-        onNovoPedido={() => {
-          setPedidoRegistrado(null);
-          setModalAberto(false);
-        }}
       />
       <NavegacaoCliente lojaSlug={loja.slug} />
       </div>
