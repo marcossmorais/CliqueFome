@@ -100,7 +100,12 @@ function GraficoVendas({ resumo }: { resumo: ResumoDashboard }) {
         <path d={linha} className={styles.linhaGrafico} />
         {pontos.map((ponto) => (
           <circle key={ponto.data} cx={ponto.x} cy={ponto.y} r="5" className={styles.pontoGrafico}>
-            <title>{ponto.rotulo}: {FORMATO_DINHEIRO.format(ponto.valor)}</title>
+            {/* Uma string só, e não três filhos. O React 19 trata <title>
+                como tag de metadado e só emite o conteúdo quando recebe um
+                único filho de texto: com `{a}: {b}` o servidor mandava
+                <title></title> vazio e o cliente renderizava o texto, o que
+                derrubava a hidratação da dashboard inteira (erro #418). */}
+            <title>{`${ponto.rotulo}: ${FORMATO_DINHEIRO.format(ponto.valor)}`}</title>
           </circle>
         ))}
       </svg>
