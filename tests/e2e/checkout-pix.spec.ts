@@ -110,7 +110,9 @@ test('checkout registra Retirada com Pix sem chamar a API de Delivery', async ({
 
   await adicionarPrimeiroProduto(page);
 
-  const botaoCarrinho = page.getByRole('button', { name: /Ver carrinho/ });
+  // Em telas largas, o carrinho lateral substitui a barra flutuante. Os dois
+  // CTAs abrem o mesmo checkout e nunca ficam visíveis ao mesmo tempo.
+  const botaoCarrinho = page.locator('button.floating-cart:visible, button.carrinho-lateral-continuar:visible').first();
   await expect(botaoCarrinho).toBeVisible();
   await botaoCarrinho.click();
 

@@ -460,3 +460,114 @@ body{
 @media (prefers-reduced-motion:reduce){
   .cardapio-app *{ scroll-behavior:auto!important; transition:none!important; }
 }
+
+/* Hero com a identidade da loja em um cartão legível sobre a capa. A
+   imagem continua sendo o maior elemento visual, mas nome, cidade e estado
+   operacional não dependem mais do contraste imprevisível do banner. */
+.cardapio-app .loja-hero{ padding:0 12px 6px; }
+.cardapio-app .loja-capa{ height:190px; border-radius:0 0 18px 18px; }
+.cardapio-app .loja-capa-sombra{ background:linear-gradient(90deg,rgba(4,15,9,.62),rgba(4,15,9,.05) 75%); }
+.cardapio-app .loja-chamada{ top:44%; width:min(62%,250px); font-size:clamp(20px,6vw,28px); }
+.cardapio-app .loja-hero-base{
+  position:relative;
+  z-index:2;
+  left:auto;
+  top:auto;
+  display:flex;
+  width:100%;
+  min-height:156px;
+  margin:-30px 0 0;
+  padding:58px 18px 18px;
+  align-items:center;
+  flex-direction:column;
+  gap:9px;
+  transform:none;
+  border:1px solid #e6ebe8;
+  border-radius:24px;
+  background:#fff;
+  box-shadow:0 8px 26px rgba(23,37,29,.09);
+  text-align:center;
+}
+.cardapio-app .loja-logo{
+  position:absolute;
+  top:-43px;
+  left:50%;
+  width:86px;
+  height:86px;
+  flex:0 0 86px;
+  transform:translateX(-50%);
+  border:5px solid #fff;
+  border-radius:50%;
+  box-shadow:0 5px 16px rgba(0,0,0,.17);
+}
+.cardapio-app .loja-hero-txt{ width:100%; padding:0; color:#1b2420; }
+.cardapio-app .loja-hero-nome{ margin:0; color:#1b2420; font-size:23px; line-height:1.15; letter-spacing:-.025em; }
+.cardapio-app .loja-hero-meta{ display:flex; margin-top:9px; align-items:center; justify-content:center; gap:10px; color:#59655f; font-size:11px; }
+.cardapio-app .loja-local{ display:inline-flex; align-items:center; gap:5px; }
+.cardapio-app .loja-local svg{ width:16px; height:16px; color:#68736d; }
+.cardapio-app .loja-mais{ display:inline-flex; min-height:32px; margin:0; padding:0 10px; align-items:center; border:0; border-radius:8px; background:#f3f6f4; color:#3d4943; font:800 10.5px inherit; text-decoration:none; cursor:pointer; }
+.cardapio-app .loja-status-linha{ margin:10px 0 0; font-size:12px; font-weight:850; }
+.cardapio-app .loja-status-linha.aberto{ color:#14733d; }
+.cardapio-app .loja-status-linha.fechado{ color:#c43f3f; }
+.cardapio-app .loja-status-linha span{ font-weight:700; }
+.cardapio-app .loja-info-caixa{ position:relative; z-index:3; top:auto; left:auto; width:100%; max-height:none; margin:10px 0 0; overflow:visible; }
+
+/* O painel lateral só se torna visível quando há largura real. Até lá,
+   o carrinho flutuante existente continua sendo a única entrada. */
+.cardapio-layout{ min-width:0; }
+.cardapio-produtos{ min-width:0; }
+.carrinho-lateral{ display:none; min-width:0; }
+.carrinho-lateral-caixa{ position:sticky; top:20px; overflow:hidden; border:1px solid #e1e7e3; border-radius:18px; background:#fff; box-shadow:0 8px 28px rgba(22,37,28,.075); }
+.carrinho-lateral-caixa>header{ display:flex; min-height:72px; padding:16px 18px; align-items:center; justify-content:space-between; border-bottom:1px solid #e8ecea; }
+.carrinho-lateral-caixa>header>div{ display:grid; gap:2px; }
+.carrinho-lateral-caixa>header span{ font-size:16px; font-weight:850; }
+.carrinho-lateral-caixa>header small{ color:#78837d; font-size:10px; }
+.carrinho-lateral-caixa>header svg{ width:23px; height:23px; color:var(--verde-ui); }
+.carrinho-lateral-vazio{ display:grid; min-height:260px; padding:34px 25px; place-content:center; justify-items:center; text-align:center; }
+.carrinho-lateral-vazio>span{ display:grid; width:58px; height:58px; margin-bottom:14px; place-items:center; border-radius:18px; background:color-mix(in srgb,var(--verde-ui) 10%,#fff); color:var(--verde-ui); }
+.carrinho-lateral-vazio svg{ width:28px; height:28px; }
+.carrinho-lateral-vazio strong{ font-size:13px; }
+.carrinho-lateral-vazio p{ margin:6px 0 0; color:#7a857f; font-size:10.5px; }
+.carrinho-lateral-itens{ max-height:400px; padding:5px 16px; overflow:auto; }
+.carrinho-lateral-item{ display:flex; padding:13px 0; gap:10px; border-bottom:1px solid #edf0ee; }
+.carrinho-lateral-foto{ display:grid; width:52px; height:52px; flex:0 0 52px; place-items:center; overflow:hidden; border-radius:9px; background:#f2f4f3; color:#a4ada8; }
+.carrinho-lateral-foto img{ width:100%; height:100%; object-fit:cover; }
+.carrinho-lateral-item-corpo{ display:grid; min-width:0; flex:1; gap:3px; }
+.carrinho-lateral-item-corpo>strong{ overflow:hidden; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+.carrinho-lateral-item-corpo>small{ overflow:hidden; color:#7a857f; font-size:8.5px; text-overflow:ellipsis; white-space:nowrap; }
+.carrinho-lateral-item-corpo>div{ display:flex; margin-top:5px; align-items:center; justify-content:space-between; gap:8px; font-size:10px; }
+.carrinho-lateral-qtd{ display:flex; align-items:center; gap:3px; border:1px solid #dde4e0; border-radius:8px; }
+.carrinho-lateral-qtd button{ display:grid; width:27px; height:27px; padding:0; place-items:center; border:0; background:transparent; color:var(--verde-ui); font:800 15px inherit; cursor:pointer; }
+.carrinho-lateral-qtd b{ min-width:18px; text-align:center; font-size:10px; }
+.carrinho-lateral-remover{ justify-self:start; padding:0; border:0; background:transparent; color:#9a4b4b; font:700 8.5px inherit; cursor:pointer; }
+.carrinho-lateral-totais{ display:grid; gap:8px; margin:0; padding:16px 18px; border-top:1px solid #e8ecea; background:#fafbfa; }
+.carrinho-lateral-totais>div{ display:flex; align-items:center; justify-content:space-between; gap:12px; color:#536059; font-size:10px; }
+.carrinho-lateral-totais dt,.carrinho-lateral-totais dd{ margin:0; }
+.carrinho-lateral-taxa dd{ color:#89928d; font-size:8.5px; text-align:right; }
+.carrinho-lateral-totais .total{ padding-top:9px; border-top:1px solid #e0e6e2; color:#1c2520; font-size:13px; font-weight:850; }
+.carrinho-lateral-continuar{ display:flex; width:calc(100% - 32px); min-height:48px; margin:0 16px 16px; padding:0 17px; align-items:center; justify-content:space-between; border:0; border-radius:11px; background:var(--verde-ui); color:#fff; font:850 11px inherit; cursor:pointer; }
+.carrinho-lateral button:focus-visible{ outline:3px solid color-mix(in srgb,var(--verde-ui) 25%,transparent); outline-offset:2px; }
+
+@media (max-width:959px){
+  .cardapio-app .menu-section{ padding-bottom:calc(158px + env(safe-area-inset-bottom)); }
+  .cardapio-app .floating-cart{ bottom:calc(73px + env(safe-area-inset-bottom)); }
+}
+
+@media (min-width:960px){
+  .cardapio-app .loja-hero{ padding:0 34px 12px; }
+  .cardapio-app .loja-capa{ height:310px; margin:0 -34px; border-radius:0; }
+  .cardapio-app .loja-hero-base{ width:min(100%,1200px); min-height:176px; margin:-48px auto 0; padding:70px 34px 24px; border-radius:28px; }
+  .cardapio-app .loja-logo{ top:-51px; width:102px; height:102px; }
+  .cardapio-app .loja-hero-nome{ font-size:30px; }
+  .cardapio-app .loja-hero-meta{ font-size:12px; }
+  .cardapio-app .loja-status-linha{ font-size:13px; }
+  .cardapio-app .loja-info-caixa{ width:min(100%,760px); margin:12px auto 0; }
+}
+
+@media (min-width:1180px){
+  .cardapio-app .menu-conteudo{ max-width:1320px; }
+  .cardapio-layout{ display:grid; grid-template-columns:minmax(0,1fr) 340px; align-items:start; gap:26px; }
+  .carrinho-lateral{ display:block; align-self:stretch; }
+  .cardapio-app .cardapio-produtos .menu-list{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .cardapio-app .floating-cart{ display:none; }
+}

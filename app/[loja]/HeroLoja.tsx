@@ -46,24 +46,6 @@ export function HeroLoja({
 
   return (
     <header className="loja-hero">
-      <div className="loja-mobile-topo">
-        <button
-          type="button"
-          className="loja-menu-btn"
-          aria-label={infoAberta ? 'Fechar informações da loja' : 'Abrir informações da loja'}
-          aria-controls="painel-informacoes-loja"
-          aria-expanded={infoAberta}
-          onClick={() => setInfoAberta((v) => !v)}
-        >
-          <span /> <span /> <span />
-        </button>
-        <LogoLoja url={loja.logo_url} className="loja-mobile-logo" lado={42} />
-        <div className="loja-mobile-identidade">
-          <strong>{loja.nome}</strong>
-          <small><b className={aceitando ? 'aberto' : 'fechado'}>{aceitando ? 'Aceitando pedidos' : 'Pedidos pausados'}</b>{tempo && <> · {tempo}</>}</small>
-        </div>
-      </div>
-
       <div className="loja-capa">
         {/* Maior imagem da página e a primeira que a pessoa vê: `priority`
             tira ela da fila do lazy-load e o Next a pré-carrega. */}
@@ -72,16 +54,25 @@ export function HeroLoja({
         )}
         <div className="loja-capa-sombra" />
         <p className="loja-chamada">{loja.sobre || 'Os seus favoritos, preparados com carinho.'}</p>
-        <div className="loja-hero-base">
-          <LogoLoja url={loja.logo_url} className="loja-logo" lado={92} />
-          <div className="loja-hero-txt">
-            <h1 className="loja-hero-nome">{loja.nome}</h1>
-            <div className="loja-hero-meta">
-              <span className={'loja-status ' + (aceitando ? 'aberto' : 'fechado')}>{aceitando ? 'Aceitando pedidos' : 'Pedidos pausados'}</span>
-              {tempo && <><span>·</span><span>{tempo}</span></>}
-            </div>
-            <button type="button" className="loja-mais" aria-controls="painel-informacoes-loja" aria-expanded={infoAberta} onClick={() => setInfoAberta((v) => !v)}>ⓘ Mais informações</button>
+      </div>
+
+      <div className="loja-hero-base">
+        <LogoLoja url={loja.logo_url} className="loja-logo" lado={112} />
+        <div className="loja-hero-txt">
+          <h1 className="loja-hero-nome">{loja.nome}</h1>
+          <div className="loja-hero-meta">
+            {loja.cidade && (
+              <span className="loja-local">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1116 0z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                {loja.cidade}
+              </span>
+            )}
+            <button type="button" className="loja-mais" aria-controls="painel-informacoes-loja" aria-expanded={infoAberta} onClick={() => setInfoAberta((v) => !v)}>Mais informações</button>
           </div>
+          <p className={'loja-status-linha ' + (aceitando ? 'aberto' : 'fechado')}>
+            {aceitando ? 'Aceitando pedidos agora' : 'Fechado para novos pedidos'}
+            {tempo && <span> · {tempo}</span>}
+          </p>
         </div>
       </div>
 
