@@ -19,14 +19,24 @@ function IconePedidos() {
   );
 }
 
-export function NavegacaoCliente({ lojaSlug }: { lojaSlug: string }) {
+export function NavegacaoCliente({
+  lojaSlug,
+  corMarca,
+}: {
+  lojaSlug: string;
+  corMarca?: string | null;
+}) {
   const pathname = usePathname();
   const inicio = `/${lojaSlug}`;
   const pedidos = `/${lojaSlug}/meus-pedidos`;
   const emPedidos = pathname === pedidos || pathname.startsWith(`${pedidos}/`);
 
   return (
-    <nav className="cliente-nav-inferior" aria-label="Navegação do cardápio">
+    <nav
+      className="cliente-nav-inferior"
+      aria-label="Navegação do cardápio"
+      style={{ ['--marca' as string]: corMarca || '#1E7A4E' }}
+    >
       <Link href={inicio} className={!emPedidos ? 'ativo' : ''} aria-current={!emPedidos ? 'page' : undefined}>
         <IconeInicio />
         <span>Início</span>

@@ -638,8 +638,8 @@ export function CardapioClient({
         onModalidade={(novaModalidade) => { setModalidade(novaModalidade); setErro(null); }}
         onFinalizar={finalizar}
       />
-      <NavegacaoCliente lojaSlug={loja.slug} />
       </div>
+      <NavegacaoCliente lojaSlug={loja.slug} corMarca={loja.cor_marca} />
     </>
   );
 }

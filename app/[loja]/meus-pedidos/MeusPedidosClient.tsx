@@ -243,6 +243,7 @@ export function MeusPedidosClient({ loja }: { loja: LojaPedidos }) {
   }
 
   return (
+    <>
     <div className="pedidos-cliente-pagina" style={{ ['--marca' as string]: loja.cor_marca || '#1E7A4E' }}>
       <header className="pedidos-cliente-topo">
         <Link href={`/${loja.slug}`} aria-label={`Voltar ao cardápio de ${loja.nome}`}>
@@ -318,7 +319,6 @@ export function MeusPedidosClient({ loja }: { loja: LojaPedidos }) {
         )}
       </main>
 
-      <NavegacaoCliente lojaSlug={loja.slug} />
       {tokenAberto && (
         <DetalhePedido
           pedido={detalhe}
@@ -328,5 +328,7 @@ export function MeusPedidosClient({ loja }: { loja: LojaPedidos }) {
         />
       )}
     </div>
+    <NavegacaoCliente lojaSlug={loja.slug} corMarca={loja.cor_marca} />
+    </>
   );
 }

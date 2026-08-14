@@ -96,25 +96,49 @@
 @media (max-width:959px){
   .cliente-nav-inferior{
     position:fixed;
-    z-index:70;
+    z-index:90;
     left:0;
     right:0;
     bottom:0;
+    width:100%;
     display:grid;
     grid-template-columns:1fr 1fr;
     min-height:calc(64px + env(safe-area-inset-bottom));
     padding:5px 12px env(safe-area-inset-bottom);
-    border-top:1px solid #e3e8e5;
+    border-top:1px solid var(--cliente-nav-borda,#e3e8e5);
     overflow:hidden;
-    background:#fff;
+    background-color:var(--cliente-nav-fundo,#fff)!important;
+    background-image:none!important;
     box-shadow:0 -7px 24px rgba(20,35,27,.1);
+    opacity:1!important;
+    filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+    mix-blend-mode:normal;
     isolation:isolate;
   }
-  .cliente-nav-inferior a{ display:grid; min-height:54px; place-items:center; align-content:center; gap:3px; border-radius:11px; color:#7a847f; font-size:10px; font-weight:700; text-decoration:none; }
+  .cliente-nav-inferior::before{
+    content:'';
+    position:absolute;
+    z-index:0;
+    inset:0;
+    background-color:var(--cliente-nav-fundo,#fff);
+    opacity:1;
+    pointer-events:none;
+  }
+  .cliente-nav-inferior a{ position:relative; z-index:1; display:grid; min-height:54px; place-items:center; align-content:center; gap:3px; border-radius:11px; color:#7a847f; font-size:10px; font-weight:700; text-decoration:none; opacity:1; }
   .cliente-nav-inferior a.ativo{ color:var(--verde-ui,var(--marca,#1e7a4e)); }
   .cliente-nav-inferior svg{ width:22px; height:22px; }
   .cliente-nav-inferior a.ativo span{ font-weight:850; }
   .pedidos-cliente-conteudo{ padding-bottom:calc(92px + env(safe-area-inset-bottom)); }
+}
+
+/* O cardápio público hoje é claro. Se ele ganhar o tema público escuro, a
+   superfície continua sólida; nunca usamos alpha para adaptar a barra. */
+html[data-public-theme='dark'] .cliente-nav-inferior{
+  --cliente-nav-fundo:#171b19;
+  --cliente-nav-borda:#303a35;
+  color:#f5f7f6;
 }
 
 @media (max-width:560px){
