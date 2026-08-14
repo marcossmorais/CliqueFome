@@ -68,6 +68,10 @@ const MOCKUP = [
 
 export default function Home() {
   return (
+    // O `.landing` não é decorativo: é o escopo de todo o landing.css. Sem
+    // ele, os estilos desta página vazam pro painel na navegação
+    // client-side, porque o React nunca remove a folha depois de inserida.
+    <div className="landing">
     <div className="wrap">
       <nav>
         <Link href="/" className="brand-logo">
@@ -173,6 +177,7 @@ export default function Home() {
           <p>© 2026 FlouFood. Todos os direitos reservados.</p>
         </div>
       </footer>
+    </div>
     </div>
   );
 }

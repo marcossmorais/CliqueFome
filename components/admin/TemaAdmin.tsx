@@ -4,8 +4,9 @@ import { useSyncExternalStore } from 'react';
 import styles from './temaAdmin.module.css';
 
 type Tema = 'light' | 'dark';
-const CHAVE_TEMA = 'cf_admin_theme';
-const EVENTO_TEMA = 'cf-admin-theme-change';
+/** Compartilhados com AplicaTema — os dois precisam falar do mesmo tema. */
+export const CHAVE_TEMA = 'cf_admin_theme';
+export const EVENTO_TEMA = 'cf-admin-theme-change';
 
 function assinarTema(atualizar: () => void) {
   window.addEventListener(EVENTO_TEMA, atualizar);

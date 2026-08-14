@@ -1,5 +1,6 @@
 import './dark.css';
 import './admin.css';
+import { AplicaTema } from '@/components/admin/AplicaTema';
 
 /**
  * Rotas de autenticação nunca entram em dark. A checagem é feita aqui, e não
@@ -72,6 +73,10 @@ export default function LayoutInterno({ children }: { children: React.ReactNode 
     <>
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       <style dangerouslySetInnerHTML={{ __html: ESTILO_CASCA_CRITICO }} />
+      {/* O script acima só roda em carga real de documento — script inserido
+          por dangerouslySetInnerHTML não executa. Este componente cobre a
+          entrada por navegação client-side. */}
+      <AplicaTema />
       {children}
     </>
   );
