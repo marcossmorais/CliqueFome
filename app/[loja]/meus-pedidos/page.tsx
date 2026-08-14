@@ -26,7 +26,7 @@ export default async function MeusPedidosPage({ params }: { params: Promise<{ lo
   const { loja: slug } = await params;
   const { data: loja } = await clientePublico()
     .from('lojas')
-    .select('slug, nome, logo_url, cor_marca')
+    .select('slug, nome, logo_url, cor_marca, whatsapp_numero')
     .eq('slug', slug)
     .maybeSingle();
 

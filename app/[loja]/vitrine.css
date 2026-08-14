@@ -369,7 +369,7 @@ body{
     min-height:100vh;
   }
 
-  .cardapio-app .menu-section{ min-width:0; min-height:100%; padding:0 0 100px; }
+  .cardapio-app .menu-section{ min-width:0; min-height:100%; padding:0 0 170px; }
   .cardapio-app .loja-hero{ padding:0; }
   .cardapio-app .loja-mobile-topo{ display:none; }
   .cardapio-app .loja-capa{ height:300px; border-radius:0; }
@@ -439,7 +439,7 @@ body{
   .cardapio-app .floating-cart{
     left:50%;
     right:auto;
-    bottom:18px;
+    bottom:calc(82px + env(safe-area-inset-bottom));
     width:min(620px, calc(100vw - 68px));
     min-height:60px;
     padding:9px 11px 9px 20px;
@@ -571,6 +571,7 @@ body{
 }
 
 @media (min-width:1180px){
+  .cardapio-app .menu-section{ padding-bottom:100px; }
   .cardapio-app .menu-conteudo{ max-width:1320px; }
   .cardapio-layout{ display:grid; grid-template-columns:minmax(0,1fr) 340px; align-items:start; gap:26px; }
   .carrinho-lateral{ display:block; align-self:stretch; }

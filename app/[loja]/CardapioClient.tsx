@@ -398,13 +398,6 @@ export function CardapioClient({
       return;
     }
 
-    // Precisa nascer ainda dentro do clique: Safari e Chrome mobile bloqueiam
-    // window.open depois do await do fetch. Ela só é usada no Pix e é fechada
-    // de novo se o pedido falhar ou não devolver uma ação de WhatsApp.
-    const abaPagamento = formaPagamento === 'pix_manual'
-      ? window.open('', '_blank')
-      : null;
-    if (abaPagamento) abaPagamento.opener = null;
     const controlador = new AbortController();
     const temporizador = setTimeout(() => controlador.abort(), 20_000);
     setEnviando(true);
@@ -436,7 +429,6 @@ export function CardapioClient({
       const corpo = await resposta.json();
 
       if (!resposta.ok) {
-        abaPagamento?.close();
         if (corpo.codigo === 'DELIVERY_QUOTE_STALE') {
           setVersaoCarrinho((atual) => atual + 1);
         }
@@ -448,23 +440,12 @@ export function CardapioClient({
       // idempotência pra próxima compra ser uma tentativa nova.
       atualizar(() => []);
       setIdempotencyKey(crypto.randomUUID());
-      // Pix continua levando ao WhatsApp para concluir o pagamento. O
-      // acompanhamento do pedido, por outro lado, fica exclusivamente em
-      // "Meus pedidos", para onde a aba principal segue logo depois.
-      if (corpo.pedido.forma_pagamento === 'pix_manual' && corpo.proxima_acao?.tipo === 'whatsapp') {
-        if (abaPagamento && !abaPagamento.closed) {
-          abaPagamento.location.replace(corpo.proxima_acao.url);
-        } else {
-          window.location.assign(corpo.proxima_acao.url);
-          return;
-        }
-      } else {
-        abaPagamento?.close();
-      }
+      // Nenhuma aba externa abre automaticamente. O cliente segue sempre
+      // para Meus pedidos e decide por conta própria se quer falar no
+      // WhatsApp pelo botão disponível no card do pedido.
       setModalAberto(false);
       router.replace(`/${loja.slug}/meus-pedidos`);
     } catch {
-      abaPagamento?.close();
       setErro('Falha de conexão ao enviar seu pedido. Seu carrinho continua salvo — tente de novo.');
     } finally {
       clearTimeout(temporizador);

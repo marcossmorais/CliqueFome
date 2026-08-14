@@ -11,11 +11,34 @@ import {
   type StatusPedidoCliente,
 } from '@/lib/clientes/pedidos-publicos';
 import { numeroPedido } from '@/lib/pedidos/numero';
+import { normalizarTelefoneBrasil } from '@/lib/clientes/telefone';
 import { useEscFechar } from '@/hooks/useEscFechar';
 import { NavegacaoCliente } from '../NavegacaoCliente';
 
 type Aba = 'andamento' | 'historico';
-type LojaPedidos = { slug: string; nome: string; logo_url: string | null; cor_marca: string | null };
+type LojaPedidos = {
+  slug: string;
+  nome: string;
+  logo_url: string | null;
+  cor_marca: string | null;
+  whatsapp_numero: string | null;
+};
+
+function linkWhatsappPedido(telefoneLoja: string | null, numero: number) {
+  const telefone = normalizarTelefoneBrasil(telefoneLoja)?.slice(1);
+  if (!telefone) return null;
+  const mensagem = `Olá! Quero falar sobre o pedido #${numeroPedido(numero)}.`;
+  return `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`;
+}
+
+function IconeWhatsapp() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M20 11.6a8 8 0 0 1-11.8 7L4 20l1.4-4A8 8 0 1 1 20 11.6Z" />
+      <path d="M8.7 8.2c.2-.5.5-.5.8-.5h.4c.1 0 .3 0 .4.3l.9 2c.1.2 0 .4-.1.6l-.5.7c-.2.2-.1.4 0 .6.5.9 1.2 1.6 2.1 2.1.2.1.4.2.6 0l.8-1c.2-.2.4-.2.6-.1l1.9.9c.2.1.3.2.3.4 0 .3-.2 1.4-.9 2-.5.5-1.2.7-2 .5-1.1-.2-2.5-.7-4.2-2.2-1.4-1.3-2.4-2.9-2.7-4-.3-.8 0-1.7.6-2.3Z" />
+    </svg>
+  );
+}
 
 function formatarData(valor: string) {
   const data = new Date(valor);
@@ -306,9 +329,21 @@ export function MeusPedidosClient({ loja }: { loja: LojaPedidos }) {
                 </p>
                 <div className="pedido-cliente-card-rodape">
                   <div><small>{rotuloEntrega(pedido.fulfillmentType)}</small><strong>{formatBRL(pedido.total)}</strong></div>
-                  <button type="button" onClick={() => void abrirDetalhe(pedido.trackingToken)}>
-                    {aba === 'andamento' ? 'Acompanhar' : 'Ver detalhes'} <span aria-hidden="true">→</span>
-                  </button>
+                  {aba === 'andamento' ? (
+                    linkWhatsappPedido(loja.whatsapp_numero, pedido.orderNumber) && (
+                      <a
+                        className="pedido-cliente-whatsapp"
+                        href={linkWhatsappPedido(loja.whatsapp_numero, pedido.orderNumber) || undefined}
+                        aria-label={`Falar no WhatsApp sobre o pedido ${numeroPedido(pedido.orderNumber)}`}
+                      >
+                        <IconeWhatsapp /> WhatsApp
+                      </a>
+                    )
+                  ) : (
+                    <button type="button" onClick={() => void abrirDetalhe(pedido.trackingToken)}>
+                      Ver detalhes <span aria-hidden="true">→</span>
+                    </button>
+                  )}
                 </div>
               </article>
             ))}

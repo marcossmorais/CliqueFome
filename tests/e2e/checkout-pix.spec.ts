@@ -90,9 +90,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('checkout registra Retirada com Pix e abre Meus pedidos', async ({ page, context }) => {
-  // O WhatsApp continua sendo a proxima acao do Pix. A aba nasce dentro do
-  // clique para nao ser bloqueada no mobile; a principal segue para a area
-  // unificada de acompanhamento.
+  // Nem o Pix abre uma aba externa automaticamente. A pagina atual segue
+  // para Meus pedidos, onde o cliente pode escolher falar no WhatsApp.
   const chamadasDelivery: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
@@ -190,7 +189,11 @@ test('checkout registra Retirada com Pix e abre Meus pedidos', async ({ page, co
     await expect(page).toHaveURL(new RegExp(`/${LOJA_SLUG}/meus-pedidos/?$`));
     await expect(page.getByRole('heading', { name: 'Meus pedidos' })).toBeVisible();
     await expect(page.locator('.pedido-cliente-etapas').first()).toBeVisible();
+    await expect(page.getByRole('navigation', { name: /Navega..o do card.pio/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Falar no WhatsApp sobre o pedido/i }).first()).toBeVisible();
+    expect(context.pages(), 'o checkout nao deve abrir outra aba').toHaveLength(1);
   } finally {
+    // Fecha uma aba inesperada antes de falhar para nao contaminar o retry.
     const popupWhatsapp = context.pages().find((pagina) => pagina !== page);
     await popupWhatsapp?.close().catch(() => {});
     // Mesmo se uma asserção falhar, o pedido real do teste não fica no
