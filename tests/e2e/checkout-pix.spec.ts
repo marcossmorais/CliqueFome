@@ -84,15 +84,15 @@ async function adicionarPrimeiroProduto(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  // Carrinho e pedido acompanhado vivem em localStorage. Cada teste comeca de
+  // O carrinho vive em localStorage. Cada teste comeca de
   // uma sessao realmente vazia, sem depender de execucoes anteriores.
   await page.addInitScript(() => window.localStorage.clear());
 });
 
-test('checkout registra Retirada com Pix sem chamar a API de Delivery', async ({ page, context }) => {
-  // O fluxo tenta abrir o WhatsApp automaticamente depois do commit. Fechamos
-  // a aba externa para manter o teste deterministico e auditamos o href na UI.
-  context.on('page', (popup) => { void popup.close().catch(() => {}); });
+test('checkout registra Retirada com Pix e abre Meus pedidos', async ({ page, context }) => {
+  // O WhatsApp continua sendo a proxima acao do Pix. A aba nasce dentro do
+  // clique para nao ser bloqueada no mobile; a principal segue para a area
+  // unificada de acompanhamento.
   const chamadasDelivery: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
@@ -171,32 +171,30 @@ test('checkout registra Retirada com Pix sem chamar a API de Delivery', async ({
   const respostaPedido = await respostaPedidoPromise;
 
   const corpoEnviado = respostaPedido.request().postDataJSON() as Record<string, unknown>;
-  expect(corpoEnviado.tipo).toBe('retirada');
-  expect(corpoEnviado.formaPagamento).toBe('pix_manual');
-  expect(Object.keys(corpoEnviado).sort()).toEqual([
-    'clienteNome',
-    'clienteTelefone',
-    'formaPagamento',
-    'idempotencyKey',
-    'itens',
-    'tipo',
-    'totalEsperadoCentavos',
-  ]);
-  expect(chamadasDelivery).toEqual([]);
-  expect([200, 201], await respostaPedido.text()).toContain(respostaPedido.status());
-
-  const linkPix = dialog.getByRole('link', { name: 'Continuar no WhatsApp pra fazer o Pix' });
-  await expect(linkPix).toBeVisible();
-  await expect(linkPix).toHaveAttribute('href', /https:\/\/(?:wa\.me|api\.whatsapp\.com)\//);
-
-  await dialog.locator('.checkout-fechar').click();
-  const acompanhamento = page.locator('.acompanhar-barra');
-  await expect(acompanhamento).toBeVisible();
-  await expect(acompanhamento).toContainText('Acompanhando o pedido #');
-
-  // Este teste cria um pedido de verdade. Rodando contra a base real, um por
-  // execução do CI viraria dezenas de linhas falsas na lista do lojista, no
-  // dashboard e no financeiro — some com o que acabou de criar.
   const corpoResposta = (await respostaPedido.json()) as { pedido?: { token?: string } };
-  await removerPedidoDeTeste(corpoResposta.pedido?.token);
+  try {
+    expect(corpoEnviado.tipo).toBe('retirada');
+    expect(corpoEnviado.formaPagamento).toBe('pix_manual');
+    expect(Object.keys(corpoEnviado).sort()).toEqual([
+      'clienteNome',
+      'clienteTelefone',
+      'formaPagamento',
+      'idempotencyKey',
+      'itens',
+      'tipo',
+      'totalEsperadoCentavos',
+    ]);
+    expect(chamadasDelivery).toEqual([]);
+    expect([200, 201]).toContain(respostaPedido.status());
+
+    await expect(page).toHaveURL(new RegExp(`/${LOJA_SLUG}/meus-pedidos/?$`));
+    await expect(page.getByRole('heading', { name: 'Meus pedidos' })).toBeVisible();
+    await expect(page.locator('.pedido-cliente-etapas').first()).toBeVisible();
+  } finally {
+    const popupWhatsapp = context.pages().find((pagina) => pagina !== page);
+    await popupWhatsapp?.close().catch(() => {});
+    // Mesmo se uma asserção falhar, o pedido real do teste não fica no
+    // dashboard, no financeiro nem na fila do lojista.
+    await removerPedidoDeTeste(corpoResposta.pedido?.token);
+  }
 });

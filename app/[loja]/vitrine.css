@@ -464,8 +464,8 @@ body{
 /* Hero com a identidade da loja em um cartão legível sobre a capa. A
    imagem continua sendo o maior elemento visual, mas nome, cidade e estado
    operacional não dependem mais do contraste imprevisível do banner. */
-.cardapio-app .loja-hero{ padding:0 12px 6px; }
-.cardapio-app .loja-capa{ height:190px; border-radius:0 0 18px 18px; }
+.cardapio-app .loja-hero{ padding:0 0 6px; }
+.cardapio-app .loja-capa{ height:158px; border-radius:0; }
 .cardapio-app .loja-capa-sombra{ background:linear-gradient(90deg,rgba(4,15,9,.62),rgba(4,15,9,.05) 75%); }
 .cardapio-app .loja-chamada{ top:44%; width:min(62%,250px); font-size:clamp(20px,6vw,28px); }
 .cardapio-app .loja-hero-base{
@@ -476,14 +476,14 @@ body{
   display:flex;
   width:100%;
   min-height:156px;
-  margin:-30px 0 0;
+  margin:0;
   padding:58px 18px 18px;
   align-items:center;
   flex-direction:column;
   gap:9px;
   transform:none;
   border:1px solid #e6ebe8;
-  border-radius:24px;
+  border-radius:28px;
   background:#fff;
   box-shadow:0 8px 26px rgba(23,37,29,.09);
   text-align:center;

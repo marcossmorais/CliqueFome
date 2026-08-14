@@ -39,6 +39,17 @@
 .pedido-cliente-status.status-saiu_entrega{ background:#e9efff; color:#3859a3; }
 .pedido-cliente-status.status-concluido{ background:#e4f3ea; color:#205f3d; }
 .pedido-cliente-status.status-cancelado{ background:#fdeaea; color:#9b3434; }
+.pedido-cliente-etapas{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); margin:20px 0 16px; padding:0; list-style:none; }
+.pedido-cliente-etapas li{ position:relative; display:grid; justify-items:center; gap:6px; min-width:0; color:#9aa39e; text-align:center; font-size:8.5px; font-weight:750; }
+.pedido-cliente-etapas li::before{ content:''; position:absolute; z-index:0; top:13px; right:50%; width:100%; height:2px; background:#dfe4e1; }
+.pedido-cliente-etapas li:first-child::before{ display:none; }
+.pedido-cliente-etapas li.alcancada::before{ background:var(--verde-ui); }
+.pedido-cliente-etapa-icone{ position:relative; z-index:1; display:grid; width:28px; height:28px; place-items:center; border:2px solid #dfe4e1; border-radius:50%; background:#fff; color:#8d9892; font-size:10px; font-weight:900; }
+.pedido-cliente-etapas li.alcancada{ color:#526059; }
+.pedido-cliente-etapas li.alcancada .pedido-cliente-etapa-icone{ border-color:var(--verde-ui); background:var(--verde-ui); color:#fff; }
+.pedido-cliente-etapas li.atual{ color:var(--verde-ui); font-weight:850; }
+.pedido-cliente-etapas li.atual .pedido-cliente-etapa-icone{ box-shadow:0 0 0 4px color-mix(in srgb,var(--verde-ui) 13%,transparent); }
+.pedido-cliente-cancelado{ margin:17px 0 13px; padding:10px 12px; border-radius:10px; background:#fdeaea; color:#8f3030; font-size:10.5px; font-weight:750; text-align:center; }
 .pedido-cliente-resumo{ margin:15px 0; color:#66726c; font-size:11px; line-height:1.45; }
 .pedido-cliente-card-rodape{ display:flex; padding-top:14px; align-items:flex-end; justify-content:space-between; gap:12px; border-top:1px solid #edf0ee; }
 .pedido-cliente-card-rodape>div{ display:grid; gap:2px; }
@@ -94,8 +105,10 @@
     min-height:calc(64px + env(safe-area-inset-bottom));
     padding:5px 12px env(safe-area-inset-bottom);
     border-top:1px solid #e3e8e5;
-    background:rgba(255,255,255,.97);
-    box-shadow:0 -5px 20px rgba(20,35,27,.06);
+    overflow:hidden;
+    background:#fff;
+    box-shadow:0 -7px 24px rgba(20,35,27,.1);
+    isolation:isolate;
   }
   .cliente-nav-inferior a{ display:grid; min-height:54px; place-items:center; align-content:center; gap:3px; border-radius:11px; color:#7a847f; font-size:10px; font-weight:700; text-decoration:none; }
   .cliente-nav-inferior a.ativo{ color:var(--verde-ui,var(--marca,#1e7a4e)); }
