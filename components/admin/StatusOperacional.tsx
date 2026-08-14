@@ -35,20 +35,38 @@ export function OperacaoProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [estado, setEstado] = useState(estadoInicial);
   const [salvando, setSalvando] = useState<CampoOperacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  // Só o palpite otimista de enquanto o salvamento não voltou. A verdade é
+  // sempre `estadoInicial`, que vem do servidor.
+  const [otimista, setOtimista] = useState<EstadoOperacao | null>(null);
+
+  /*
+   * Antes isto era `useState(estadoInicial)` puro, que lê a prop uma vez e
+   * nunca mais: quem mudava o status em outra tela via a loja fechar no
+   * cardápio e a barra do topo continuar dizendo "aberta". O router.refresh()
+   * trazia o dado novo, mas o estado local estava congelado.
+   *
+   * Comparar a chave durante o render é o jeito que o React documenta pra
+   * reagir a mudança de prop — sem efeito, sem render extra comitado. Assim
+   * que o servidor reporta um valor diferente do que estávamos exibindo, o
+   * palpite otimista é descartado.
+   */
+  const chaveServidor = `${estadoInicial.lojaAberta}:${estadoInicial.retirada}`;
+  const [ultimaChave, setUltimaChave] = useState(chaveServidor);
+  if (chaveServidor !== ultimaChave) {
+    setUltimaChave(chaveServidor);
+    setOtimista(null);
+  }
+
+  const estado = otimista ?? estadoInicial;
 
   async function alterar(campo: CampoOperacao, valor: boolean) {
     if (salvando) return;
-    const anterior = estado;
-    const proximo = {
-      ...estado,
-      [campo]: valor,
-    };
+    const proximo = { ...estado, [campo]: valor };
     const alteracoesBanco = { [COLUNA[campo]]: valor };
 
-    setEstado(proximo);
+    setOtimista(proximo);
     setSalvando(campo);
     setErro(null);
 
@@ -59,7 +77,7 @@ export function OperacaoProvider({
       .eq('id', lojaId);
 
     if (error) {
-      setEstado(anterior);
+      setOtimista(null);
       setErro('Não foi possível alterar o status. Tente novamente.');
     } else {
       router.refresh();

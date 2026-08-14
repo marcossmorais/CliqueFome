@@ -753,14 +753,11 @@
   .pedidos-busca input{ width:100%; }
   .btn-ghost.ativo{ background:var(--verde-tint); border-color:var(--verde); color:var(--verde); }
 
-  .pedidos-metricas{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
-  .metrica{
-    background:var(--fundo-2); border:1px solid var(--borda); border-radius:999px;
-    padding:5px 12px; font-size:12.5px; color:var(--texto-suave);
-  }
-  .metrica b{ color:var(--texto); font-variant-numeric:tabular-nums; }
-  .metrica-alerta{ background:#FDECEC; border-color:#F3CFCF; color:#90302F; }
-  .metrica-alerta b{ color:#90302F; }
+  /* As pílulas `.metrica` e a versão antiga de `.pedidos-metricas` saíram:
+     nenhuma delas era usada por markup nenhum desde que a gestão de pedidos
+     foi refeita. O `flex-wrap:wrap` que sobrava aqui ainda alcançava os
+     cards novos e os empilhava no mobile, porque a regra de ≤760px não
+     reseta o wrap. */
 
   .pedidos-split{ display:grid; grid-template-columns:1fr 380px; gap:16px; align-items:start; }
   /* Colunas por status, como na referência. Não é Kanban de arrastar: o
@@ -947,6 +944,11 @@
   .pedidos-botao-filtro svg{ width:15px; height:15px; }
   .pedidos-atualizar{ width:42px; padding:0; font-size:21px; }
   .pedidos-novo{ padding-inline:18px; }
+  .pedidos-historico{
+    display:inline-flex; min-height:42px; align-items:center; gap:7px;
+    border-radius:9px; padding-inline:14px; white-space:nowrap;
+  }
+  .pedidos-historico svg{ width:15px; height:15px; }
   .pedidos-novo span{ font-size:17px; line-height:1; }
   .pedidos-filtros{
     display:flex; align-items:flex-end; gap:12px; margin:-2px 0 14px;
@@ -1003,8 +1005,11 @@
     border-bottom:1px solid var(--borda); font-size:10.5px; font-weight:550;
   }
   .pedido-tabela-corpo{ min-height:168px; }
+  /* 64px e não 91: a altura antiga existia pra caber a fileira de
+     miniaturas dos produtos, que saiu. Linha mais baixa = mais pedidos na
+     tela de uma vez, que é o que importa em hora de pico. */
   .pedido-tabela-linha{
-    width:100%; min-height:91px; padding:12px 16px;
+    width:100%; min-height:64px; padding:10px 16px;
     border:0; border-bottom:1px solid var(--borda); border-radius:0;
     background:var(--superficie); color:var(--texto); text-align:left;
     transition:background .14s ease;
@@ -1036,25 +1041,12 @@
   .pedido-tabela-tipo>span{ display:flex; align-items:center; gap:5px; font-size:11.5px; }
   .pedido-tabela-tipo svg,
   .pedido-tabela-tempo svg{ width:13px; height:13px; flex:0 0 13px; }
-  .pedido-tabela-miniaturas{ display:flex; align-items:center; gap:3px; margin-top:4px; }
-  .pedido-tabela-miniatura{
-    position:relative; display:grid; width:27px; height:27px; overflow:hidden;
-    place-items:center; border:1px solid var(--borda); border-radius:7px;
-    background:var(--fundo-2); color:var(--texto-suave); font-size:10px; font-weight:700;
-  }
-  .pedido-tabela-miniatura img{ object-fit:cover; }
-  .pedido-tabela-miniaturas small{ margin-left:2px; }
   .pedido-tabela-tempo{ display:flex; align-items:center; gap:5px; color:var(--texto); font-size:11.5px; white-space:nowrap; }
   .pedido-tabela-total{ white-space:nowrap; font-variant-numeric:tabular-nums; }
   .pedido-tabela-seta{ color:var(--texto-suave); }
   .pedido-tabela-seta svg{ width:17px; height:17px; }
   .pedidos-tabela .pedidos-vazio{ min-height:168px; display:grid; place-items:center; }
   .pedidos-mobile-colunas{ display:none; }
-  .pedidos-ver-todos{
-    display:flex; min-height:46px; align-items:center; justify-content:center; gap:7px;
-    border-top:1px solid var(--borda); color:var(--verde); font-size:12px; font-weight:700;
-  }
-  .pedidos-ver-todos:hover{ background:var(--verde-tint); }
 
   .pedidos-area .pedido-painel{
     top:0; max-height:calc(100dvh - 128px); border-radius:14px;
@@ -1133,8 +1125,19 @@
     display:flex; width:100%; min-height:38px; align-items:center; justify-content:center; gap:8px;
     border-radius:8px; background:var(--superficie); font-size:11.5px;
   }
-  .pedido-pagamento-acao{ border-color:var(--verde); color:var(--verde); }
-  .pedido-pagamento-acao span{ font-size:16px; }
+  .pedido-pagamento-acao{ border-color:var(--verde); color:var(--verde); font-weight:650; }
+  .pedido-pagamento-marca{ font-size:13px; font-weight:800; line-height:1; }
+  /* Confirmado vira um bloco verde cheio — verde de "deu certo", não a cor
+     da marca (que hoje é laranja). Some a dúvida de "já marquei esse?". */
+  .pedido-pagamento-acao.pago{
+    border-color:#2fa968; background:#f1faf3; color:#145f38;
+  }
+  .pedido-pagamento-acao.pago:hover{ background:#e4f5ea; }
+  .pedido-pagamento-acao.pago .pedido-pagamento-marca{
+    display:grid; width:17px; height:17px; place-items:center;
+    border-radius:50%; background:#2fa968; color:#fff;
+  }
+  .pedido-pagamento-acao.pago .pedido-pagamento-marca svg{ width:11px; height:11px; }
   .pedidos-area .pedido-cancelar{ color:var(--erro); border-color:color-mix(in srgb,var(--erro) 45%,transparent); }
 
   /* Em telas largas o detalhe ocupa a coluna direita desde o título, como
@@ -1195,18 +1198,28 @@
 
   @media (max-width: 760px){
     .main-top-titulo p{ font-size:12px; }
+    /* Os cinco cards ficam sempre numa fileira só. Antes eram 136px fixos
+       com rolagem lateral e, com o wrap herdado, viravam três fileiras
+       empilhadas — o operador perdia a leitura de relance. Agora dividem a
+       largura disponível por igual. */
     .pedidos-metricas{
-      display:flex; gap:9px; margin:0 -16px 16px; padding:0 16px 3px;
-      overflow-x:auto; scroll-snap-type:x proximity; scrollbar-width:none;
+      display:flex; flex-wrap:nowrap; gap:6px; margin:0 0 16px;
     }
-    .pedidos-metricas::-webkit-scrollbar{ display:none; }
-    .pedidos-metrica-card{ flex:0 0 136px; min-height:92px; padding:13px 14px; scroll-snap-align:start; }
-    .pedidos-metrica-card strong{ font-size:21px; }
+    .pedidos-metrica-card{
+      flex:1 1 0; min-width:0; min-height:78px; padding:10px 8px;
+      align-content:start; text-align:center;
+    }
+    .pedidos-metrica-card strong{ font-size:19px; }
+    .pedidos-metrica-card span{ margin-top:5px; font-size:10px; line-height:1.25; }
+    /* O terceiro texto ("Agora", "Na operação") é redundante num espaço
+       tão estreito — o número e o rótulo já dizem tudo. */
+    .pedidos-metrica-card small{ display:none; }
     .pedidos-topo{ display:grid; grid-template-columns:1fr auto auto; gap:8px; }
     .pedidos-busca{ grid-column:1 / -1; min-width:0; }
     .pedidos-novo{ grid-column:1; grid-row:2; }
     .pedidos-botao-filtro{ grid-column:2; grid-row:2; }
     .pedidos-atualizar{ grid-column:3; grid-row:2; }
+    .pedidos-historico{ grid-column:1 / -1; grid-row:3; justify-content:center; }
     .pedidos-filtros{ display:grid; grid-template-columns:1fr; }
     .pedidos-filtros label{ min-width:0; }
     .pedidos-listagem{ margin:0 -4px; }

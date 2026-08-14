@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { textoTempo } from '@/lib/pedidos/prioridade';
 import { numeroPedido } from '@/lib/pedidos/numero';
 import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
@@ -25,26 +24,6 @@ function Icone({ tipo }: { tipo: 'tipo' | 'tempo' | 'avancar' }) {
   );
 }
 
-function Miniaturas({ pedido }: { pedido: PedidoResumo }) {
-  const itens = pedido.pedido_itens.slice(0, 3);
-  if (!itens.length) return null;
-
-  return (
-    <span className="pedido-tabela-miniaturas" aria-label={`${pedido.pedido_itens.length} itens no pedido`}>
-      {itens.map((item) => (
-        <span className="pedido-tabela-miniatura" key={item.id} title={item.nome}>
-          {item.produto?.imagem_url ? (
-            <Image src={item.produto.imagem_url} alt="" fill sizes="30px" />
-          ) : (
-            <span aria-hidden="true">{item.nome?.slice(0, 1).toUpperCase() || '•'}</span>
-          )}
-        </span>
-      ))}
-      {pedido.pedido_itens.length > 3 && <small>+{pedido.pedido_itens.length - 3}</small>}
-    </span>
-  );
-}
-
 export function LinhaPedido({
   pedido,
   selecionado,
@@ -62,6 +41,7 @@ export function LinhaPedido({
     hour: '2-digit',
     minute: '2-digit',
   });
+  const qtdItens = pedido.pedido_itens?.length ?? 0;
 
   return (
     <button
@@ -70,10 +50,12 @@ export function LinhaPedido({
       onClick={onAbrir}
       aria-label={`Abrir pedido ${numeroPedido(pedido.numero)} de ${pedido.cliente_nome}`}
     >
+      {/* Sem miniaturas dos produtos: numa fila cheia elas viravam ruído e
+          empurravam o resto da linha. A contagem de itens diz o que a foto
+          dizia — o tamanho do pedido — sem custar espaço nem uma imagem. */}
       <span className="pedido-tabela-pedido">
         <strong>{numeroPedido(pedido.numero)}</strong>
-        <small>{horario}</small>
-        <Miniaturas pedido={pedido} />
+        <small>{horario} · {qtdItens} {qtdItens === 1 ? 'item' : 'itens'}</small>
       </span>
       <span className="pedido-tabela-cliente">
         <strong>{pedido.cliente_nome}</strong>
