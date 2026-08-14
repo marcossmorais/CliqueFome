@@ -860,6 +860,12 @@
     color:var(--cor-status); white-space:nowrap;
   }
   .pedido-chip-status svg{ width:11px; height:11px; flex-shrink:0; }
+  .pedido-chip-pagamento{ display:inline-flex; align-items:center; gap:4px; }
+  .pedido-chip-pagamento svg{
+    width:11px; height:11px; flex-shrink:0;
+    fill:none; stroke:currentColor; stroke-width:1.8;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
   .pedido-card-tempo{ font-size:11.5px; color:var(--texto-suave); }
   .pedido-pagamento-pendente{
     align-self:flex-start;
@@ -930,8 +936,15 @@
   .pedidos-filtros button{ margin-bottom:1px; }
 
   .pedidos-split{ grid-template-columns:minmax(0,1fr) 330px; gap:20px; align-items:start; }
+  /* `clip` e não `hidden`: em >=1261px o #mainContent vira grid de altura
+     definida, e um item com `overflow:hidden` é scroll container — o que
+     zera o tamanho mínimo automático dele (css-sizing-3 §5.2). A faixa da
+     listagem então encolhia abaixo do conteúdo e o resto dos pedidos era
+     recortado sem nem gerar barra de rolagem: sumiam de vez. `clip` recorta
+     igual (o arredondado continua), mas não é scroll container, então a
+     faixa volta a medir o conteúdo. */
   .pedidos-listagem{
-    min-width:0; overflow:hidden; border:1px solid var(--borda);
+    min-width:0; overflow:clip; border:1px solid var(--borda);
     border-radius:14px; background:var(--superficie);
   }
   .pedidos-abas{
@@ -960,8 +973,8 @@
   .pedido-tabela-cabecalho,
   .pedido-tabela-linha{
     display:grid;
-    grid-template-columns:minmax(76px,.75fr) minmax(110px,1.2fr) minmax(82px,.85fr) minmax(88px,.85fr) minmax(84px,.8fr) minmax(76px,.7fr) 18px;
-    align-items:center; column-gap:12px;
+    grid-template-columns:minmax(72px,.7fr) minmax(104px,1.05fr) minmax(76px,.75fr) minmax(96px,.95fr) minmax(84px,.8fr) minmax(76px,.7fr) minmax(72px,.65fr) 18px;
+    align-items:center; column-gap:11px;
   }
   .pedido-tabela-cabecalho{
     min-height:47px; padding:0 16px; color:var(--texto-suave);
@@ -983,7 +996,19 @@
   .pedido-tabela-linha small{ color:var(--texto-suave); font-size:10px; font-weight:450; }
   .pedido-tabela-pedido,
   .pedido-tabela-cliente,
-  .pedido-tabela-tipo{ display:grid; min-width:0; gap:3px; }
+  .pedido-tabela-tipo,
+  .pedido-tabela-pagamento{ display:grid; min-width:0; gap:3px; }
+  .pedido-tabela-pagamento>span{
+    display:flex; min-width:0; align-items:center; gap:5px;
+    overflow:hidden; font-size:11.5px; white-space:nowrap;
+  }
+  .pedido-tabela-pagamento svg{
+    width:14px; height:14px; flex:0 0 14px;
+    fill:none; stroke:currentColor; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
+  .pedido-tabela-pagamento .pago{ color:#269748; font-weight:600; }
+  .pedido-tabela-pagamento .a-receber{ color:var(--erro); font-weight:600; }
   .pedido-tabela-cliente strong,
   .pedido-tabela-cliente small{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pedido-tabela-tipo>span{ display:flex; align-items:center; gap:5px; font-size:11.5px; }
@@ -1127,7 +1152,7 @@
   @media (max-width: 1360px){
     .pedido-tabela-cabecalho,
     .pedido-tabela-linha{
-      grid-template-columns:minmax(72px,.65fr) minmax(105px,1fr) minmax(76px,.7fr) minmax(84px,.75fr) minmax(78px,.7fr) minmax(72px,.65fr) 16px;
+      grid-template-columns:minmax(66px,.6fr) minmax(96px,.9fr) minmax(70px,.62fr) minmax(88px,.8fr) minmax(80px,.72fr) minmax(70px,.62fr) minmax(68px,.6fr) 16px;
       column-gap:8px;
     }
     .pedido-tabela-cabecalho,

@@ -100,6 +100,11 @@ export function PainelDetalhePedido({
     onErro(prefixo + (err as Error).message);
   }
 
+  /** Não fecha o painel ao avançar: quem está tocando o pedido normalmente
+   * dá dois ou três passos seguidos (confirmar → preparar → pronto) e ter de
+   * reabrir o mesmo pedido a cada clique custa tempo na operação. O painel
+   * fica aberto e o próprio botão troca de rótulo — só some sozinho quando o
+   * pedido sai da fila ativa, que é quando não há mais nada a fazer nele. */
   async function avancar() {
     if (!proximo) return;
     setAvancando(true);
@@ -107,7 +112,9 @@ export function PainelDetalhePedido({
       const sb = criarClientNavegador();
       await avancarStatus(sb, pedido.id, pedido.status, proximo);
       await onAtualizado();
-      onFechar();
+      // Concluído é o fim do fluxo: o pedido sai da fila ativa e manter o
+      // painel aberto mostraria um detalhe que não está mais na lista ao lado.
+      if (proximo === 'concluido') onFechar();
     } catch (err) {
       await tratarErro(err, 'Erro ao avançar status: ');
     } finally {

@@ -1,5 +1,7 @@
 import { nivelUrgencia, textoTempo } from '@/lib/pedidos/prioridade';
 import { numeroPedido } from '@/lib/pedidos/numero';
+import { nomeFormaPagamento } from '@/lib/pedidos/pagamento';
+import { IconeFormaPagamento } from '@/components/pedidos/IconeFormaPagamento';
 import {
   COR_STATUS,
   formatBRL,
@@ -65,6 +67,12 @@ export function CardPedido({
           {NOMES_STATUS[pedido.status]}
         </span>
         <span className="pedido-chip">{NOMES_TIPO[pedido.tipo]}</span>
+        {pedido.forma_pagamento && (
+          <span className="pedido-chip pedido-chip-pagamento">
+            <IconeFormaPagamento forma={pedido.forma_pagamento} />
+            {nomeFormaPagamento(pedido.forma_pagamento)}
+          </span>
+        )}
         {pedido.origem !== 'site' && <span className="pedido-chip">{NOMES_ORIGEM[pedido.origem]}</span>}
         <span className="pedido-card-tempo">
           {qtdItens} ite{qtdItens === 1 ? 'm' : 'ns'}
