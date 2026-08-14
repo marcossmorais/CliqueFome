@@ -118,7 +118,7 @@ export async function criarPedidoManual(
     lojaSlug: string;
     clienteNome: string;
     clienteTelefone: string;
-    tipo: 'retirada' | 'balcao' | 'mesa' | 'encomenda';
+    tipo: 'retirada' | 'balcao' | 'mesa' | 'encomenda' | 'delivery';
     endereco?: string;
     observacao?: string;
     formaPagamento?: string;
@@ -126,6 +126,9 @@ export async function criarPedidoManual(
     dataHoraAgendada?: string;
     origem: 'instagram' | 'telefone' | 'outro';
     statusInicial: 'pendente' | 'confirmado';
+    /** Só delivery. A taxa e o endereço saem da cotação no banco, não daqui —
+     * o formulário manda apenas o id dela. */
+    quoteId?: string;
   }
 ) {
   // A tela pode ter sido aberta antes de alguém esgotar o item no catálogo.
@@ -159,6 +162,11 @@ export async function criarPedidoManual(
     p_data_hora_agendada: params.dataHoraAgendada || null,
     p_origem: params.origem,
     p_status_inicial: params.statusInicial,
+    // Só o delivery manda este argumento. Se ele fosse sempre, a chamada
+    // deixaria de casar com a versão de 11 argumentos da função e TODO pedido
+    // manual quebraria enquanto a migração não tivesse rodado — assim a ordem
+    // entre deploy e migração deixa de importar pros outros tipos.
+    ...(params.tipo === 'delivery' ? { p_quote_id: params.quoteId ?? null } : {}),
   });
   if (error) throw error;
   const criado = data as { id: string; numero: number; token: string; total: number };
