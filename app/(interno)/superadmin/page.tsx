@@ -1,7 +1,6 @@
 import { criarClientServidor } from '@/lib/supabase/server';
-import { NOMES_PLANOS, type PlanoLoja } from '@/lib/avaliacoes/tipos';
 import { montarResumoPlataforma } from '@/lib/assinaturas/metricas';
-import type { Assinatura, PagamentoAssinatura } from '@/lib/assinaturas/tipos';
+import { NOMES_PLANOS, type Assinatura, type PagamentoAssinatura, type PlanoLoja } from '@/lib/assinaturas/tipos';
 import styles from './superadmin.module.css';
 
 const DINHEIRO = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });

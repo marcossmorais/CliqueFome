@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { criarClientServidor } from '@/lib/supabase/server';
-import { NOMES_PLANOS } from '@/lib/avaliacoes/tipos';
+import { NOMES_PLANOS } from '@/lib/assinaturas/tipos';
 import {
   NOMES_CICLO,
   NOMES_STATUS_PAGAMENTO,

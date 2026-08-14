@@ -200,16 +200,14 @@ Os 28 pendentes estão detalhados no ledger. Os de maior peso:
 
 Aparecem no menu com bolinha laranja e caem no placeholder "Em breve":
 
-Mesas e comandas · KDS (cozinha) · Caixa ·
-Desempenho · Histórico de pedidos · Financeiro · Fiscal · Configurações ·
-Avaliações
+Mesas e comandas · Caixa · Desempenho · Fiscal
 
 "Ajuda e suporte" saiu desta lista porque `/admin/suporte` foi construída.
 
 ## Cobertura de teste
 
-`tests/ajuda-suporte.test.mjs`, `tests/historico-pedidos.test.mjs` e
-`tests/avaliacoes.test.mjs` cobrem lógica pura. Fluxos de UI (catálogo,
+`tests/ajuda-suporte.test.mjs` e `tests/historico-pedidos.test.mjs` cobrem
+lógica pura. Fluxos de UI (catálogo,
 pedidos e carrinho) continuam só verificados à mão, no
 navegador — nada disso pega regressão de layout ou de integração amanhã.
 

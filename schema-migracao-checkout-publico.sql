@@ -8,7 +8,8 @@
 -- não liga pagamento nenhum.
 --
 -- Como aplicar: Supabase → SQL Editor → New query → colar tudo → Run.
--- Depende de schema-pedidos.sql + schema-migracao-pedidos.sql já aplicados.
+-- Depende de schema-pedidos.sql, schema-migracao-pedidos.sql e
+-- schema-migracao-assinaturas.sql já aplicados.
 -- Seguro rodar mais de uma vez (create or replace / if not exists em tudo).
 --
 -- ROLLBACK: ver o bloco "ROLLBACK" no fim do arquivo — desliga o checkout
@@ -704,9 +705,8 @@ grant execute on function public.marcar_pagamento_manual(uuid, text, text) to au
 -- ---------------------------------------------------------------
 -- CAPACIDADES POR PLANO — domínio preparado, pagamento online DESLIGADO
 -- pra todo mundo até existir gateway/webhook/antifraude de verdade.
--- `loja_planos` já existe (schema-migracao-avaliacoes.sql), server-owned:
--- o dono só lê o próprio plano, só admin/service_role escreve. Reaproveita
--- essa tabela em vez de criar uma `loja_capacidades` paralela.
+-- `assinaturas` é a fonte única do plano e continua server-owned: o dono só
+-- lê a própria assinatura; apenas as rotinas administrativas alteram o plano.
 -- ---------------------------------------------------------------
 create or replace function public.capacidades_checkout(p_loja_id uuid)
 returns jsonb
@@ -716,7 +716,7 @@ security definer
 set search_path = public
 as $$
   select jsonb_build_object(
-    'plano', coalesce((select plano from loja_planos where loja_id = p_loja_id), 'basico'),
+    'plano', coalesce((select plano from assinaturas where loja_id = p_loja_id), 'basico'),
     'persistir_pedido', true,
     -- Fica false até o gateway existir de verdade — não é flag de plano,
     -- é flag de "a integração está pronta". Pro e Pro+ terão a MESMA

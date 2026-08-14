@@ -23,24 +23,6 @@ function LogoLoja({ url, className, lado }: { url: string | null; className: str
   );
 }
 
-const AVALIACOES_DEMO = [5, 5, 5, 4, 5, 5, 4, 5, 5, 5, 4, 5];
-const MEDIA_AVALIACOES_DEMO = AVALIACOES_DEMO.reduce((total, nota) => total + nota, 0) / AVALIACOES_DEMO.length;
-
-function AvaliacaoLoja() {
-  const preenchimento = `${(MEDIA_AVALIACOES_DEMO / 5) * 100}%`;
-
-  return (
-    <div className="loja-avaliacao" aria-label={`Avaliação média ${MEDIA_AVALIACOES_DEMO.toFixed(1)} de 5, com ${AVALIACOES_DEMO.length} avaliações`}>
-      <span className="loja-estrelas" aria-hidden="true">
-        <span className="loja-estrelas-base">★★★★★</span>
-        <span className="loja-estrelas-cheias" style={{ width: preenchimento }}>★★★★★</span>
-      </span>
-      <strong>{MEDIA_AVALIACOES_DEMO.toFixed(1).replace('.', ',')}</strong>
-      <small>({AVALIACOES_DEMO.length})</small>
-    </div>
-  );
-}
-
 export function HeroLoja({
   loja,
   deliveryAtiva = false,
@@ -79,7 +61,6 @@ export function HeroLoja({
         <div className="loja-mobile-identidade">
           <strong>{loja.nome}</strong>
           <small><b className={aceitando ? 'aberto' : 'fechado'}>{aceitando ? 'Aceitando pedidos' : 'Pedidos pausados'}</b>{tempo && <> · {tempo}</>}</small>
-          {perfilDemo && <AvaliacaoLoja />}
         </div>
       </div>
 
@@ -99,7 +80,6 @@ export function HeroLoja({
               <span className={'loja-status ' + (aceitando ? 'aberto' : 'fechado')}>{aceitando ? 'Aceitando pedidos' : 'Pedidos pausados'}</span>
               {tempo && <><span>·</span><span>{tempo}</span></>}
             </div>
-            {perfilDemo && <AvaliacaoLoja />}
             <button type="button" className="loja-mais" aria-controls="painel-informacoes-loja" aria-expanded={infoAberta} onClick={() => setInfoAberta((v) => !v)}>ⓘ Mais informações</button>
           </div>
         </div>

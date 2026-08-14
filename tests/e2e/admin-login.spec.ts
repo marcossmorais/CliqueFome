@@ -37,6 +37,8 @@ test('login abre pedidos, dashboard, configurações e financeiro sem depender d
     await page.goto(`/painel/${slug}/inicio`, { waitUntil: 'networkidle' });
     await expect(page.locator('#mainTop h1')).toHaveText('Início');
     await expect(page.locator('#appView')).toBeVisible();
+    await expect(page.getByText('Super admin', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Voltar ao painel superadmin' })).toHaveCount(0);
   });
 
   await test.step('sidebar e cabeçalho persistem na navegação interna', async () => {
@@ -93,7 +95,8 @@ test('login abre pedidos, dashboard, configurações e financeiro sem depender d
   await test.step('financeiro continua roteável sem Delivery', async () => {
     await page.goto(`/painel/${slug}/financeiro`, { waitUntil: 'networkidle' });
     await expect(page.locator('#mainTop h1')).toHaveText('Financeiro');
-    await expect(page.locator('.card.em-breve')).toContainText('Em breve');
+    await expect(page.getByRole('heading', { name: 'Integração de Pagamentos' })).toBeVisible();
+    await expect(page.getByText('Financeiro não é histórico de pedidos.')).toBeVisible();
   });
 
   await test.step('pedidos mantém cards e navegação inferior no mobile', async () => {

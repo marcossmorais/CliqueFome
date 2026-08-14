@@ -33,8 +33,6 @@ const TITULOS_ROTAS: Record<string, string> = {
   clientes: 'Clientes',
   config: 'Configurações',
   links: 'Links do cardápio',
-  avaliacoes: 'Avaliações',
-  integracoes: 'Integrações',
   suporte: 'Ajuda e suporte',
   mesas: 'Mesas e comandas',
   financeiro: 'Financeiro',
@@ -154,17 +152,20 @@ export function ShellPainel({
               <Link href={`${base}/config/perfil`} className="sidebar-acao" title="Meu perfil" aria-label="Conta do usuário" onClick={() => setAberto(false)}>
                 <Icone chave="empresa" />
               </Link>
-              {souAdmin && (
-                <Link href="/superadmin" className="sidebar-acao" title="Painel da plataforma" aria-label="Painel da plataforma">
-                  <Icone chave="config" />
-                </Link>
-              )}
               <button type="button" className="sidebar-acao" title="Sair" aria-label="Sair" onClick={sair}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M10 17l5-5-5-5M15 12H3M15 3h5v18h-5" />
                 </svg>
               </button>
             </div>
+            {souAdmin && (
+              <Link href="/superadmin" className="sidebar-voltar-admin" onClick={() => setAberto(false)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M10 7l-5 5 5 5M5 12h14M19 5v14" />
+                </svg>
+                <span>Voltar ao painel superadmin</span>
+              </Link>
+            )}
           </div>
         </aside>
 

@@ -1,27 +1,27 @@
-.dashboard{ width:100%; max-width:1280px; }
-.boasVindas{ display:flex; align-items:flex-end; justify-content:space-between; gap:22px; margin:-2px 0 18px; }
+.dashboard{ container-type:inline-size; width:min(100%,1320px); margin-inline:auto; }
+.boasVindas{ display:flex; align-items:flex-end; justify-content:space-between; gap:22px; margin:0 0 clamp(16px,2cqi,24px); }
 .dataHoje{ display:block; margin-bottom:7px; color:#777; font-size:10.5px; font-weight:800; letter-spacing:.55px; text-transform:uppercase; }
 .boasVindas h2{ margin:0; color:var(--texto); font-size:clamp(22px,3vw,32px); letter-spacing:-.5px; }
 .boasVindas p{ margin-top:6px; color:#707070; font-size:14px; }
 .verCardapio{ flex:0 0 auto; padding:10px 14px; border:1px solid var(--borda); border-radius:10px; color:var(--texto); font-size:12px; font-weight:700; }
 .verCardapio:hover{ background:var(--fundo-2); }
-.kpis{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:13px; margin:18px 0; }
-.kpi{ display:flex; min-height:132px; padding:19px; flex-direction:column; border:1px solid var(--borda); border-radius:15px; background:var(--superficie); box-shadow:0 5px 18px rgba(0,0,0,.05); }
+.kpis{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(10px,1.2cqi,16px); margin:0 0 clamp(12px,1.4cqi,18px); }
+.kpi{ display:flex; min-height:132px; padding:clamp(16px,1.55cqi,21px); flex-direction:column; border:1px solid var(--borda); border-radius:15px; background:var(--superficie); box-shadow:0 5px 18px rgba(0,0,0,.05); }
 .kpi>span:first-child{ color:#747474; font-size:11px; font-weight:700; }
 .kpi>strong{ margin:12px 0 10px; color:var(--texto); font-size:clamp(21px,2.5vw,29px); letter-spacing:-.6px; }
 .kpi small,.positiva,.negativa,.neutra{ margin-top:auto; font-size:9.8px; font-weight:650; }
 .kpi small,.neutra{ color:#8b8b8b; }
 .positiva{ color:#238353; }
 .negativa{ color:#b04848; }
-.gradePrincipal{ display:grid; grid-template-columns:minmax(0,1.65fr) minmax(300px,.75fr); gap:14px; }
-.bloco{ min-width:0; padding:20px; border:1px solid var(--borda); border-radius:15px; background:var(--superficie); box-shadow:0 5px 18px rgba(0,0,0,.045); }
+.gradePrincipal{ display:grid; grid-template-columns:minmax(0,1.65fr) minmax(290px,.75fr); gap:clamp(10px,1.2cqi,16px); }
+.bloco{ min-width:0; padding:clamp(16px,1.6cqi,22px); border:1px solid var(--borda); border-radius:15px; background:var(--superficie); box-shadow:0 5px 18px rgba(0,0,0,.045); }
 .blocoTopo{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
 .blocoTopo span,.pagamentoTexto>span{ display:block; margin-bottom:4px; color:#878787; font-size:9.5px; font-weight:800; letter-spacing:.48px; text-transform:uppercase; }
 .bloco h3{ margin:0; color:var(--texto); font-size:15px; }
 .totalSemana{ display:grid; justify-items:end; gap:4px; text-align:right; }
 .totalSemana>strong{ color:var(--texto); font-size:20px; }
 .graficoVendas{ margin-top:18px; }
-.graficoVendas svg{ display:block; width:100%; height:220px; overflow:visible; }
+.graficoVendas svg{ display:block; width:100%; height:clamp(175px,22cqi,220px); overflow:visible; }
 .eixo{ stroke:var(--borda); stroke-width:1; }
 .linhaGrafico{ fill:none; stroke:var(--verde); stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
 .pontoGrafico{ fill:var(--superficie); stroke:var(--verde-claro); stroke-width:3; }
@@ -32,7 +32,8 @@
 .barraLinha i b{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--verde),var(--verde-claro)); }
 .barraLinha>strong{ color:var(--texto); text-align:right; }
 .insight{ margin:8px 0 0; padding:10px 12px; border-radius:9px; background:var(--verde-tint); color:var(--texto-suave); font-size:10.5px; line-height:1.45; }
-.gradeResumo{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:14px; align-items:stretch; }
+.gradeResumo{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(10px,1.2cqi,16px); margin-top:clamp(10px,1.2cqi,16px); align-items:stretch; }
+.gradeResumo>.bloco{ display:flex; min-height:230px; flex-direction:column; }
 .numeroDestaque{ color:var(--verde); font-size:25px; }
 .statusPedidos{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin:20px 0; }
 .statusPedidos span{ display:grid; grid-template-columns:8px 1fr auto; align-items:center; gap:7px; color:#707070; font-size:10.5px; }
@@ -64,13 +65,13 @@
 :global(html[data-admin-theme='dark']) .pagamentoOk .pagamentoIcone{ background:#193d2a; color:#6fd19a; }
 :global(html[data-admin-theme='dark']) .erroCarga{ border-color:#633c3c; background:#2b1919; }
 
-@media (max-width:1080px){
+@container (max-width:920px){
   .kpis{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   .gradePrincipal{ grid-template-columns:1fr; }
   .gradeResumo{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   .gradeResumo article:last-child{ grid-column:1/-1; }
 }
-@media (max-width:620px){
+@container (max-width:560px){
   .boasVindas{ align-items:flex-start; flex-direction:column; gap:12px; }
   .boasVindas h2{ font-size:23px; }
   .kpis{ gap:9px; }
@@ -82,4 +83,9 @@
   .graficoVendas svg{ height:185px; }
   .gradeResumo{ grid-template-columns:1fr; }
   .gradeResumo article:last-child{ grid-column:auto; }
+}
+@container (max-width:390px){
+  .kpis{ grid-template-columns:1fr; }
+  .kpi{ min-height:106px; }
+  .statusPedidos{ grid-template-columns:1fr; }
 }

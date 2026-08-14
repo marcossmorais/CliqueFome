@@ -47,6 +47,11 @@ html,body{max-width:100%;overflow-x:hidden}
   .main-top-acoes-mobile{display:none}
   #mainContent{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:26px 30px 80px}
 }
+@media(min-width:1500px){
+  #appView.ativo{grid-template-columns:252px minmax(0,1fr)}
+  #sidebar{width:252px;min-width:252px;max-width:252px}
+  .painel-topo-marca{width:252px;flex-basis:252px}
+}
 @media(max-width:900px){
   #sidebar{position:fixed;left:0;top:0;width:min(240px,calc(100vw - 32px));min-width:0;max-width:calc(100vw - 32px);transform:translateX(-100%)}
   #sidebar.aberto{transform:none}

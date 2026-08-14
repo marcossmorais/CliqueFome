@@ -1,4 +1,14 @@
-import type { PlanoLoja } from '@/lib/avaliacoes/tipos';
+export type PlanoLoja = 'basico' | 'pro' | 'pro_plus';
+
+export const NOMES_PLANOS: Record<PlanoLoja, string> = {
+  basico: 'Plano Básico',
+  pro: 'Plano Pro',
+  pro_plus: 'Plano Pro+',
+};
+
+export function normalizarPlano(valor: unknown): PlanoLoja {
+  return valor === 'pro' || valor === 'pro_plus' ? valor : 'basico';
+}
 
 export type CicloCobranca = 'mensal' | 'semestral' | 'anual';
 export type StatusAssinatura = 'ativa' | 'pendente' | 'atrasada' | 'cancelada';

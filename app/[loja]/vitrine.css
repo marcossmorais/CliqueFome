@@ -70,21 +70,6 @@ body{
 .cardapio-app .loja-mobile-identidade b{ font-weight:800; }
 .cardapio-app .loja-mobile-identidade b.aberto{ color:#127a3e; }
 .cardapio-app .loja-mobile-identidade b.fechado{ color:#a33b34; }
-.cardapio-app .loja-avaliacao{
-  display:flex;
-  align-items:center;
-  gap:4px;
-  width:max-content;
-  color:#59645e;
-  font-size:10px;
-  line-height:1;
-}
-.cardapio-app .loja-avaliacao strong{ color:#26332c; font-size:10.5px; }
-.cardapio-app .loja-avaliacao small{ color:#7b857f; font-size:9.5px; }
-.cardapio-app .loja-estrelas{ position:relative; display:inline-block; color:#d9dedb; font-size:12px; letter-spacing:1px; line-height:1; }
-.cardapio-app .loja-estrelas-base{ display:block; }
-.cardapio-app .loja-estrelas-cheias{ position:absolute; inset:0 auto 0 0; overflow:hidden; color:#f4b63f; white-space:nowrap; }
-
 .cardapio-app .loja-capa{
   position:relative;
   height:158px;
@@ -402,9 +387,6 @@ body{
   .cardapio-app .loja-hero-meta{ color:#fff; font-size:11px; }
   .cardapio-app .loja-status{ padding:5px 8px; border-radius:5px; background:#45b657; color:#fff!important; font-size:10px; }
   .cardapio-app .loja-status.fechado{ background:#a33b34; }
-  .cardapio-app .loja-hero-txt .loja-avaliacao{ margin-top:9px; color:#fff; }
-  .cardapio-app .loja-hero-txt .loja-avaliacao strong,
-  .cardapio-app .loja-hero-txt .loja-avaliacao small{ color:#fff; }
   .cardapio-app .loja-mais{ display:block; margin-top:10px; color:#fff; font-size:11px; text-decoration:none; }
   .cardapio-app .loja-info-caixa{ position:absolute; z-index:5; top:252px; left:var(--recuo); width:330px; max-height:420px; margin:0; overflow:auto; box-shadow:0 8px 25px rgba(0,0,0,.18); }
 

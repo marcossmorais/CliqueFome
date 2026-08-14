@@ -38,6 +38,16 @@ export function ShellSuperAdmin({ email, children }: { email: string; children: 
       <div id="sidebarBackdrop" className={aberto ? 'ativo' : ''} onClick={() => setAberto(false)} />
 
       <div id="appView" className="ativo">
+        <header id="painelTopo">
+          <div className="painel-topo-marca">
+            <LogoFlouFood />
+          </div>
+          <div className="painel-topo-acoes">
+            <span className="badge-admin">Super admin</span>
+            <TemaAdmin />
+          </div>
+        </header>
+
         <aside id="sidebar" className={aberto ? 'aberto' : ''}>
           <div className="brand-logo">
             <LogoFlouFood />
@@ -77,24 +87,35 @@ export function ShellSuperAdmin({ email, children }: { email: string; children: 
           </nav>
 
           <div className="sidebar-bottom">
-            <Link href="/painel" className="btn-ghost btn-small" style={{ textAlign: 'center' }}>
-              Ir para meu painel
-            </Link>
             <button type="button" className="btn-ghost btn-small" onClick={sair}>
               Sair
             </button>
           </div>
         </aside>
 
-        <main id="main">
-          <div id="mainTop">
-            <button id="menuToggle" aria-label="Abrir menu" onClick={() => setAberto(true)}>
-              ☰
+        <main id="main" className="superadmin-main">
+          <div id="topoMarca">
+            <div className="topo-marca-logo">
+              <LogoFlouFood />
+            </div>
+            <button type="button" className="superadmin-menu-toggle" aria-label="Abrir menu" onClick={() => setAberto(true)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
             </button>
-            <h1>Plataforma</h1>
-            <TemaAdmin />
           </div>
-          {children}
+          <div id="mainContent">
+            <div id="mainTop">
+              <div className="main-top-titulo">
+                <h1>Painel superadmin</h1>
+                <p>Administração exclusiva da plataforma</p>
+              </div>
+              <div className="main-top-acoes-mobile">
+                <TemaAdmin />
+              </div>
+            </div>
+            {children}
+          </div>
         </main>
       </div>
     </>
