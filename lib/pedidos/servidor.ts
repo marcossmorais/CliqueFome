@@ -1,3 +1,10 @@
+// `server-only` faz o build QUEBRAR se este módulo entrar num Client
+// Component, em vez de depender de alguém ler o comentário abaixo. Ele carrega
+// a chave que ignora RLS: um import errado num arquivo 'use client' mandaria
+// esse segredo pro bundle do navegador. O módulo de Delivery já fazia isso; a
+// proteção estava faltando justamente no arquivo com a credencial mais forte.
+import 'server-only';
+
 import { createClient } from '@supabase/supabase-js';
 import { createHash, createHmac } from 'node:crypto';
 

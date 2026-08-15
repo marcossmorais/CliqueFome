@@ -55,9 +55,29 @@ export const logger = pino({
       '*.telefone',
       '*.senha',
       '*.password',
+      // Credenciais. A lista cobre também integrações que ainda não estão
+      // ligadas: o momento em que uma chave nova entra no projeto é
+      // exatamente o momento em que ninguém lembra de voltar aqui, e o
+      // custo de um path a mais é zero.
       '*.SUPABASE_SERVICE_ROLE_KEY',
       '*.SUPABASE_SECRET_KEY',
       '*.RATE_LIMIT_HMAC_SECRET',
+      '*.GEOAPIFY_API_KEY',
+      '*.TURNSTILE_SECRET_KEY',
+      '*.RESEND_API_KEY',
+      '*.MERCADO_PAGO_ACCESS_TOKEN',
+      '*.MERCADO_PAGO_CLIENT_SECRET',
+      '*.WHATSAPP_TOKEN',
+      '*.META_APP_SECRET',
+      // Genéricos: pegam `err.config.headers.authorization` e afins, que é
+      // como um token costuma aparecer no log sem ninguém ter pedido.
+      '*.authorization',
+      '*.Authorization',
+      '*.apiKey',
+      '*.apikey',
+      '*.access_token',
+      '*.refresh_token',
+      '*.token',
     ],
     censor: '[redigido]',
   },

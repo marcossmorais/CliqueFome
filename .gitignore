@@ -1,7 +1,15 @@
 node_modules/
 .next/
-.env*.local
-.env.test
+
+# Tudo que começa com .env fica de fora, e os exemplos entram de volta pela
+# exceção. O padrão anterior (`.env*.local` + `.env.test`) deixava passar
+# `.env`, `.env.production` e `.env.staging` — nomes que ninguém cria de
+# propósito para commitar, mas que aparecem sozinhos quando se copia um
+# exemplo ou se baixa a config da Vercel.
+.env*
+!.env.example
+!.env.test.example
+
 .vercel
 tsconfig.tsbuildinfo
 coverage/
