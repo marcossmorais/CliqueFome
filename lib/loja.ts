@@ -17,6 +17,8 @@ export type Loja = {
   pedido_minimo: number;
   recebendo_encomendas: boolean;
   retirada_ativa: boolean;
+  /** Etapa pendente do cadastro. 'DONE' libera o painel — ver /cadastro. */
+  onboarding_etapa: 'STORE' | 'ADDRESS' | 'DONE';
 };
 
 /**

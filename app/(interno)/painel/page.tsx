@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { obterPrimeiraLoja, obterUsuario } from '@/lib/loja';
+import { resolverEtapa } from '@/lib/onboarding/dados';
 
 /**
  * Entrada do painel sem slug. Existe porque quem chega aqui não tem como
@@ -17,6 +18,11 @@ export default async function PainelPage() {
 
   const { loja, souAdmin } = await obterPrimeiraLoja();
   if (souAdmin) redirect('/superadmin');
-  if (loja) redirect(`/painel/${loja.slug}/inicio`);
-  redirect('/criar-loja');
+  // Loja com cadastro pela metade volta pro passo que faltou, não pro painel:
+  // sem endereço não há de onde sair entrega nem onde o cliente retirar.
+  if (loja) {
+    const etapa = resolverEtapa({ temSessao: true, loja });
+    redirect(etapa === 'DONE' ? `/painel/${loja.slug}/inicio` : '/cadastro');
+  }
+  redirect('/cadastro');
 }

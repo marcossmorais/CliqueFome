@@ -53,6 +53,11 @@ export async function proxy(request: NextRequest) {
   const loginEntregador = pathname === '/entregador/login';
   const areaEntregador = pathname === '/entregador' ||
     (pathname.startsWith('/entregador/') && !loginEntregador);
+  // `/cadastro` fica de fora: a primeira etapa dele é justamente criar a
+  // conta, então exigir sessão pra abrir a página seria um loop. Ele entra no
+  // matcher só pra renovar o cookie — logo depois do signUp, as chamadas de
+  // /api/onboarding dependem da sessão estar fresca. Quem protege cada
+  // gravação é a própria rota de API, que resolve o usuário e recusa 401.
   const areaProtegida =
     pathname.startsWith('/painel') ||
     pathname.startsWith('/superadmin') ||
@@ -92,6 +97,7 @@ export const config = {
     '/painel/:path*',
     '/superadmin/:path*',
     '/entrar',
+    '/cadastro',
     '/criar-loja',
     '/entregador/:path*',
     '/cardapio.html',

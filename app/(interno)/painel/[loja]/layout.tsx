@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { obterLojaPorSlug, obterUsuario } from '@/lib/loja';
+import { etapaDaLoja } from '@/lib/onboarding/dados';
 import { OperacaoProvider } from '@/components/admin/StatusOperacional';
 import { ShellPainel } from '@/components/admin/ShellPainel';
 
@@ -36,6 +37,18 @@ export default async function PainelLojaLayout({
   const { loja: slug } = await params;
   const { loja, souAdmin } = await obterLojaPorSlug(slug);
   if (!loja) notFound();
+
+  // Cadastro pela metade não abre o painel: a loja existe, mas sem endereço
+  // confirmado o cardápio não sabe de onde sai a entrega. O super admin passa
+  // — ele entra em loja de terceiro justamente pra dar suporte, inclusive
+  // quando o dono empacou no cadastro.
+  //
+  // Passa por etapaDaLoja() e não por uma comparação direta: a função devolve
+  // 'DONE' pra qualquer valor que não reconheça, inclusive `undefined`. É o
+  // que mantém o painel de pé no intervalo entre o deploy e a migration ser
+  // rodada no SQL Editor — sem isso, a coluna ausente trancaria todo mundo
+  // fora até alguém abrir o Supabase.
+  if (!souAdmin && etapaDaLoja(loja.onboarding_etapa) !== 'DONE') redirect('/cadastro');
 
   return (
     <OperacaoProvider

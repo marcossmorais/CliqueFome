@@ -3,10 +3,13 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { criarClientNavegador } from '@/lib/supabase/client';
+// A lista mora junto das regras do cadastro: é a mesma que o onboarding
+// oferece, e mantê-la em um lugar só evita que editar aqui troque, sem
+// avisar, a categoria de quem escolheu uma opção que este select não tinha.
+import { CATEGORIAS_LOJA } from '@/lib/onboarding/dados';
 import type { Loja } from '@/lib/loja';
 
 const BUCKET = 'imagens-cardapio';
-const NICHOS = ['Lanchonete', 'Hamburgueria', 'Pizzaria', 'Açaiteria', 'Doceria', 'Outro'];
 const CORES_SUGERIDAS = ['#1E7A4E', '#F28C28', '#C62828', '#6A1B9A', '#1565C0', '#00897B', '#EF6C00', '#212121'];
 const HEX_VALIDO = /^#[0-9a-fA-F]{6}$/;
 
@@ -150,7 +153,7 @@ export function MinhaLojaForm({ loja }: { loja: Loja }) {
           <div>
             <label htmlFor="lojaNicho">Tipo de estabelecimento</label>
             <select id="lojaNicho" value={nicho} onChange={(e) => setNicho(e.target.value)}>
-              {NICHOS.map((n) => (
+              {CATEGORIAS_LOJA.map((n) => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>

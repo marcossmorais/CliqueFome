@@ -1,0 +1,599 @@
+/* Cadastro da loja — identidade FlouFood.
+ *
+ * CSS Module de propósito. O React 19 nunca remove uma folha de estilo depois
+ * de inserida no documento: uma folha global aqui seguiria valendo no painel
+ * pro resto da sessão de quem entrar por navegação client-side, que foi
+ * exatamente o problema que a landing teve (ver o cabeçalho de landing.css).
+ * Com módulo, cada classe já nasce com hash próprio.
+ */
+
+.pagina {
+  --laranja: #ff5a00;
+  --laranja-escuro: #d94800;
+  --laranja-tint: #fff3ec;
+  --preto: #1b1a1f;
+  --cinza: #625f64;
+  --cinza-claro: #e8e7e4;
+  --gelo: #fafaf9;
+
+  color-scheme: light;
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: #fff;
+  color: var(--preto);
+  font-family: var(--fonte-corpo), sans-serif;
+}
+
+/* ---------- Círculos de fundo ---------- */
+/* Puro enfeite: ficam atrás de tudo e fora da árvore de acessibilidade. */
+.circulos {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.circulos span {
+  position: absolute;
+  border-radius: 50%;
+}
+
+/* Discretos de propósito: o assunto da tela é o formulário. No mobile eles
+   encostam no cartão, então ficam menores e mais pra fora da margem. */
+.circulos span:nth-child(1) {
+  top: -230px;
+  right: -170px;
+  width: 340px;
+  height: 340px;
+  background: var(--laranja-tint);
+}
+
+.circulos span:nth-child(2) {
+  top: 180px;
+  left: -260px;
+  width: 380px;
+  height: 380px;
+  border: 1px solid var(--cinza-claro);
+}
+
+.circulos span:nth-child(3) {
+  bottom: -140px;
+  right: -90px;
+  width: 240px;
+  height: 240px;
+  background: var(--gelo);
+}
+
+@media (min-width: 900px) {
+  .circulos span:nth-child(1) {
+    top: -170px;
+    right: -110px;
+    width: 420px;
+    height: 420px;
+  }
+
+  .circulos span:nth-child(3) {
+    right: 6%;
+    width: 300px;
+    height: 300px;
+  }
+}
+
+/* ---------- Casca ---------- */
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 22px 20px 8px;
+}
+
+.topo a {
+  color: var(--cinza);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.topo a:hover {
+  color: var(--laranja);
+}
+
+/* O wordmark é um <svg> só com viewBox: quem dá tamanho a ele é a folha da
+   área. Fora de admin.css e landing.css — que é o caso aqui — ele colapsa
+   para zero e o cabeçalho aparece sem marca. */
+.topo :global(.logo-floufood) {
+  display: block;
+  width: 146px;
+  height: 29px;
+  color: var(--preto);
+}
+
+.conteudo {
+  display: grid;
+  gap: 32px;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 20px 20px 64px;
+}
+
+@media (min-width: 900px) {
+  .conteudo {
+    /* Coluna do formulário travada em 540px. Sem o teto ela esticava até
+       ~700px e um campo de "número" ficava com meio metro de largura — o
+       oposto de um cadastro que quer parecer curto. */
+    grid-template-columns: minmax(0, 540px) 280px;
+    justify-content: center;
+    align-items: start;
+    gap: 56px;
+    padding-top: 34px;
+  }
+}
+
+/* ---------- Stepper ---------- */
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  /* `padding: 0` explícito: <ol> nasce com padding-inline-start de 40px no
+     navegador, o que deixava o stepper desalinhado do cartão logo abaixo. */
+  margin: 0 0 26px;
+  padding: 0;
+  list-style: none;
+}
+
+.passo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.marcador {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--cinza-claro);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--cinza);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.passoAtual .marcador {
+  border-color: var(--laranja);
+  background: var(--laranja);
+  color: #fff;
+}
+
+.passoConcluido .marcador {
+  border-color: var(--laranja);
+  background: var(--laranja-tint);
+  color: var(--laranja);
+}
+
+.marcador svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rotulo {
+  color: var(--cinza);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.passoAtual .rotulo {
+  color: var(--preto);
+  font-weight: 600;
+}
+
+/* A linha liga um passo ao anterior; o primeiro não tem de onde vir. */
+.passo:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  transform: translate(-50%, 15px);
+  width: calc(100% - 38px);
+  height: 1.5px;
+  background: var(--cinza-claro);
+}
+
+.passoConcluido::before,
+.passoAtual::before {
+  background: var(--laranja) !important;
+}
+
+.passo {
+  position: relative;
+}
+
+/* ---------- Cartão ---------- */
+.cartao {
+  padding: 26px 20px 24px;
+  border: 1px solid var(--cinza-claro);
+  border-radius: 16px;
+  background: #fff;
+}
+
+@media (min-width: 640px) {
+  .cartao {
+    padding: 32px;
+  }
+}
+
+.titulo {
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: clamp(21px, 4.5vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.legenda {
+  margin-top: 6px;
+  color: var(--cinza);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.campos {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.dupla {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 520px) {
+  .dupla {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.colunaLarga {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Campos ---------- */
+.campo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.campo label {
+  color: var(--preto);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.opcional {
+  color: var(--cinza);
+  font-weight: 400;
+}
+
+.campo input,
+.campo select {
+  width: 100%;
+  /* 16px evita o zoom automático do iOS ao focar o campo. */
+  padding: 13px 14px;
+  border: 1px solid var(--cinza-claro);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--preto);
+  font-family: inherit;
+  font-size: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.campo select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23625f64' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+  padding-right: 38px;
+}
+
+.campo input:focus-visible,
+.campo select:focus-visible {
+  border-color: var(--laranja);
+  box-shadow: 0 0 0 3px rgba(255, 90, 0, 0.14);
+  outline: none;
+}
+
+.campo input:disabled {
+  background: var(--gelo);
+  color: var(--cinza);
+}
+
+.ajuda {
+  color: var(--cinza);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* ---------- Botões ---------- */
+.acoes {
+  display: grid;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.primario,
+.secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.primario {
+  background: var(--laranja);
+  color: #fff;
+}
+
+.primario:hover:not(:disabled) {
+  background: var(--laranja-escuro);
+}
+
+.primario:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.secundario {
+  border-color: var(--cinza-claro);
+  background: #fff;
+  color: var(--preto);
+}
+
+.secundario:hover:not(:disabled) {
+  border-color: var(--cinza);
+}
+
+.secundario:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.voltar {
+  justify-self: start;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--cinza);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.voltar:hover {
+  color: var(--preto);
+}
+
+.girando {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: girar 0.7s linear infinite;
+}
+
+.secundario .girando {
+  border-color: var(--cinza-claro);
+  border-top-color: var(--cinza);
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .girando {
+    animation-duration: 2.4s;
+  }
+}
+
+/* ---------- Mensagens ---------- */
+.erro,
+.aviso,
+.sucesso {
+  margin-top: 18px;
+  padding: 11px 13px;
+  border: 1px solid;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.erro {
+  border-color: #f3cfcf;
+  background: #fdecec;
+  color: #90302f;
+}
+
+.aviso {
+  border-color: #f6dfc2;
+  background: #fdf5ea;
+  color: #8a5a17;
+}
+
+.sucesso {
+  border-color: #bfe5c8;
+  background: #edf8ef;
+  color: #177a35;
+}
+
+/* ---------- Mapa ---------- */
+.mapaBloco {
+  margin-top: 20px;
+}
+
+.mapaMoldura {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 640 / 260;
+  border: 1px solid var(--cinza-claro);
+  border-radius: 12px;
+  background: var(--gelo);
+  cursor: crosshair;
+}
+
+.mapaImagem {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pin {
+  position: absolute;
+  /* A ponta do pin é o ponto, não o centro do desenho. */
+  transform: translate(-50%, -100%);
+  width: 26px;
+  height: 26px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28));
+}
+
+.mapaVazio {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--cinza);
+  font-size: 13px;
+}
+
+/* ---------- Checklist final ---------- */
+.checklist {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 14.5px;
+}
+
+.checkIcone {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--laranja-tint);
+  color: var(--laranja);
+}
+
+.checkIcone svg {
+  width: 13px;
+  height: 13px;
+}
+
+.depois {
+  margin-top: 26px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--gelo);
+}
+
+.depoisTitulo {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.depoisLista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.depoisLista li {
+  padding: 5px 11px;
+  border: 1px solid var(--cinza-claro);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--cinza);
+  font-size: 12.5px;
+}
+
+/* ---------- Painel lateral (desktop) ---------- */
+.lateral {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .lateral {
+    display: block;
+    position: sticky;
+    top: 34px;
+  }
+}
+
+.lateralTitulo {
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.lateralLista {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.lateralLista li {
+  display: grid;
+  gap: 3px;
+}
+
+.lateralLista strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.lateralLista span {
+  color: var(--cinza);
+  font-size: 13px;
+  line-height: 1.5;
+}
