@@ -8,11 +8,17 @@ on:
 # Todas apontam para o projeto Supabase de TESTE/STAGING, nunca produção.
 # A credencial privilegiada de produção não entra no CI em hipótese alguma:
 # o e2e cria e apaga pedido, e um engano aqui mexe na base real.
+#
+# Aqui em cima ficam SÓ as chaves públicas — as mesmas que já vão no bundle
+# do navegador, então expô-las a um job não acrescenta risco nenhum.
+# `SUPABASE_SECRET_KEY` e `RATE_LIMIT_HMAC_SECRET` desceram para o job `e2e`,
+# que é o único que sobe o servidor e precisa delas: enquanto estavam neste
+# bloco global, entravam também em `qualidade`, `testes-unitarios` e `build`,
+# onde todo `npm ci` executa scripts de dependências com a chave-mestra do
+# banco no ambiente. Conferido que `npm run build` passa sem elas.
 env:
   NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-  SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-  RATE_LIMIT_HMAC_SECRET: ${{ secrets.RATE_LIMIT_HMAC_SECRET }}
 
 jobs:
   qualidade:
@@ -62,6 +68,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     env:
+      # Único job que sobe o servidor de verdade — e por isso o único que
+      # precisa das credenciais privilegiadas.
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      RATE_LIMIT_HMAC_SECRET: ${{ secrets.RATE_LIMIT_HMAC_SECRET }}
       E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
       E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
       E2E_LOJA_SLUG: ${{ secrets.E2E_LOJA_SLUG }}

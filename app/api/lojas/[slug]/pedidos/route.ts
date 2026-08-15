@@ -103,11 +103,29 @@ function mensagemNegocioSegura(mensagem: string) {
 /** Cloudflare Turnstile é opcional: sem TURNSTILE_SECRET_KEY configurada, a
  * checagem é pulada (documentado em docs/PENDING_TASKS.md — a defesa atual
  * contra abuso são os limites no banco, não CAPTCHA). Quando a chave existir,
- * passa a ser obrigatória de verdade, validada aqui no servidor. */
+ * passa a ser obrigatória de verdade, validada aqui no servidor.
+ *
+ * ATENÇÃO ANTES DE CONFIGURAR A CHAVE: ainda NÃO existe widget do Turnstile
+ * no cliente — nenhum componente monta o desafio nem manda `captchaToken`.
+ * Ou seja, configurar `TURNSTILE_SECRET_KEY` hoje não "liga o captcha": faz
+ * TODO pedido do site ser recusado, porque o token nunca chega. O aviso
+ * abaixo existe pra isso aparecer no log na primeira tentativa, em vez de
+ * virar uma loja reclamando que ninguém consegue fechar pedido.
+ *
+ * Ligar de verdade = implementar o widget no checkout + liberar
+ * challenges.cloudflare.com no script-src/frame-src da CSP + publicar a site
+ * key. Enquanto isso não acontecer, a proteção contra abuso continua sendo o
+ * rate limit persistente e a idempotência. */
 async function captchaValido(token: string | undefined) {
   const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
   if (!secret) return true;
-  if (!token) return false;
+  if (!token) {
+    logger.warn(
+      { rota: ROTA },
+      'TURNSTILE_SECRET_KEY configurada mas o pedido chegou sem captchaToken — o widget não está implementado no checkout, e todo pedido será recusado'
+    );
+    return false;
+  }
   try {
     const resposta = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
