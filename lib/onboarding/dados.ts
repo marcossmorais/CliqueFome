@@ -34,6 +34,7 @@ export class ErroCadastro extends Error {
 const SLUGS_RESERVADOS = new Set([
   'api',
   'cadastro',
+  'cookies',
   'cardapio',
   'criar-loja',
   'demo',
@@ -43,6 +44,7 @@ const SLUGS_RESERVADOS = new Set([
   'icon',
   'painel',
   'pedido',
+  'privacidade',
   'public',
   'robots',
   'sitemap',
