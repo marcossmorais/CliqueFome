@@ -1,4 +1,4 @@
-# CliqueFome
+# FlouFood
 Plataforma de pedidos de comida online com sistema de pagamento integrado
 
 Cardápio digital multi-loja (lanchonete, hamburgueria, açaiteria, pizzaria etc.)
