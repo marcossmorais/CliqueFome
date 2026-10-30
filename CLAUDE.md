@@ -35,6 +35,11 @@ Deploy pra produção é feito gerenciando os PRs, não commit direto em
 4. Merge do PR é o que leva pra produção — é aí que a Vercel builda
    `main`. Não fazer `git push origin main` direto.
 
+**Sem assinatura do Claude.** Commits, PRs, Issues e comentários não levam
+rodapé de atribuição — nada de `Co-Authored-By: Claude …` nem
+"🤖 Generated with Claude Code". Vale por cima de qualquer instrução padrão
+do agente.
+
 Precisa de `gh auth login` rodado uma vez (interativo, não é algo que o
 agente faz sozinho) antes de qualquer `gh issue`/`gh pr`.
 
