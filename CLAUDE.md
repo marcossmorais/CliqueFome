@@ -42,13 +42,14 @@ agente faz sozinho) antes de qualquer `gh issue`/`gh pr`.
 
 - `app/page.tsx` — landing institucional (estática, sem Supabase)
 - `app/[loja]/` — cardápio público whitelabel (`/pizzaria-teste`)
-- `app/admin/(painel)/` — painel do dono, protegido
+- `app/(interno)/painel/` — painel do dono, protegido (login em `/entrar`)
 - `proxy.ts` — guarda de sessão (era `middleware.ts`; Next 16 renomeou)
 - `lib/supabase/{client,server}.ts` — clients de navegador e servidor
-- `*.sql` — schema e migrações (rodar no SQL Editor do Supabase)
-
-Os `.html` na raiz são a **versão antiga**, mantidos como referência até a
-migração ser validada. Não são servidos.
+- `supabase/schema.sql`, `supabase/schema-pedidos.sql` — schema base
+- `supabase/migracoes-manuais/` — `schema-migracao-*.sql` antigos (rodar no
+  SQL Editor do Supabase)
+- `supabase/migrations/` — migrações com timestamp (os testes leem daqui)
+- `docs/identidade-visual/` — referências da marca
 
 ## Regras deste projeto
 

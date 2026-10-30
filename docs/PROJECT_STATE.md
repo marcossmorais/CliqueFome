@@ -55,6 +55,9 @@ não da nossa config — medido, não suposto.
 
 ## Migrações SQL
 
+`schema.sql` e `schema-pedidos.sql` ficam em `supabase/`; os
+`schema-migracao-*.sql`, em `supabase/migracoes-manuais/`.
+
 | Arquivo | Rodado? |
 |---|---|
 | `schema.sql` | sim |
