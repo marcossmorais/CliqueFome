@@ -17,9 +17,9 @@ com painel de administrador. Front-end estático (HTML/CSS/JS puro) + Supabase
 - `admin.html` — painel do dono da loja: login, criação da loja, categorias,
   produtos, grupos de complemento (ex: "escolha o tamanho", "adicionais") e
   status de retirada, balcão e encomendas.
-- `schema.sql` — schema do banco (tabelas, RLS, bucket de imagens). Um único
+- `supabase/schema.sql` — schema do banco (tabelas, RLS, bucket de imagens). Um único
   projeto Supabase serve todas as lojas; cada dono só vê/edita a própria loja.
-- `schema-migracao-catalogo.sql` — **rode se seu banco já existia antes do
+- `supabase/migracoes-manuais/schema-migracao-catalogo.sql` — **rode se seu banco já existia antes do
   catálogo novo.** Adiciona os campos que o painel reconstruído usa
   (etiquetas, destaque, preço promocional/custo, disponibilidade por dia e
   tipo de pedido, tipo de seleção das listas de complemento). É seguro rodar
@@ -30,7 +30,7 @@ com painel de administrador. Front-end estático (HTML/CSS/JS puro) + Supabase
 ### 1. Supabase (banco de dados)
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Em **SQL Editor → New query**, cole o conteúdo de `schema.sql` e rode.
+2. Em **SQL Editor → New query**, cole o conteúdo de `supabase/schema.sql` e rode.
 3. Em **Storage**, confira se o bucket `imagens-cardapio` foi criado (o script
    já cria, mas se preferir pode criar manualmente marcando "Public bucket").
 4. Em **Authentication → Users**, crie um usuário (email/senha) pra cada dono
