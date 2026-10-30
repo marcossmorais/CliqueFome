@@ -71,8 +71,14 @@ export const logger = pino({
       '*.META_APP_SECRET',
       // Genéricos: pegam `err.config.headers.authorization` e afins, que é
       // como um token costuma aparecer no log sem ninguém ter pedido.
+      // `*` casa UM nível só, então cada profundidade vira um path próprio:
+      // `err.config.headers.authorization` tem três níveis acima da chave.
       '*.authorization',
+      '*.*.authorization',
+      '*.*.*.authorization',
       '*.Authorization',
+      '*.*.Authorization',
+      '*.*.*.Authorization',
       '*.apiKey',
       '*.apikey',
       '*.access_token',

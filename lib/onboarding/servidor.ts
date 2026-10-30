@@ -54,8 +54,11 @@ export async function lerCorpo(request: Request, limiteBytes = 4_000) {
   if (!request.headers.get('content-type')?.toLowerCase().includes('application/json')) {
     throw new ErroCadastroApi('Content-Type precisa ser application/json.', 415);
   }
+  // Content-Length primeiro: recusa antes de bufferizar o corpo inteiro.
+  const declarado = Number(request.headers.get('content-length'));
+  if (declarado > limiteBytes) throw new ErroCadastroApi('Dados grandes demais.', 413);
   const texto = await request.text();
-  if (texto.length > limiteBytes) throw new ErroCadastroApi('Dados grandes demais.', 413);
+  if (Buffer.byteLength(texto) > limiteBytes) throw new ErroCadastroApi('Dados grandes demais.', 413);
   let valor: unknown;
   try {
     valor = JSON.parse(texto);
@@ -175,8 +178,14 @@ export async function salvarLojaDoCadastro(
       .insert({ ...campos, slug, dono_id: userId, onboarding_etapa: 'ADDRESS' })
       .select('id, slug, nome, onboarding_etapa')
       .single();
-    // 23505 = slug tomado entre a consulta e o insert. Tenta outro.
-    if (error?.code === '23505') continue;
+    if (error?.code === '23505') {
+      // Duplo clique: a outra requisição já criou a loja pendente deste dono
+      // (índice parcial `lojas_um_cadastro_pendente_por_dono`). Devolve a dela.
+      const criadaAgora = await lojaDoUsuario(userId);
+      if (criadaAgora) return criadaAgora;
+      // Senão, slug tomado entre a consulta e o insert. Tenta outro.
+      continue;
+    }
     if (error) throw error;
     return data as LojaEmCadastro;
   }

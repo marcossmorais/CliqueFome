@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { aplicarRespostaViaCep } from '../lib/delivery/endereco.ts';
@@ -215,4 +215,35 @@ test('painel só abre com o cadastro concluído', () => {
   );
   assert.match(layout, /etapaDaLoja\(loja\.onboarding_etapa\) !== 'DONE'/);
   assert.match(layout, /redirect\('\/cadastro'\)/);
+});
+
+/* Reservas e blindagem ---------------------------------------------------- */
+
+/** Primeiro nível de rotas de `app/`, atravessando grupos `(x)` e ignorando
+ * pastas privadas `_x` e dinâmicas `[x]`. */
+function segmentosDeRota(dir) {
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && !e.name.startsWith('_') && !e.name.startsWith('['))
+    .flatMap((e) => (e.name.startsWith('(') ? segmentosDeRota(`${dir}/${e.name}`) : [e.name]));
+}
+
+test('todo segmento de rota estático de app/ está nos slugs reservados', () => {
+  for (const segmento of segmentosDeRota(new URL('../app', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'))) {
+    assert.equal(slugReservado(segmento), true, `"${segmento}" falta em SLUGS_RESERVADOS`);
+  }
+});
+
+test('migration blinda onboarding_etapa e a unicidade do cadastro pendente', () => {
+  const sql = readFileSync(
+    new URL('../supabase/migrations/20260816090000_blinda_onboarding_etapa.sql', import.meta.url),
+    'utf8'
+  );
+  assert.match(sql, /new\.onboarding_etapa := 'ADDRESS'/);
+  assert.match(sql, /new\.onboarding_etapa := old\.onboarding_etapa/);
+  assert.match(sql, /create unique index if not exists lojas_um_cadastro_pendente_por_dono[\s\S]*where onboarding_etapa <> 'DONE'/);
+});
+
+test('concluir recusa coordenada que não seja número', () => {
+  const fonte = readFileSync(new URL('../app/api/onboarding/concluir/route.ts', import.meta.url), 'utf8');
+  assert.match(fonte, /typeof corpo\.latitude !== 'number'/);
 });
