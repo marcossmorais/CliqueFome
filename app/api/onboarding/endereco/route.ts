@@ -77,9 +77,13 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (existente.error) throw existente.error;
 
-    const { error } = existente.data
+    let { error } = existente.data
       ? await sb.from('store_delivery_settings').update(campos).eq('store_id', loja.id)
       : await sb.from('store_delivery_settings').insert({ store_id: loja.id, ...campos });
+    // 23505 = outra chamada criou a linha entre o select e o insert.
+    if (error?.code === '23505') {
+      ({ error } = await sb.from('store_delivery_settings').update(campos).eq('store_id', loja.id));
+    }
     if (error) throw error;
 
     // A cidade aparece no cabeçalho do cardápio público e é o único lugar

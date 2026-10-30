@@ -95,7 +95,11 @@ function ajustePedido(
 ) {
   if (corpo.latitude === undefined && corpo.longitude === undefined) return null;
 
-  const candidata = arredondar({ latitude: Number(corpo.latitude), longitude: Number(corpo.longitude) });
+  // Number(null) e Number('') dão 0: só número de verdade passa.
+  if (typeof corpo.latitude !== 'number' || typeof corpo.longitude !== 'number') {
+    throw new ErroCadastroApi('Localização inválida.');
+  }
+  const candidata = arredondar({ latitude: corpo.latitude, longitude: corpo.longitude });
   if (!coordenadaValida(candidata)) throw new ErroCadastroApi('Localização inválida.');
   if (distanciaMetros(referencia, candidata) > AJUSTE_MAXIMO_METROS) {
     throw new ErroCadastroApi('O ponto escolhido está longe demais do endereço informado.');
