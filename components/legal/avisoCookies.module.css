@@ -1,0 +1,66 @@
+.aviso {
+  position: fixed;
+  z-index: 60;
+  right: 20px;
+  bottom: 20px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid rgba(27, 26, 31, .1);
+  border-radius: 18px;
+  color: #1b1a1f;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(27, 26, 31, .22);
+  font-family: var(--fonte-corpo), sans-serif;
+  animation: subir .35s cubic-bezier(.2, .8, .2, 1) both;
+}
+.aviso * { box-sizing: border-box; }
+
+.topo { display: flex; gap: 12px; }
+.icone { font-size: 26px; line-height: 1; }
+.topo strong { display: block; margin-bottom: 4px; font-family: var(--fonte-titulo), sans-serif; font-size: 15px; }
+.topo p { margin: 0; color: #57555a; font-size: 13px; line-height: 1.55; }
+.topo a { color: #d94c00; font-weight: 600; }
+
+.categorias { display: grid; gap: 8px; margin-top: 14px; }
+.categoria {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: #f6f5f3;
+  cursor: pointer;
+}
+.categoria strong { display: block; font-size: 13px; }
+.categoria small { display: block; margin-top: 2px; color: #68666a; font-size: 11.5px; line-height: 1.4; }
+.categoria input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: #ff5a00; }
+
+.acoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.acoes button {
+  padding: 10px 15px;
+  border-radius: 10px;
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primario { border: 1px solid #ff5a00; color: #fff; background: #ff5a00; }
+.primario:hover { background: #d94c00; }
+.secundario { border: 1px solid rgba(27, 26, 31, .18); color: #1b1a1f; background: #fff; }
+.secundario:hover { border-color: #ff5a00; color: #d94c00; }
+.acoes button:focus-visible { outline: 3px solid rgba(255, 90, 0, .35); outline-offset: 2px; }
+
+@keyframes subir {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 520px) {
+  .aviso { right: 16px; bottom: 16px; padding: 16px; }
+  .acoes button { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso { animation: none; }
+}

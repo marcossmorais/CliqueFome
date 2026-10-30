@@ -1,183 +1,365 @@
+import type { StaticImageData } from 'next/image';
+import Image from 'next/image';
 import Link from 'next/link';
 import './landing.css';
 import { LogoFlouFood } from '@/components/LogoFlouFood';
-import { PlanosSecao } from './PlanosSecao';
+import { AvisoCookies, BotaoPreferenciasCookies } from '@/components/legal/AvisoCookies';
+import { DIAS_TESTE, PRECO_MENSAL } from '@/lib/legal/oferta';
+import { Palco3D } from './_landing/Palco3D';
+import telaPedidos from './_landing/telas/painel-pedidos.webp';
+import telaCozinha from './_landing/telas/painel-cozinha.webp';
+import telaCardapio from './_landing/telas/cardapio-mobile.webp';
 
 /**
- * Landing institucional. Server Component: não toca no Supabase e não tem
- * estado — só a seção de planos é client, por causa do toggle mensal/anual.
+ * Landing institucional. Server Component sem Supabase — o único trecho
+ * client é o palco 3D do hero (inclinação pelo ponteiro) e o aviso de
+ * cookies.
+ *
+ * As telas em `_landing/telas/` são capturas do sistema de verdade (painel,
+ * cozinha e cardápio público) com pedidos de exemplo. Mudou a interface?
+ * Capture de novo — print desatualizado é promessa que o produto não cumpre.
  */
 
-type Func = { titulo: string; texto: string; icone: React.ReactNode };
+const preco = PRECO_MENSAL.toFixed(2).replace('.', ',');
 
 const svg = (d: React.ReactNode) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     {d}
   </svg>
 );
 
-const GRUPOS: { titulo: string; funcs: Func[] }[] = [
+const NICHOS = ['Hamburgueria', 'Pizzaria', 'Açaiteria', 'Restaurante', 'Marmitaria', 'Doceria', 'Lanchonete'];
+
+type ItemVitrine = {
+  id: string;
+  rotulo: string;
+  titulo: string;
+  texto: string;
+  pontos: string[];
+  tela: StaticImageData;
+  alt: string;
+  formato: 'celular' | 'navegador' | 'navegador-escuro';
+  url?: string;
+};
+
+const VITRINE: ItemVitrine[] = [
   {
-    titulo: 'Operação do dia a dia',
-    funcs: [
-      { titulo: 'Gestão de pedidos', texto: 'Pedidos de retirada, balcão, mesa e encomendas numa tela só, avançando por status até a conclusão.', icone: svg(<><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>) },
-      { titulo: 'Mesas e comandas', texto: 'Abra a mesa, lance os itens durante o consumo e feche a conta com taxa de serviço.', icone: svg(<><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 6V4M17 6V4M3 11h18" /></>) },
-      { titulo: 'KDS — tela da cozinha', texto: 'A cozinha vê o que preparar e marca item por item como pronto.', icone: svg(<><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4M8 9l2 2 4-4" /></>) },
-      { titulo: 'Caixa', texto: 'Abertura e fechamento com conferência, sangria, suprimento e resumo do movimento do dia.', icone: svg(<><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M3 11h18M7 15h3" /><path d="M7 7V5h10v2" /></>) },
-    ],
+    id: 'cardapio',
+    rotulo: 'Cardápio digital',
+    titulo: 'Um cardápio com a cara da sua loja',
+    texto: 'Logo, capa e cores suas. O cliente abre pelo link, escolhe, monta o pedido com adicionais e finaliza sem baixar nada.',
+    pontos: ['Link próprio pra bio, WhatsApp e QR Code', 'Fotos, complementos, tamanhos e promoções', 'Delivery com taxa por distância e retirada no local'],
+    tela: telaCardapio,
+    alt: 'Cardápio público de uma hamburgueria aberto no celular',
+    formato: 'celular',
   },
   {
-    titulo: 'Cardápio e vendas',
-    funcs: [
-      { titulo: 'Cardápio', texto: 'Categorias, produtos, listas de complementos e opções — com foto, preço e disponibilidade.', icone: svg(<><path d="M5 4h14v16H5z" /><path d="M9 8h6M9 12h6M9 16h3" /></>) },
-      { titulo: 'Links do cardápio', texto: 'Link próprio do cardápio e do balcão pra divulgar onde quiser.', icone: svg(<><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1" /><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1" /></>) },
-      { titulo: 'Retirada no local', texto: 'O cliente monta o carrinho, escolhe o pagamento e retira o pedido no estabelecimento.', icone: svg(<><path d="M4 8h16l-1 12H5L4 8z" /><path d="M8 8V6a4 4 0 018 0v2" /></>) },
-      { titulo: 'Pedidos agendados', texto: 'Registre encomendas com data e horário combinados sem perder o controle da operação.', icone: svg(<><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18M8 14h3" /></>) },
-    ],
+    id: 'pedidos',
+    rotulo: 'Gestão de pedidos',
+    titulo: 'Todos os pedidos numa tela só',
+    texto: 'Site, Instagram, balcão e mesa caem no mesmo painel. Você vê o que é novo, o que está atrasado e quanto falta receber.',
+    pontos: ['Status do pedido de ponta a ponta', 'Pago ou a receber, à vista em cada pedido', 'Pedido manual em segundos pelo balcão'],
+    tela: telaPedidos,
+    alt: 'Painel de gestão de pedidos com a lista de pedidos do dia',
+    formato: 'navegador',
+    url: 'Painel · Gestão de pedidos',
   },
   {
-    titulo: 'Gestão e controle',
-    funcs: [
-      { titulo: 'Desempenho e relatórios', texto: 'Faturamento, ticket médio, clientes e produtos mais vendidos por período.', icone: svg(<><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></>) },
-      { titulo: 'Histórico de pedidos', texto: 'Todos os pedidos já feitos, com busca por cliente ou número e filtros avançados.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></>) },
-      { titulo: 'Financeiro', texto: 'Recebimentos, conciliação e Integração de Pagamentos em um só lugar.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M15 9.5c-.6-1-1.7-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 2 3 2 3 .9 3 2-1.3 2-3 2c-1.3 0-2.4-.5-3-1.5M12 6v12" /></>) },
-      { titulo: 'Fiscal', texto: 'Emissão de notas dos pedidos direto pelo sistema.', icone: svg(<><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></>) },
-    ],
+    id: 'cozinha',
+    rotulo: 'Tela da cozinha',
+    titulo: 'A cozinha sabe exatamente o que preparar',
+    texto: 'Cada pedido chega com itens, adicionais e observações em destaque. Um toque avança o pedido e avisa quem entrega.',
+    pontos: ['Fila em três etapas: receber, preparar, pronto', 'Observação do cliente sempre em destaque', 'Modo escuro pra tela da cozinha'],
+    tela: telaCozinha,
+    alt: 'Tela da cozinha em modo escuro com pedidos em preparo',
+    formato: 'navegador-escuro',
+    url: 'Painel · Cozinha',
   },
-  {
-    titulo: 'Configuração e suporte',
-    funcs: [
-      { titulo: 'Minha empresa', texto: 'Logo, endereço, horários de funcionamento e as formas de pagamento que você aceita.', icone: svg(<><path d="M3 21V9l9-6 9 6v12z" /><path d="M9 21v-7h6v7" /></>) },
-      { titulo: 'Configurações', texto: 'Ajustes de impressão, agendamentos e operação do sistema.', icone: svg(<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 007 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 15H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 7l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 0010 3V3a2 2 0 114 0v.1A1.6 1.6 0 0017 4.6l.1-.1a2 2 0 112.8 2.8l-.1.1A1.6 1.6 0 0021 10h0a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z" /></>) },
-      { titulo: 'Dúvidas e suporte', texto: 'Central de ajuda e canal de suporte direto no painel.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 113.2 2.4c-.5.2-.7.6-.7 1.1v.5" /><path d="M12 17h.01" /></>) },
-    ],
-  },
+];
+
+const RECURSOS = [
+  { titulo: 'PDV e caixa', texto: 'Venda no balcão, abra e feche o caixa com sangria e conferência.', icone: svg(<><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M3 11h18M7 15h3" /><path d="M7 7V5h10v2" /></>) },
+  { titulo: 'Mesas e comandas', texto: 'Lance itens durante o consumo e feche a conta com taxa de serviço.', icone: svg(<><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 6V4M17 6V4M3 11h18" /></>) },
+  { titulo: 'Delivery', texto: 'Área de entrega, taxa por distância e endereço conferido no mapa.', icone: svg(<><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" /></>) },
+  { titulo: 'Pedidos agendados', texto: 'Encomendas com data e horário combinados, sem perder o controle.', icone: svg(<><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18M8 14h3" /></>) },
+  { titulo: 'Desempenho', texto: 'Faturamento, ticket médio e produtos mais vendidos por período.', icone: svg(<><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></>) },
+  { titulo: 'Clientes', texto: 'Quem compra, quanto e com que frequência — pra chamar de volta.', icone: svg(<><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0112 0M16 4a3 3 0 010 6M21 20a6 6 0 00-4-5.6" /></>) },
+  { titulo: 'Financeiro', texto: 'Recebimentos e movimento do dia organizados num lugar só.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M15 9.5c-.6-1-1.7-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 2 3 2 3 .9 3 2-1.3 2-3 2c-1.3 0-2.4-.5-3-1.5M12 6v12" /></>) },
+  { titulo: 'Histórico', texto: 'Todos os pedidos já feitos, com busca e filtros avançados.', icone: svg(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></>) },
+];
+
+const INCLUSO = [
+  'Cardápio digital com link próprio',
+  'Delivery, retirada, balcão e mesa',
+  'Gestão de pedidos em tempo real',
+  'Tela da cozinha (KDS)',
+  'PDV, caixa, mesas e comandas',
+  'Clientes, histórico e desempenho',
+  'Financeiro',
+  'Suporte pelo painel',
 ];
 
 const PASSOS = [
-  { titulo: 'Crie sua loja', texto: 'Cadastre nome, nicho e WhatsApp — seu painel fica pronto na hora.' },
-  { titulo: 'Monte seu cardápio', texto: 'Adicione categorias, produtos, fotos e complementos como tamanho e adicionais.' },
-  { titulo: 'Receba pedidos', texto: 'O cliente monta o pedido no cardápio e finaliza direto no seu WhatsApp.' },
+  { titulo: 'Crie sua conta', texto: 'Nome da loja, categoria, WhatsApp e endereço. Leva poucos minutos.' },
+  { titulo: 'Monte o cardápio', texto: 'Categorias, produtos, fotos e adicionais — com modelos prontos pra começar.' },
+  { titulo: 'Divulgue o link', texto: 'Mande pros clientes e receba os pedidos organizados no painel.' },
 ];
 
-const MOCKUP = [
-  { nome: 'X-Burguer artesanal', desc: 'Pão brioche, cheddar, bacon', preco: 'R$ 28,90' },
-  { nome: 'Açaí 500ml', desc: 'Escolha até 3 adicionais', preco: 'R$ 19,90' },
-  { nome: 'Pizza grande', desc: 'Escolha o sabor e a borda', preco: 'R$ 54,90' },
+const DUVIDAS = [
+  { p: `Como funcionam os ${DIAS_TESTE} dias grátis?`, r: `Você cria a conta e usa tudo por ${DIAS_TESTE} dias, sem pagar nada. Depois, se quiser continuar, assina o plano de R$ ${preco} por mês.` },
+  { p: 'Tem taxa por pedido?', r: 'Não. O valor é fixo por mês, venda você 10 ou 1.000 pedidos.' },
+  { p: 'Tem fidelidade ou multa pra cancelar?', r: 'Não. Você cancela quando quiser, pelo painel ou pelo suporte, e as cobranças param.' },
+  { p: 'Preciso instalar alguma coisa?', r: 'Não. O painel roda no navegador do computador, tablet ou celular, e o cliente pede pelo link do cardápio.' },
+  { p: 'O cardápio fica com a minha marca?', r: 'Sim. O cliente vê o logo, a capa e as cores da sua loja — não a marca FlouFood.' },
+  { p: 'E os dados dos meus clientes?', r: 'Ficam protegidos e separados por loja, tratados conforme a LGPD. Os detalhes estão na Política de Privacidade.' },
 ];
+
+function IconeCheck() {
+  return svg(<path d="M20 6L9 17l-5-5" />);
+}
+
+function Tela({ item, prioridade, decorativa }: { item: ItemVitrine; prioridade?: boolean; decorativa?: boolean }) {
+  const alt = decorativa ? '' : item.alt;
+  if (item.formato === 'celular') {
+    return (
+      <div className="celular">
+        <span className="celular-ilha" />
+        <Image src={item.tela} alt={alt} sizes="(max-width: 760px) 50vw, 300px" priority={prioridade} placeholder="blur" />
+      </div>
+    );
+  }
+  return (
+    <div className={'navegador' + (item.formato === 'navegador-escuro' ? ' escuro' : '')}>
+      <div className="navegador-barra">
+        <span /><span /><span />
+        <em>{item.url}</em>
+      </div>
+      <Image src={item.tela} alt={alt} sizes="(max-width: 760px) 92vw, 900px" priority={prioridade} placeholder="blur" />
+    </div>
+  );
+}
 
 export default function Home() {
+  const [cardapio, pedidos, cozinha] = VITRINE;
+
   return (
-    // O `.landing` não é decorativo: é o escopo de todo o landing.css. Sem
-    // ele, os estilos desta página vazam pro painel na navegação
-    // client-side, porque o React nunca remove a folha depois de inserida.
+    // `.landing` é o escopo de todo o landing.css — ver o topo daquele arquivo.
     <div className="landing">
-    <div className="wrap">
-      <nav>
-        <Link href="/" className="brand-logo">
-          <LogoFlouFood />
-        </Link>
-        <div className="nav-links">
-          <a href="#funcionalidades">Funcionalidades</a>
-          <a href="#planos">Planos</a>
-        </div>
-        <Link href="/painel" className="btn btn-primary btn-small">
-          Acessar conta
-        </Link>
-      </nav>
-
-      <section className="hero">
-        <span className="badge">Cardápio digital sem complicação</span>
-        <h1>
-          Seu cardápio online e os pedidos organizados em um <span className="fome">clique</span>
-        </h1>
-        <p>
-          Cardápio digital, gestão de pedidos, mesas, cozinha e caixa num painel só — pra
-          lanchonetes, hamburguerias, pizzarias e açaiterias.
-        </p>
-        <div className="ctas">
-          <Link href="/painel" className="btn btn-primary">
-            Acessar conta
-          </Link>
-          <a href="#planos" className="btn btn-ghost">
-            Ver planos
-          </a>
-        </div>
-
-        <div className="mockup" aria-hidden="true">
-          <div className="mockup-bar">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          {MOCKUP.map((item) => (
-            <div className="mockup-row" key={item.nome}>
-              <div className="mockup-thumb"></div>
-              <div className="mockup-info">
-                <strong>{item.nome}</strong>
-                <span>{item.desc}</span>
-              </div>
-              <div className="mockup-price">{item.preco}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="funcionalidades">
-        <div className="section-head">
-          <span className="eyebrow">Funcionalidades</span>
-          <h2>Tudo o que sua operação precisa, num painel só</h2>
-          <p>
-            Do cardápio ao fechamento do caixa — pedidos, salão, cozinha e gestão sem pular
-            de sistema.
-          </p>
-        </div>
-
-        <div className="grupos-grid">
-          {GRUPOS.map((grupo) => (
-            <div className="grupo-card" key={grupo.titulo}>
-              <h3>{grupo.titulo}</h3>
-              {grupo.funcs.map((f) => (
-                <div className="func" key={f.titulo}>
-                  <div className="ico">{f.icone}</div>
-                  <div>
-                    <strong>{f.titulo}</strong>
-                    <p>{f.texto}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="section-head">
-          <span className="eyebrow">Como funciona</span>
-          <h2>Do cadastro ao primeiro pedido</h2>
-        </div>
-        <div className="steps">
-          {PASSOS.map((p) => (
-            <div className="step" key={p.titulo}>
-              <div className="num"></div>
-              <h3>{p.titulo}</h3>
-              <p>{p.texto}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <PlanosSecao />
-
-      <footer>
-        <div className="foot-row">
-          <Link href="/" className="brand-logo">
+      <header className="topo">
+        <div className="wrap topo-linha">
+          <Link href="/" className="brand-logo" aria-label="FlouFood — página inicial">
             <LogoFlouFood />
           </Link>
+          <nav className="topo-links" aria-label="Seções">
+            <a href="#recursos">Recursos</a>
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#preco">Preço</a>
+            <a href="#duvidas">Dúvidas</a>
+          </nav>
+          <div className="topo-acoes">
+            <Link href="/painel" className="topo-entrar">Entrar</Link>
+            <Link href="/cadastro" className="btn btn-primary btn-small">Testar grátis</Link>
+          </div>
+        </div>
+      </header>
+
+      <section className="hero">
+        <div className="hero-brilho" aria-hidden="true" />
+        <div className="wrap hero-texto">
+          <span className="selo">
+            <span className="selo-ponto" /> {DIAS_TESTE} dias grátis · sem taxa por pedido
+          </span>
+          <h1>
+            Do cardápio à cozinha, seus pedidos em <span className="destaque">um fluxo só</span>.
+          </h1>
+          <p>
+            Cardápio digital com a sua marca, gestão de pedidos em tempo real, tela da cozinha, PDV e caixa.
+            Feito pra hamburguerias, pizzarias, açaiterias e restaurantes.
+          </p>
+          <div className="ctas">
+            <Link href="/cadastro" className="btn btn-primary btn-grande">
+              Começar meus {DIAS_TESTE} dias grátis
+            </Link>
+            <a href="#cardapio" className="btn btn-vidro btn-grande">Ver o sistema por dentro</a>
+          </div>
+          <ul className="provas">
+            <li><IconeCheck /> Sem fidelidade</li>
+            <li><IconeCheck /> Sem taxa por pedido</li>
+            <li><IconeCheck /> Loja no ar em minutos</li>
+          </ul>
+        </div>
+
+        <Palco3D>
+          <div className="peca peca-fundo"><Tela item={cozinha} decorativa /></div>
+          <div className="peca peca-principal"><Tela item={pedidos} prioridade decorativa /></div>
+          <div className="peca peca-celular"><Tela item={cardapio} prioridade decorativa /></div>
+          <div className="peca ficha ficha-pedido">
+            <span className="ficha-icone">🔔</span>
+            <span><strong>Novo pedido #1042</strong><small>Delivery · R$ 67,80 · Pix pago</small></span>
+          </div>
+          <div className="peca ficha ficha-cozinha">
+            <span className="ficha-icone verde">✓</span>
+            <span><strong>Pedido #1038 pronto</strong><small>Aguardando retirada</small></span>
+          </div>
+        </Palco3D>
+      </section>
+
+      <section className="nichos" aria-label="Pra quem é">
+        <div className="wrap">
+          <p>Feito pra quem vive de pedido</p>
+          <ul>
+            {NICHOS.map((n) => <li key={n}>{n}</li>)}
+          </ul>
+        </div>
+      </section>
+
+      {VITRINE.map((item, i) => (
+        <section key={item.id} id={item.id} className={'vitrine' + (i % 2 ? ' invertida' : '')}>
+          <div className="wrap vitrine-grade">
+            <div className="vitrine-texto">
+              <span className="eyebrow">{item.rotulo}</span>
+              <h2>{item.titulo}</h2>
+              <p>{item.texto}</p>
+              <ul>
+                {item.pontos.map((ponto) => <li key={ponto}><IconeCheck /> {ponto}</li>)}
+              </ul>
+            </div>
+            <div className={'vitrine-palco formato-' + item.formato}>
+              <div className="tela-3d"><Tela item={item} /></div>
+            </div>
+          </div>
+        </section>
+      ))}
+
+      <section id="recursos" className="recursos">
+        <div className="wrap">
+          <div className="section-head">
+            <span className="eyebrow">E tem mais</span>
+            <h2>A operação inteira, sem pular de sistema</h2>
+            <p>Tudo incluso no mesmo plano. Sem módulo extra, sem surpresa na fatura.</p>
+          </div>
+          <div className="recursos-grade">
+            {RECURSOS.map((r) => (
+              <article className="recurso" key={r.titulo}>
+                <div className="ico">{r.icone}</div>
+                <h3>{r.titulo}</h3>
+                <p>{r.texto}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="como-funciona" className="passos-secao">
+        <div className="wrap">
+          <div className="section-head">
+            <span className="eyebrow">Como funciona</span>
+            <h2>Do cadastro ao primeiro pedido</h2>
+          </div>
+          <ol className="passos">
+            {PASSOS.map((p, i) => (
+              <li className="passo" key={p.titulo}>
+                <span className="passo-num">{i + 1}</span>
+                <h3>{p.titulo}</h3>
+                <p>{p.texto}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section id="preco" className="preco-secao">
+        <div className="wrap">
+          <div className="section-head">
+            <span className="eyebrow">Preço</span>
+            <h2>Um plano. Tudo incluso.</h2>
+            <p>Teste por {DIAS_TESTE} dias sem pagar nada. Gostou? Continue por um valor fixo.</p>
+          </div>
+
+          <div className="plano">
+            <div className="plano-lado">
+              <span className="plano-tag">{DIAS_TESTE} dias grátis</span>
+              <h3>Plano FlouFood</h3>
+              <div className="plano-preco">
+                <span className="moeda">R$</span>
+                <span className="valor">{PRECO_MENSAL}</span>
+                <span className="periodo">/mês</span>
+              </div>
+              <p className="plano-nota">Depois do teste. Sem taxa por pedido, sem fidelidade.</p>
+              <Link href="/cadastro" className="btn btn-primary btn-grande plano-cta">
+                Começar teste grátis
+              </Link>
+              <p className="plano-letras">
+                Cancele quando quiser. Condições nos <Link href="/termos#plano">Termos de Uso</Link>.
+              </p>
+            </div>
+            <ul className="plano-lista">
+              {INCLUSO.map((item) => <li key={item}><IconeCheck /> {item}</li>)}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="duvidas" className="duvidas-secao">
+        <div className="wrap duvidas-grade">
+          <div className="section-head esquerda">
+            <span className="eyebrow">Dúvidas</span>
+            <h2>Perguntas frequentes</h2>
+            <p>Não achou o que procurava? Fale com a gente pelo suporte depois de criar a conta.</p>
+          </div>
+          <div className="duvidas">
+            {DUVIDAS.map((d) => (
+              <details key={d.p}>
+                <summary>{d.p}</summary>
+                <p>{d.r}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="cta-final">
+        <div className="wrap">
+          <div className="cta-caixa">
+            <h2>Sua loja no ar ainda hoje.</h2>
+            <p>{DIAS_TESTE} dias grátis pra testar tudo. Depois, R$ {preco} por mês.</p>
+            <Link href="/cadastro" className="btn btn-branco btn-grande">Criar minha loja</Link>
+          </div>
+        </div>
+      </section>
+
+      <footer className="rodape">
+        <div className="wrap rodape-grade">
+          <div className="rodape-marca">
+            <LogoFlouFood />
+            <p>Cardápio digital e gestão de pedidos pra quem vive de delivery e balcão.</p>
+          </div>
+          <nav aria-label="Produto">
+            <strong>Produto</strong>
+            <a href="#recursos">Recursos</a>
+            <a href="#preco">Preço</a>
+            <a href="#duvidas">Dúvidas</a>
+          </nav>
+          <nav aria-label="Conta">
+            <strong>Conta</strong>
+            <Link href="/cadastro">Criar loja</Link>
+            <Link href="/painel">Entrar</Link>
+          </nav>
+          <nav aria-label="Legal">
+            <strong>Legal</strong>
+            <Link href="/termos">Termos de Uso</Link>
+            <Link href="/privacidade">Política de Privacidade</Link>
+            <Link href="/cookies">Política de Cookies</Link>
+            <Link href="/privacidade#direitos">Seus direitos (LGPD)</Link>
+            <BotaoPreferenciasCookies className="rodape-botao" />
+          </nav>
+        </div>
+        <div className="wrap rodape-base">
           <p>© 2026 FlouFood. Todos os direitos reservados.</p>
         </div>
       </footer>
-    </div>
+
+      <AvisoCookies />
     </div>
   );
 }
